@@ -1,0 +1,25 @@
+2013-07-12 17:38:28
+
+ =========
+ = Mainz =
+ =========
+
+http://osm.personalwerk.de/full-history-extracts/history_2013-02-05_1701/europe/germany/rheinland-pfalz/mainz.osh.pbf
+
+<bounds minlat="49.9507" minlon="8.2051" maxlat="50.0385" maxlon="8.3349"/>
+
+ ==========
+ = Berlin =
+ ==========
+
+http://osm.personalwerk.de/full-history-extracts/history_2013-02-05_1701/europe/germany/berlin.osh.pbf
+
+<bounds minlat="52.318" minlon="13.092" maxlat="52.672" maxlon="13.67"/>
+
+ ================
+ = South Africa =
+ ================
+
+http://osm.personalwerk.de/full-history-extracts/history_2013-02-05_1701/africa/south-africa.osh.pbf
+
+<bounds minlat="-35.86" minlon="12.15" maxlat="-20.63" maxlon="36.85"/>

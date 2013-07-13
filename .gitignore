@@ -1,0 +1,7 @@
+bin/env.sh
+data/etl
+data/full-history/*.osh.xml.gz
+data/full-history/*.osh.pbf
+data/full-history/*.osh.xml
+.DS_Store
+*.swp
