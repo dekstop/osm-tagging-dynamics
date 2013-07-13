@@ -18,10 +18,10 @@ do
   name=`basename ${filename}`
   xmlfile="${filename}.osh.xml.gz"
   
-  echo "${name}..."
-  echo "  Converting to .xml.gz"
+  echo $name
+  echo "  Converting to .xml.gz ..."
   # $OSMCONVERT "${oshfile}" | gzip > "${xmlfile}" || exit 1
-  echo "  Extracting tag edit history"
+  echo "  Extracting tag edit history..."
   time $RUBY ${ETL_SRCDIR}/extract_POI_tag_history.rb "${xmlfile}" "${ETL_DATADIR}/${name}-poi.txt" "${ETL_DATADIR}/${name}-poi_tag.txt" || exit 1
 done
 

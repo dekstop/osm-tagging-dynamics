@@ -77,7 +77,7 @@ def get_attributes(xml)
 end
 
 def strip(str)
-  str.nil? ? str : str.gsub("[\t\n]", '')
+  str.nil? ? str : str.gsub(/[\t\n]/, '')
 end
 
 # ========
