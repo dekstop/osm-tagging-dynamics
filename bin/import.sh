@@ -31,13 +31,14 @@ done
 
 echo "Loading data..."
 
+$PSQL -c "truncate node" || exit 1
 $PSQL -c "truncate poi" || exit 1
 $PSQL -c "truncate poi_tag" || exit 1
 
 for file in "${ETL_DATADIR}/"*-poi.txt
 do
   echo $file
-  time $PSQL -c "\\copy poi FROM '${file}' NULL AS ''" || exit 1
+  time $PSQL -c "\\copy node FROM '${file}' NULL AS ''" || exit 1
 done
 
 for file in "${ETL_DATADIR}/"*-poi_tag.txt
@@ -45,4 +46,7 @@ do
   echo $file
   time $PSQL -c "\\copy poi_tag(poi_id, version, key, value) FROM '${file}' NULL AS ''" || exit 1
 done
+
+echo "Identifying POI: nodes with tags"
+time $PSQL -s "INSERT INTO poi SELECT * FROM node WHERE node.id IN (SELECT DISTINCT poi_id DROM poi_tag)" || exit 1
 
