@@ -43,6 +43,6 @@ done
 for file in "${ETL_DATADIR}/"*-poi_tag.txt
 do
   echo $file
-  time $PSQL -c "\\copy poi_tag FROM '${file}' NULL AS ''" || exit 1
+  time $PSQL -c "\\copy poi_tag(poi_id, version, key, value) FROM '${file}' NULL AS ''" || exit 1
 done
 
