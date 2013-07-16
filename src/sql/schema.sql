@@ -53,15 +53,6 @@ CREATE VIEW view_poi_tag_reach AS
   FROM poi p JOIN poi_tag t ON (p.id=t.poi_id)
   GROUP BY key;
 
--- full tag version sequence for all poi
-DROP VIEW view_poi_tag_history;
-CREATE VIEW view_poi_tag_history AS 
-  SELECT 
-    poi_id, poi.version as version,
-    changeset, timestamp, uid, username, latitude, longitude,
-    key, value
-  FROM poi JOIN poi_tag ON (poi.id=poi_tag.poi_id AND poi.version=poi_tag.version);
-
 -- all first versions for (object, tag) tuples
 DROP VIEW view_poi_tag_firstversion;
 CREATE VIEW view_poi_tag_firstversion AS
@@ -70,13 +61,48 @@ CREATE VIEW view_poi_tag_firstversion AS
   GROUP BY poi_id, key, value 
   ORDER BY poi_tag_id;
 
+-- poi versions that introduced new tags (a new tag key in the set of annotations for this poi)
+DROP VIEW view_poi_tag_additions;
+CREATE VIEW view_poi_tag_additions AS 
+  SELECT t2.* 
+  FROM poi_tag t2 LEFT OUTER JOIN poi_tag t1 
+  ON (t1.poi_id=t2.poi_id 
+    AND t1.version=(t2.version-1) 
+    AND t1.key=t2.key) 
+  WHERE t1.key IS NULL;
 
--- ===============
--- = Derivatives =
--- ===============
+-- poi versions that removed particular tags (an existing key in the set of poi annotations)
+DROP VIEW view_poi_tag_removals;
+CREATE VIEW view_poi_tag_removals AS 
+  SELECT t1.id, t1.poi_id, (t1.version + 1) as version, t1.key, t1.value
+  FROM poi_tag t1 LEFT OUTER JOIN poi_tag t2
+  ON (t1.poi_id=t2.poi_id 
+    AND t1.version=(t2.version-1) 
+    AND t1.key=t2.key) 
+  WHERE t2.key IS NULL 
+  AND t1.version < (
+    SELECT MAX(version) 
+    FROM poi_tag tx 
+    WHERE t1.poi_id=tx.poi_id);
 
--- DROP TABLE poi_tag_first_version;
--- CREATE TABLE poi_tag_first_version (
---   poi_tag_id  INTEGER NOT NULL,
---   UNIQUE(poi_tag_id)
--- );
+-- poi versions that updated existing tags (same key, new value)
+DROP VIEW view_poi_tag_updates;
+CREATE VIEW view_poi_tag_updates AS
+  SELECT t2.* 
+  FROM poi_tag t1 JOIN poi_tag t2 
+  ON (t1.poi_id=t2.poi_id 
+    AND t1.version=(t2.version-1) 
+    AND t1.key=t2.key 
+    AND t1.value!=t2.value);
+
+-- full tag editing sequence: add/remove/update
+DROP TYPE action;
+CREATE TYPE action AS ENUM ('add', 'remove', 'update');
+
+DROP VIEW view_poi_tag_edit_sequence;
+CREATE VIEW view_poi_tag_edit_sequence AS
+  SELECT 'add'::action, * FROM view_poi_tag_additions
+  UNION
+  SELECT 'remove'::action, * FROM view_poi_tag_removals
+  UNION
+  SELECT 'update'::action, * FROM view_poi_tag_updates;
