@@ -2,6 +2,19 @@
 -- = POI =
 -- =======
 
+DROP TABLE node;
+CREATE TABLE node (
+  id          INTEGER NOT NULL,
+  version     INTEGER NOT NULL,
+  changeset   INTEGER NOT NULL,
+  timestamp   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+  uid         INTEGER,
+  username    CHARACTER VARYING,
+  -- visible     BOOL NOT NULL DEFAULT true,
+  latitude    NUMERIC NOT NULL,
+  longitude   NUMERIC NOT NULL
+);
+
 DROP TABLE poi;
 CREATE TABLE poi (
   id          INTEGER NOT NULL,
@@ -33,6 +46,14 @@ CREATE INDEX idx_poi_tag_key_value ON poi_tag(key, value);
 -- = Views =
 -- =========
 
+-- tag reach
+DROP VIEW view_poi_tag_reach;
+CREATE VIEW view_poi_tag_reach AS
+  SELECT key, count(distinct username) reach
+  FROM poi p JOIN poi_tag t ON (p.id=t.poi_id)
+  GROUP BY key;
+
+-- full tag version sequence for all poi
 DROP VIEW view_poi_tag_history;
 CREATE VIEW view_poi_tag_history AS 
   SELECT 
@@ -41,12 +62,14 @@ CREATE VIEW view_poi_tag_history AS
     key, value
   FROM poi JOIN poi_tag ON (poi.id=poi_tag.poi_id AND poi.version=poi_tag.version);
 
+-- all first versions for (object, tag) tuples
 DROP VIEW view_poi_tag_firstversion;
 CREATE VIEW view_poi_tag_firstversion AS
   SELECT min(id) AS poi_tag_id 
   FROM poi_tag 
   GROUP BY poi_id, key, value 
   ORDER BY poi_tag_id;
+
 
 -- ===============
 -- = Derivatives =
