@@ -1,0 +1,380 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version="0.6" generator="osmconvert 0.7Q">
+	<bounds minlat="49.9507" minlon="8.2051" maxlat="50.0385" maxlon="8.3349"/>
+	<node id="162783" lat="50.0462379" lon="8.2134171" version="1" timestamp="2005-08-09T14:40:26Z" changeset="233" uid="229" user="LA2"/>
+	<node id="162783" lat="50.0462379" lon="8.2132967" version="2" timestamp="2009-09-05T17:20:44Z" changeset="2383161" uid="76614" user="Winid"/>
+	<node id="162783" lat="50.0462379" lon="8.2133339" version="3" timestamp="2010-04-25T23:32:47Z" changeset="4527807" uid="27716" user="glmosm"/>
+	<node id="162784" lat="50.0432987" lon="8.2132156" version="1" timestamp="2007-04-14T16:47:07Z" changeset="14876" uid="3609" user="seb"/>
+	<node id="162785" lat="50.040432" lon="8.2128592" version="1" timestamp="2005-08-09T14:40:29Z" changeset="233" uid="229" user="LA2"/>
+	<node id="162785" lat="50.0399555" lon="8.2128221" version="2" timestamp="2008-04-12T16:40:37Z" changeset="124941" uid="31846" user="Tracker"/>
+	<node id="162785" lat="50.0399555" lon="8.2128221" version="3" timestamp="2008-07-24T07:58:03Z" changeset="581834" uid="28378" user="PHerison"/>
+	<node id="162785" lat="50.0399555" lon="8.2128221" version="4" timestamp="2008-07-24T08:52:37Z" changeset="581834" uid="28378" user="PHerison"/>
+	<node id="162785" lat="50.0399555" lon="8.2128221" version="5" timestamp="2008-07-24T09:11:23Z" changeset="581834" uid="28378" user="PHerison"/>
+	<node id="162785" lat="50.0399555" lon="8.2128221" version="6" timestamp="2008-07-24T09:12:56Z" changeset="581834" uid="28378" user="PHerison"/>
+	<node id="162785" lat="50.0399393" lon="8.2128069" version="11" timestamp="2009-09-05T17:20:43Z" changeset="2383161" uid="76614" user="Winid"/>
+	<node id="162797" lat="50.0178528" lon="8.2075043" version="1" timestamp="2005-08-09T14:42:49Z" changeset="233" uid="229" user="LA2"/>
+	<node id="162797" lat="50.017844" lon="8.2075394" version="2" timestamp="2008-04-13T20:11:26Z" changeset="142423" uid="31846" user="Tracker"/>
+	<node id="162797" lat="50.0178315" lon="8.2074232" version="3" timestamp="2009-09-05T17:20:44Z" changeset="2383161" uid="76614" user="Winid"/>
+	<node id="162798" lat="50.0155983" lon="8.205534" version="1" timestamp="2005-08-09T14:42:34Z" changeset="233" uid="229" user="LA2"/>
+	<node id="162798" lat="50.0165798" lon="8.2064367" version="2" timestamp="2008-04-13T20:11:26Z" changeset="142423" uid="31846" user="Tracker"/>
+	<node id="162799" lat="50.0132256" lon="8.2031765" version="1" timestamp="2005-08-09T14:42:36Z" changeset="233" uid="229" user="LA2"/>
+	<node id="162799" lat="50.0138536" lon="8.2039954" version="2" timestamp="2008-04-09T22:02:27Z" changeset="106717" uid="31846" user="Tracker"/>
+	<node id="162799" lat="50.0138868" lon="8.2039746" version="3" timestamp="2009-09-05T17:20:44Z" changeset="2383161" uid="76614" user="Winid"/>
+	<node id="162799" lat="50.0140659" lon="8.2041257" version="4" timestamp="2012-03-25T22:53:21Z" changeset="11101160" uid="328555" user="peb12345"/>
+	<node id="162805" lat="50.0027771" lon="8.1853943" version="1" timestamp="2005-08-09T14:43:51Z" changeset="233" uid="229" user="LA2"/>
+	<node id="162805" lat="50.0027771" lon="8.1855365" version="2" timestamp="2008-04-12T23:06:00Z" changeset="136551" uid="20751" user="Christian Karrié"/>
+	<node id="162809" lat="49.9997665" lon="8.1756348" version="1" timestamp="2007-08-23T22:00:22Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162809" lat="49.9997359" lon="8.1757629" version="2" timestamp="2008-04-20T18:18:33Z" changeset="201924" uid="20751" user="Christian Karrié">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162809" lat="49.9997359" lon="8.1757629" version="3" timestamp="2009-08-11T16:26:31Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162809" lat="49.9997746" lon="8.1757629" version="4" timestamp="2009-12-06T18:42:43Z" changeset="3308190" uid="45952" user="plexi32"/>
+	<node id="162813" lat="49.999791" lon="8.1730994" version="1" timestamp="2007-08-23T22:00:22Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162813" lat="49.999791" lon="8.1730994" version="2" timestamp="2009-08-11T16:26:30Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162814" lat="50.0003611" lon="8.1690836" version="1" timestamp="2007-08-23T22:00:19Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162814" lat="50.0003611" lon="8.1690836" version="2" timestamp="2009-08-11T16:26:31Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162814" lat="50.0003085" lon="8.1690918" version="3" timestamp="2011-07-05T20:47:46Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162815" lat="50.0004387" lon="8.1691113" version="1" timestamp="2005-08-09T14:44:08Z" changeset="233" uid="229" user="LA2"/>
+	<node id="162815" lat="50.0004019" lon="8.1691522" version="2" timestamp="2011-07-05T20:46:08Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162816" lat="49.9999425" lon="8.1730573" version="1" timestamp="2007-08-23T22:00:17Z" changeset="247469" uid="4164" user="Tobias Lorenz"/>
+	<node id="162816" lat="49.9998738" lon="8.1730249" version="2" timestamp="2008-04-20T18:18:22Z" changeset="201924" uid="20751" user="Christian Karrié"/>
+	<node id="162816" lat="49.9999106" lon="8.1730658" version="3" timestamp="2011-07-05T20:45:37Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162817" lat="49.9999469" lon="8.1756319" version="1" timestamp="2007-08-23T22:00:32Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162817" lat="49.9998407" lon="8.17572" version="2" timestamp="2008-04-20T18:18:22Z" changeset="201924" uid="20751" user="Christian Karrié">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162817" lat="49.9998407" lon="8.17572" version="3" timestamp="2009-08-11T16:27:58Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162817" lat="49.9998987" lon="8.17572" version="4" timestamp="2009-12-06T18:42:43Z" changeset="3308190" uid="45952" user="plexi32"/>
+	<node id="162818" lat="50.0000703" lon="8.1780044" version="1" timestamp="2007-08-23T22:00:32Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162818" lat="50.0000703" lon="8.1781466" version="2" timestamp="2008-04-12T23:06:07Z" changeset="136551" uid="20751" user="Christian Karrié">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162818" lat="50.0000563" lon="8.177932" version="3" timestamp="2008-04-13T22:20:12Z" changeset="142423" uid="31846" user="Tracker">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162818" lat="49.9999709" lon="8.1774269" version="4" timestamp="2008-04-13T22:30:51Z" changeset="142423" uid="31846" user="Tracker">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162818" lat="49.9999124" lon="8.1772478" version="5" timestamp="2008-04-20T18:18:39Z" changeset="201924" uid="20751" user="Christian Karrié">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162818" lat="49.9999124" lon="8.1772478" version="6" timestamp="2008-07-24T07:58:09Z" changeset="581834" uid="28378" user="PHerison">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162818" lat="49.9999124" lon="8.1772478" version="7" timestamp="2009-08-11T16:27:58Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162818" lat="49.9999124" lon="8.1772478" version="8" timestamp="2009-08-30T18:12:48Z" changeset="2317315" uid="101354" user="Johannes911">
+		<tag k="highway" v="motorway_link"/>
+	</node>
+	<node id="162818" lat="49.9999124" lon="8.1772478" version="9" timestamp="2009-11-03T07:20:33Z" changeset="3022390" uid="31231" user="Andre68"/>
+	<node id="162818" lat="49.9999849" lon="8.1772214" version="10" timestamp="2009-12-06T18:42:43Z" changeset="3308190" uid="45952" user="plexi32"/>
+	<node id="162819" lat="50.0003257" lon="8.179502" version="1" timestamp="2007-04-13T15:18:12Z" changeset="14149" uid="3609" user="seb">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162819" lat="50.0003257" lon="8.1796442" version="2" timestamp="2008-04-12T23:06:07Z" changeset="136551" uid="20751" user="Christian Karrié">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162819" lat="50.0003257" lon="8.1796442" version="3" timestamp="2008-07-24T07:58:09Z" changeset="581834" uid="28378" user="PHerison">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162819" lat="50.0003695" lon="8.1796285" version="4" timestamp="2009-12-06T18:42:44Z" changeset="3308190" uid="45952" user="plexi32"/>
+	<node id="162820" lat="50.001236" lon="8.1819668" version="1" timestamp="2005-08-09T14:44:14Z" changeset="233" uid="229" user="LA2"/>
+	<node id="162820" lat="50.001236" lon="8.182109" version="2" timestamp="2008-04-12T23:06:07Z" changeset="136551" uid="20751" user="Christian Karrié"/>
+	<node id="162821" lat="50.0016887" lon="8.1579698" version="1" timestamp="2007-08-23T22:00:32Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162821" lat="50.0016887" lon="8.1579698" version="2" timestamp="2009-08-11T16:27:57Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162821" lat="50.001694" lon="8.1579862" version="3" timestamp="2011-07-05T20:45:38Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162822" lat="50.0018802" lon="8.1579307" version="1" timestamp="2007-08-23T22:00:31Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162822" lat="50.0018802" lon="8.1579307" version="2" timestamp="2009-08-11T16:27:58Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162822" lat="50.0018118" lon="8.157988" version="3" timestamp="2011-07-05T20:47:38Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162823" lat="50.0020259" lon="8.1603791" version="1" timestamp="2007-08-23T22:00:19Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162823" lat="50.0020259" lon="8.1603791" version="2" timestamp="2009-08-11T16:27:58Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162823" lat="50.001968" lon="8.1604364" version="3" timestamp="2011-07-05T20:45:50Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162824" lat="50.0018508" lon="8.1603288" version="1" timestamp="2007-08-23T22:00:19Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162824" lat="50.0018508" lon="8.1603288" version="2" timestamp="2009-08-11T16:27:57Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162824" lat="50.0018508" lon="8.1604516" version="3" timestamp="2011-07-05T20:47:51Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162825" lat="50.0018871" lon="8.1625053" version="1" timestamp="2007-08-23T22:00:30Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162825" lat="50.0018871" lon="8.1625053" version="2" timestamp="2009-08-11T16:27:56Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162826" lat="50.0017489" lon="8.162481" version="1" timestamp="2007-08-23T22:00:29Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162826" lat="50.0017489" lon="8.162481" version="2" timestamp="2009-08-11T16:27:57Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162827" lat="50.0015711" lon="8.1645642" version="1" timestamp="2007-08-23T22:00:25Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162827" lat="50.0015711" lon="8.1645642" version="2" timestamp="2009-08-11T16:27:57Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162828" lat="50.0014556" lon="8.1646907" version="1" timestamp="2007-08-23T22:00:25Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162828" lat="50.0014556" lon="8.1646907" version="2" timestamp="2009-08-11T16:27:55Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162828" lat="50.0014556" lon="8.1645187" version="3" timestamp="2011-07-05T20:45:52Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162829" lat="50.0009987" lon="8.1518729" version="1" timestamp="2007-08-23T22:00:23Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162829" lat="50.0009987" lon="8.1518729" version="2" timestamp="2009-08-11T16:27:55Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162829" lat="50.0009461" lon="8.1518401" version="3" timestamp="2011-07-05T20:47:52Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162830" lat="50.0007465" lon="8.1518576" version="1" timestamp="2007-04-13T15:19:56Z" changeset="14149" uid="3609" user="seb">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162830" lat="50.0007465" lon="8.1518576" version="2" timestamp="2009-08-11T16:27:55Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162830" lat="50.0008044" lon="8.1518412" version="3" timestamp="2011-07-05T20:46:14Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162831" lat="49.999962" lon="8.1428844" version="1" timestamp="2007-08-23T22:00:19Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162831" lat="49.999962" lon="8.1428844" version="2" timestamp="2009-08-11T16:27:55Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162831" lat="49.9998988" lon="8.1429335" version="3" timestamp="2011-07-05T20:45:41Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162832" lat="49.9997194" lon="8.1429875" version="1" timestamp="2007-04-13T15:20:48Z" changeset="14149" uid="3609" user="seb">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162832" lat="49.9997194" lon="8.1429875" version="2" timestamp="2009-08-11T16:27:53Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162832" lat="49.999751" lon="8.1430121" version="3" timestamp="2011-07-05T20:47:41Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162843" lat="49.9988965" lon="8.1365217" version="1" timestamp="2007-08-23T22:00:29Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162843" lat="49.9988965" lon="8.1365217" version="2" timestamp="2009-08-11T16:27:53Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162844" lat="49.9986973" lon="8.1364906" version="1" timestamp="2007-04-13T15:21:44Z" changeset="14149" uid="3609" user="seb">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162844" lat="49.9986973" lon="8.1364906" version="2" timestamp="2009-08-11T16:27:52Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162844" lat="49.9987341" lon="8.1365234" version="3" timestamp="2011-07-05T20:45:35Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162845" lat="49.9990646" lon="8.1382214" version="1" timestamp="2007-08-23T22:00:27Z" changeset="247469" uid="4164" user="Tobias Lorenz">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162845" lat="49.9990646" lon="8.1382214" version="2" timestamp="2009-08-11T16:27:52Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162845" lat="49.9990278" lon="8.1382705" version="3" timestamp="2011-07-05T20:46:18Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="162846" lat="49.9988676" lon="8.1383116" version="1" timestamp="2007-04-13T15:21:46Z" changeset="14149" uid="3609" user="seb">
+		<tag k="created_by" v="YahooApplet 1.0"/>
+	</node>
+	<node id="162846" lat="49.9988676" lon="8.1383116" version="2" timestamp="2009-08-11T16:27:52Z" changeset="2109911" uid="109925" user="WanMil"/>
+	<node id="162846" lat="49.9988887" lon="8.1383362" version="3" timestamp="2011-07-05T20:45:46Z" changeset="8643517" uid="461945" user="poppei82"/>
+	<node id="488330" lat="50.03075" lon="8.2939167" version="1" timestamp="2006-02-09T22:10:16Z" changeset="2262" uid="46" user="FrankM">
+		<tag k="ele" v="129.434692383"/>
+	</node>
+	<node id="488330" lat="50.03075" lon="8.2939167" version="2" timestamp="2010-01-16T21:24:20Z" changeset="3635871" uid="35560" user="HeikoE"/>
+	<node id="488331" lat="50.0305556" lon="8.2933611" version="1" timestamp="2006-02-01T21:41:45Z" changeset="2141" uid="46" user="FrankM">
+		<tag k="created_by" v="JOSM"/>
+		<tag k="ele" v="126.069946289"/>
+		<tag k="time" v="2004-12-10T20:15:40Z"/>
+	</node>
+	<node id="488331" lat="50.0305556" lon="8.2933611" version="2" timestamp="2008-08-25T03:54:23Z" changeset="403095" uid="22920" user="glaosm">
+		<tag k="created_by" v="JOSM"/>
+		<tag k="ele" v="126.069946289"/>
+	</node>
+	<node id="488331" lat="50.0305788" lon="8.2933418" version="3" timestamp="2009-01-25T15:08:12Z" changeset="834437" uid="94392" user="swosm">
+		<tag k="ele" v="126.069946289"/>
+	</node>
+	<node id="488331" lat="50.0305788" lon="8.2933418" version="4" timestamp="2010-01-16T21:24:20Z" changeset="3635871" uid="35560" user="HeikoE"/>
+	<node id="488331" lat="50.0305907" lon="8.293243" version="5" timestamp="2011-12-23T15:37:27Z" changeset="10187223" uid="559890" user="Stambeskopp"/>
+	<node id="488332" lat="50.0306111" lon="8.2928889" version="1" timestamp="2006-02-01T21:41:55Z" changeset="2141" uid="46" user="FrankM">
+		<tag k="created_by" v="JOSM"/>
+		<tag k="ele" v="127.03137207"/>
+		<tag k="time" v="2004-12-10T20:15:43Z"/>
+	</node>
+	<node id="488332" lat="50.0306111" lon="8.2928889" version="2" timestamp="2008-08-25T03:54:23Z" changeset="403095" uid="22920" user="glaosm">
+		<tag k="created_by" v="JOSM"/>
+		<tag k="ele" v="127.03137207"/>
+	</node>
+	<node id="488334" lat="50.0308333" lon="8.2921389" version="1" timestamp="2006-02-01T21:42:01Z" changeset="2141" uid="46" user="FrankM">
+		<tag k="created_by" v="JOSM"/>
+		<tag k="ele" v="130.876708984"/>
+		<tag k="time" v="2004-12-10T20:15:47Z"/>
+	</node>
+	<relation id="2435181" version="1" timestamp="2012-09-25T15:57:38Z" changeset="13249393" uid="440308" user="spezialist">
+		<member type="way" ref="29377150" role=""/>
+		<member type="way" ref="148267154" role=""/>
+		<member type="way" ref="31515869" role=""/>
+		<member type="way" ref="148267152" role=""/>
+		<member type="way" ref="148273412" role=""/>
+		<tag k="operator" v="Stadt Mainz"/>
+		<tag k="ref" v="K 7"/>
+		<tag k="route" v="road"/>
+		<tag k="type" v="route"/>
+	</relation>
+	<relation id="2435182" version="1" timestamp="2012-09-25T15:57:39Z" changeset="13249393" uid="440308" user="spezialist">
+		<member type="way" ref="25679800" role=""/>
+		<member type="way" ref="4859019" role=""/>
+		<member type="way" ref="31543737" role=""/>
+		<member type="way" ref="31558426" role=""/>
+		<member type="way" ref="138571104" role=""/>
+		<member type="way" ref="138571106" role=""/>
+		<member type="way" ref="31545365" role=""/>
+		<member type="way" ref="4851332" role=""/>
+		<tag k="operator" v="Stadt Mainz"/>
+		<tag k="ref" v="K 8"/>
+		<tag k="route" v="road"/>
+		<tag k="type" v="route"/>
+	</relation>
+	<relation id="2435183" version="1" timestamp="2012-09-25T15:57:40Z" changeset="13249393" uid="440308" user="spezialist">
+		<member type="way" ref="12173284" role=""/>
+		<member type="way" ref="31545941" role=""/>
+		<member type="way" ref="15802790" role=""/>
+		<member type="way" ref="15805522" role=""/>
+		<member type="way" ref="179849628" role=""/>
+		<member type="way" ref="15805521" role=""/>
+		<member type="way" ref="4847576" role=""/>
+		<member type="way" ref="138483391" role=""/>
+		<member type="way" ref="25886267" role=""/>
+		<member type="way" ref="137337646" role=""/>
+		<member type="way" ref="25886268" role=""/>
+		<member type="way" ref="31544991" role=""/>
+		<member type="way" ref="137337647" role=""/>
+		<member type="way" ref="31545366" role=""/>
+		<member type="way" ref="148272349" role=""/>
+		<member type="way" ref="4847574" role=""/>
+		<member type="way" ref="31544992" role=""/>
+		<member type="way" ref="31544993" role=""/>
+		<member type="way" ref="61966831" role=""/>
+		<member type="way" ref="28403489" role=""/>
+		<member type="way" ref="103394976" role=""/>
+		<member type="way" ref="103394975" role=""/>
+		<member type="way" ref="52508518" role=""/>
+		<member type="way" ref="52508517" role=""/>
+		<member type="way" ref="29495026" role=""/>
+		<tag k="operator" v="Stadt Mainz"/>
+		<tag k="ref" v="K 9"/>
+		<tag k="route" v="road"/>
+		<tag k="type" v="route"/>
+	</relation>
+	<relation id="2437686" version="1" timestamp="2012-09-27T05:50:42Z" changeset="13267943" uid="67020" user="Nibbler">
+		<member type="way" ref="183111390" role="from"/>
+		<member type="way" ref="183111386" role="to"/>
+		<member type="node" ref="1934739098" role="via"/>
+		<tag k="restriction" v="only_straight_on"/>
+		<tag k="type" v="restriction"/>
+	</relation>
+	<relation id="2445548" version="1" timestamp="2012-10-01T00:26:50Z" changeset="13316988" uid="461103" user="nomatrix">
+		<member type="relation" ref="418585" role=""/>
+		<member type="relation" ref="418586" role=""/>
+		<tag k="line" v="rail"/>
+		<tag k="operator" v="DB"/>
+		<tag k="ref" v="RE3"/>
+		<tag k="route_master" v="train"/>
+		<tag k="type" v="route_master"/>
+	</relation>
+	<relation id="2445549" version="1" timestamp="2012-10-01T00:26:56Z" changeset="13316988" uid="461103" user="nomatrix">
+		<member type="relation" ref="1624293" role=""/>
+		<member type="relation" ref="187061" role=""/>
+		<tag k="line" v="rail"/>
+		<tag k="operator" v="DB Regio Rhein-Neckar"/>
+		<tag k="ref" v="RE4"/>
+		<tag k="route_master" v="train"/>
+		<tag k="type" v="route_master"/>
+	</relation>
+	<relation id="2445558" version="1" timestamp="2012-10-01T00:34:04Z" changeset="13316988" uid="461103" user="nomatrix">
+		<member type="relation" ref="1801813" role=""/>
+		<member type="relation" ref="2441613" role=""/>
+		<member type="relation" ref="1799255" role=""/>
+		<member type="relation" ref="2445540" role=""/>
+		<member type="relation" ref="2445541" role=""/>
+		<member type="relation" ref="1926830" role=""/>
+		<member type="relation" ref="2445542" role=""/>
+		<member type="relation" ref="2445324" role=""/>
+		<member type="relation" ref="1913669" role=""/>
+		<member type="relation" ref="1907933" role=""/>
+		<member type="relation" ref="2445543" role=""/>
+		<member type="relation" ref="2445544" role=""/>
+		<tag k="name" v="DB InterCityExpress"/>
+		<tag k="network" v="DB-ICE"/>
+		<tag k="operator" v="DB"/>
+		<tag k="type" v="network"/>
+	</relation>
+	<relation id="2445558" version="2" timestamp="2012-10-02T01:08:00Z" changeset="13329589" uid="461103" user="nomatrix">
+		<member type="relation" ref="1801813" role=""/>
+		<member type="relation" ref="2441613" role=""/>
+		<member type="relation" ref="1799255" role=""/>
+		<member type="relation" ref="2445540" role=""/>
+		<member type="relation" ref="2445541" role=""/>
+		<member type="relation" ref="1926830" role=""/>
+		<member type="relation" ref="2445542" role=""/>
+		<member type="relation" ref="2445324" role=""/>
+		<member type="relation" ref="1913669" role=""/>
+		<member type="relation" ref="1913527" role=""/>
+		<member type="relation" ref="1907933" role=""/>
+		<member type="relation" ref="2445362" role=""/>
+		<member type="relation" ref="2445543" role=""/>
+		<member type="relation" ref="2445544" role=""/>
+		<tag k="name" v="DB InterCityExpress"/>
+		<tag k="network" v="DB-ICE"/>
+		<tag k="operator" v="DB"/>
+		<tag k="type" v="network"/>
+	</relation>
+	<relation id="2464570" version="1" timestamp="2012-10-09T12:29:39Z" changeset="13427151" uid="128186" user="malcolmh">
+		<member type="way" ref="122858063" role="outer"/>
+		<member type="way" ref="129776754" role="inner"/>
+		<member type="way" ref="129776755" role="inner"/>
+		<member type="way" ref="61636735" role="inner"/>
+		<tag k="name" v="Rhein"/>
+		<tag k="type" v="multipolygon"/>
+		<tag k="waterway" v="riverbank"/>
+	</relation>
+	<relation id="2464570" version="2" timestamp="2012-10-09T16:11:57Z" changeset="13430043" uid="128186" user="malcolmh">
+		<member type="way" ref="122858063" role="outer"/>
+		<member type="way" ref="129776754" role="inner"/>
+		<member type="way" ref="129776755" role="inner"/>
+		<member type="way" ref="61636735" role="inner"/>
+		<tag k="type" v="multipolygon"/>
+		<tag k="waterway" v="riverbank"/>
+	</relation>
+	<relation id="2464570" version="3" timestamp="2012-10-11T19:22:20Z" changeset="13459391" uid="336641" user="Der Harry">
+		<member type="way" ref="185334166" role="outer"/>
+		<member type="way" ref="122858063" role="outer"/>
+		<member type="way" ref="129776754" role="inner"/>
+		<member type="way" ref="129776755" role="inner"/>
+		<member type="way" ref="61636735" role="inner"/>
+		<tag k="type" v="multipolygon"/>
+		<tag k="waterway" v="riverbank"/>
+	</relation>
+	<relation id="2464576" version="1" timestamp="2012-10-09T12:42:36Z" changeset="13427296" uid="128186" user="malcolmh">
+		<member type="way" ref="143749272" role="outer"/>
+		<member type="way" ref="4785643" role="inner"/>
+		<tag k="name" v="Rhein"/>
+		<tag k="type" v="multipolygon"/>
+		<tag k="waterway" v="riverbank"/>
+	</relation>
+	<relation id="2464576" version="2" timestamp="2012-10-09T16:11:58Z" changeset="13430043" uid="128186" user="malcolmh">
+		<member type="way" ref="143749272" role="outer"/>
+		<member type="way" ref="4785643" role="inner"/>
+		<tag k="type" v="multipolygon"/>
+		<tag k="waterway" v="riverbank"/>
+	</relation>
+	<relation id="2464656" version="1" timestamp="2012-10-09T13:04:03Z" changeset="13427572" uid="128186" user="malcolmh">
+		<member type="way" ref="4499851" role="outer"/>
+		<member type="way" ref="122858100" role="inner"/>
+		<member type="way" ref="14186209" role="inner"/>
+		<tag k="name" v="Rhein"/>
+		<tag k="type" v="multipolygon"/>
+		<tag k="waterway" v="riverbank"/>
+	</relation>
+	<relation id="2464656" version="2" timestamp="2012-10-09T15:36:36Z" changeset="13429503" uid="128186" user="malcolmh">
+		<member type="way" ref="122858100" role="inner"/>
+		<member type="way" ref="14186209" role="inner"/>
+		<tag k="name" v="Rhein"/>
+		<tag k="type" v="multipolygon"/>
+		<tag k="waterway" v="riverbank"/>
+	</relation>
+	<relation id="2473981" version="1" timestamp="2012-10-12T23:15:30Z" changeset="13473797" uid="2675" user="Eckhart Wörner">
+		<member type="way" ref="44852235" role="from"/>
+		<member type="way" ref="36125362" role="to"/>
+		<member type="node" ref="568608128" role="via"/>
+		<tag k="restriction" v="no_u_turn"/>
+		<tag k="type" v="restriction"/>
+	</relation>
+</osm>

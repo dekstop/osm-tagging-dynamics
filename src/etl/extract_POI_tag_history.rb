@@ -76,8 +76,30 @@ def get_attributes(xml)
   attrs
 end
 
-def strip(str)
-  str.nil? ? str : str.gsub(/[\t\n]/, '')
+def escape(str)
+  str.nil? ? str : str.
+    gsub(/\\/,'\\\\\\'). # escape backslashes
+    gsub(/\r/, '\\r').
+    gsub(/\t/, '\\t').
+    gsub(/\n/, '\\n')
+end
+
+# http://stackoverflow.com/questions/1034418/determine-if-a-string-is-a-valid-float-value
+class String
+  def valid_float?
+    !!Float(self) rescue false
+  end
+  def valid_int?
+    !!Integer(self) rescue false
+  end
+end
+
+def parse_float(str)
+  str.nil? ? str : (str.valid_float? ? str.to_f : nil)
+end
+
+def parse_int(str)
+  str.nil? ? str : (str.valid_int? ? str.to_i : nil)
 end
 
 # ========
@@ -107,14 +129,14 @@ while keep_scanning
   seek_to_tag(xml, 'node') or break
   node = get_attributes(xml)
 
-  id = node['id']
-  version = node['version']
-  changeset = node['changeset']
-  timestamp = node['timestamp']
-  uid = node['uid']
-  username = strip(node['user'])
-  lat = node['lat']
-  lon = node['lon']
+  id = parse_int(node['id'])
+  version = parse_int(node['version'])
+  changeset = parse_int(node['changeset'])
+  timestamp = escape(node['timestamp'])
+  uid = parse_int(node['uid'])
+  username = escape(node['user'])
+  lat = parse_float(node['lat'])
+  lon = parse_float(node['lon'])
 
   nodefile.write("#{id}\t#{version}\t#{changeset}\t#{timestamp}\t#{uid}\t" +
     "#{username}\t#{lat}\t#{lon}\n")
@@ -124,7 +146,7 @@ while keep_scanning
     if is_a(xml, 'tag')
       while is_a(xml, 'tag')
         tag = get_attributes(xml)
-        tagfile.write("#{id}\t#{version}\t#{strip(tag['k'])}\t#{strip(tag['v'])}\n")
+        tagfile.write("#{id}\t#{version}\t#{escape(tag['k'])}\t#{escape(tag['v'])}\n")
         seek_to_next_tag(xml) # or puts "done"
       end
     else

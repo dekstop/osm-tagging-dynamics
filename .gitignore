@@ -5,3 +5,4 @@ data/full-history/*.osh.pbf
 data/full-history/*.osh.xml
 .DS_Store
 *.swp
+._*

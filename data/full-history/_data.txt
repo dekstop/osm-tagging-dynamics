@@ -1,5 +1,8 @@
 2013-07-12 17:38:28
 
+http://osm.personalwerk.de/full-history-extracts/
+http://osm.personalwerk.de/full-history-extracts/history_2013-02-05_1701/production.conf
+
  =========
  = Mainz =
  =========
@@ -23,3 +26,19 @@ http://osm.personalwerk.de/full-history-extracts/history_2013-02-05_1701/europe/
 http://osm.personalwerk.de/full-history-extracts/history_2013-02-05_1701/africa/south-africa.osh.pbf
 
 <bounds minlat="-35.86" minlon="12.15" maxlat="-20.63" maxlon="36.85"/>
+
+ =========
+ = Paris =
+ =========
+
+http://osm.personalwerk.de/full-history-extracts/history_2013-02-05_1701/europe/france/paris.osh.pbf
+
+<bounds minlat="48.501" minlon="1.947" maxlat="49.093" maxlon="2.793"/>
+
+ ==========
+ = Israel =
+ ==========
+
+http://osm.personalwerk.de/full-history-extracts/history_2013-02-05_1701/middle-east/israel.osh.pbg
+
+<bounds minlat="29.34" minlon="34.2299999" maxlat="33.39" maxlon="35.99"/>
