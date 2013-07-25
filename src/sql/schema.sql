@@ -23,7 +23,7 @@ CREATE TABLE node (
   changeset   INTEGER NOT NULL,
   timestamp   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
   uid         INTEGER,
-  username    CHARACTER VARYING,
+  username    TEXT,
   -- visible     BOOL NOT NULL DEFAULT true,
   latitude    NUMERIC,
   longitude   NUMERIC
@@ -39,7 +39,7 @@ CREATE TABLE poi (
   changeset   INTEGER NOT NULL,
   timestamp   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
   uid         INTEGER,
-  username    CHARACTER VARYING,
+  username    TEXT,
   -- visible     BOOL NOT NULL DEFAULT true,
   latitude    NUMERIC NOT NULL,
   longitude   NUMERIC NOT NULL
@@ -61,8 +61,8 @@ CREATE TABLE poi_tag (
   id          SERIAL PRIMARY KEY,
   poi_id      INTEGER NOT NULL,
   version     INTEGER NOT NULL,
-  key         CHARACTER VARYING,
-  value       CHARACTER VARYING
+  key         TEXT,
+  value       TEXT
 );
 
 CREATE INDEX idx_poi_tag_poi_id_version ON poi_tag(poi_id, version);
@@ -80,11 +80,13 @@ CREATE VIEW view_poi_tag_reach AS
 
 -- poi versions that introduced new tags (a new tag key in the set of annotations for this poi)
 CREATE VIEW view_poi_tag_additions AS 
-  SELECT t2.* 
-  FROM poi_tag t2 LEFT OUTER JOIN poi_tag t1 
-  ON (t1.poi_id=t2.poi_id 
-    AND t1.version=(t2.version-1) 
-    AND t1.key=t2.key) 
+  SELECT t2.*
+  FROM poi_tag t2 LEFT OUTER JOIN poi_tag t1
+  ON (t1.poi_id=t2.poi_id
+    AND t1.version=(
+      SELECT MAX(version) FROM poi p
+      WHERE id=t2.poi_id AND version<t2.version)
+    AND t1.key=t2.key)
   WHERE t1.key IS NULL;
 
 -- poi versions that removed particular tags (an existing key in the set of poi annotations)
@@ -92,7 +94,9 @@ CREATE VIEW view_poi_tag_removals AS
   SELECT t1.id, t1.poi_id, (t1.version + 1) AS version, t1.key, t1.value
   FROM poi_tag t1 LEFT OUTER JOIN poi_tag t2
   ON (t1.poi_id=t2.poi_id 
-    AND t1.version=(t2.version-1) 
+    AND t1.version=(
+      SELECT MAX(version) FROM poi p
+      WHERE id=t2.poi_id AND version<t2.version) 
     AND t1.key=t2.key) 
   WHERE t2.key IS NULL  
   AND t1.version < (
@@ -105,7 +109,9 @@ CREATE VIEW view_poi_tag_updates AS
   SELECT t2.* 
   FROM poi_tag t1 JOIN poi_tag t2 
   ON (t1.poi_id=t2.poi_id 
-    AND t1.version=(t2.version-1) 
+    AND t1.version=(
+      SELECT MAX(version) FROM poi p
+      WHERE id=t2.poi_id AND version<t2.version) 
     AND t1.key=t2.key 
     AND t1.value!=t2.value);
 
@@ -125,7 +131,7 @@ CREATE VIEW view_poi_tag_edit_sequence AS
 
 CREATE TABLE region (
   id          SERIAL PRIMARY KEY,
-  name        CHARACTER VARYING NOT NULL,
+  name        TEXT NOT NULL,
   minlat      NUMERIC NOT NULL,
   minlon      NUMERIC NOT NULL,
   maxlat      NUMERIC NOT NULL,
