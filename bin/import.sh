@@ -83,8 +83,17 @@ function loadNodeTagData() {
 # =============
 
 function loadPoiTable() {
-  echo "POI: identifying all nodes with tags"
+  echo "poi: all nodes with tags"
   $PSQL -c "INSERT INTO poi SELECT * FROM node WHERE node.id IN (SELECT DISTINCT poi_id FROM poi_tag) AND latitude IS NOT NULL AND longitude IS NOT NULL" || return 1
+}
+
+function loadPoiSequenceTable() {
+  echo "poi_sequence: poi edit sequence without redactions"
+  $PSQL -c "INSERT INTO poi_sequence (poi_id, version, prev_version, next_version) \
+  SELECT p.id, p.version, \
+  (SELECT max(version) FROM poi p2 WHERE p.id=p2.id AND p.version>p2.version) prev_version, \
+  (SELECT min(version) FROM poi p3 WHERE p.id=p3.id AND p.version<p3.version) next_version \
+  FROM poi p;"
 }
 
 # ========
@@ -112,3 +121,4 @@ loadNodeTagData "${ETL_DATADIR}/"*-node_tag.txt || exit 1
 
 echo "Preparing tables..."
 loadPoiTable || exit 1
+loadPoiSequenceTable || exit 1

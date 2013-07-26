@@ -46,12 +46,17 @@ CREATE TABLE poi (
 );
 
 CREATE UNIQUE INDEX idx_poi_id_version ON poi(id, version);
+  
+-- Sequence of poi versions, skipping over redactions.
+DROP TABLE IF EXISTS poi_sequence;
+CREATE TABLE poi_sequence (
+  poi_id        INTEGER NOT NULL,
+  version       INTEGER NOT NULL,
+  prev_version  INTEGER,
+  next_version  INTEGER
+);
 
--- Most recent version of each POI
-CREATE VIEW view_poi_currentversion AS
-  SELECT id as poi_id, max(version) as version
-  FROM poi 
-  GROUP BY id;
+CREATE UNIQUE INDEX poi_sequence_poi_id_version ON poi_sequence(poi_id, version);
 
 -- ===========
 -- = POI Tag =
@@ -83,8 +88,8 @@ CREATE VIEW view_poi_tag_additions AS
   SELECT t2.*
   FROM poi_tag t2 LEFT OUTER JOIN poi_tag t1
   ON (t1.poi_id=t2.poi_id
-    AND t1.version=(
-      SELECT MAX(version) FROM poi p
+      AND t1.version=(
+        SELECT MAX(version) FROM poi p
       WHERE id=t2.poi_id AND version<t2.version)
     AND t1.key=t2.key)
   WHERE t1.key IS NULL;
