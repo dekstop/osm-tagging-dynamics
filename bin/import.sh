@@ -22,13 +22,20 @@ function convertToXml() {
 
 # args: <my_file.osh.xml.gz> <my_file-node.txt> <my_file-node_tag.txt>
 function extractXmlData() {
+  xmlfile="$1"
+  nodefile="$2"
+  tagfile="$3"
   if [ -f "${nodefile}" ] && [ -f "${tagfile}" ]
   then
     echo "  Found ${nodefile}"
     echo "  Found ${tagfile}"
+  elif [ -f "${nodefile}.gz" ] && [ -f "${tagfile}.gz" ]
+  then
+    echo "  Found ${nodefile}.gz"
+    echo "  Found ${tagfile}.gz"
   else
     echo "  Extracting tag edit history..."
-    $TIME $RUBY ${ETL_SRCDIR}/extract_POI_tag_history.rb "${xmlfile}" "${nodefile}" "${tagfile}" || return 1
+    $TIME $RUBY ${ETL_SRCDIR}/extract_POI_tag_history.rb "${xmlfile}" "${nodefile}.gz" "${tagfile}.gz" || return 1
   fi
 }
 
@@ -69,12 +76,30 @@ function loadNodeData() {
   done
 }
 
+# args: *-node.txt.gz files
+function loadNodeGzData() {
+  for file in $@
+  do
+    echo $file
+    $TIME pv "${file}" | gunzip | $PSQL -c "COPY node FROM STDIN NULL AS ''" || return 1
+  done
+}
+
 # args: *-node_tag.txt files
 function loadNodeTagData() {
   for file in $@
   do
     echo $file
     $TIME $PSQL -c "\\copy poi_tag(poi_id, version, key, value) FROM '${file}' NULL AS ''" || return 1
+  done
+}
+
+# args: *-node_tag.txt.gz files
+function loadNodeTagGzData() {
+  for file in $@
+  do
+    echo $file
+    $TIME pv "${file}" | gunzip | $PSQL -c "COPY poi_tag(poi_id, version, key, value) FROM STDIN NULL AS ''" || return 1
   done
 }
 
@@ -91,8 +116,8 @@ function loadPoiSequenceTable() {
   echo "poi_sequence: poi edit sequence without redactions"
   $PSQL -c "INSERT INTO poi_sequence (poi_id, version, prev_version, next_version) \
   SELECT p.id, p.version, \
-  (SELECT max(version) FROM poi p2 WHERE p.id=p2.id AND p.version>p2.version) prev_version, \
-  (SELECT min(version) FROM poi p3 WHERE p.id=p3.id AND p.version<p3.version) next_version \
+  (SELECT max(version) FROM poi p2 WHERE p.id=p2.id AND p.version>p2.version) as prev_version, \
+  (SELECT min(version) FROM poi p3 WHERE p.id=p3.id AND p.version<p3.version) as next_version \
   FROM poi p;"
 }
 
@@ -111,14 +136,17 @@ extractAll ${OSH_DATADIR}/*.osh.pbf || exit 1
 # To prepare a specific file
 # name=berlin
 # convertToXml "${OSH_DATADIR}/${name}.osh.pbf" "${OSH_DATADIR}/${name}.osh.xml.gz" || exit 1
-# extractXmlData "${OSH_DATADIR}/${name}.osh.xml.gz" "${ETL_DATADIR}/${name}-node.txt" "${ETL_DATADIR}/${name}-node_tag.txt" || return 1
+# extractXmlData "${OSH_DATADIR}/${name}.osh.xml.gz" "${ETL_DATADIR}/${name}-node.txt.gz" "${ETL_DATADIR}/${name}-node_tag.txt.gz" || exit 1
 
 echo "Loading data..."
 truncate || exit 1
 
 loadNodeData "${ETL_DATADIR}/"*-node.txt || exit 1
+loadNodeGzData "${ETL_DATADIR}/"*-node.txt.gz || exit 1
+loadNodeTagGzData "${ETL_DATADIR}/"*-node_tag.txt.gz || exit 1
 loadNodeTagData "${ETL_DATADIR}/"*-node_tag.txt || exit 1
 
 echo "Preparing tables..."
 loadPoiTable || exit 1
 loadPoiSequenceTable || exit 1
+

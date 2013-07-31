@@ -29,6 +29,15 @@ require 'zlib'
 # = Tools =
 # =========
 
+def open_etl_file(filename)
+  io = File.new(filename, 'w')
+  if filename.end_with?('.gz')
+    puts "Using gzip compression for #{filename}"
+    io = Zlib::GzipWriter.new(io)
+  end
+  io
+end
+
 def is_a(xml, tag_name)
   (xml.node_type == XML::Reader::TYPE_ELEMENT && xml.name == tag_name)
 end
@@ -109,6 +118,7 @@ end
 if ARGV.size!=3
   puts '<OSM *.osh.xml.gz file> <output POI file> <output tag file>'
   puts 'Produces a set of TSV files that can be loaded into a DB.'
+  puts 'Will use compression on output files with a .gz suffix.'
   exit 1
 end
 
@@ -118,8 +128,8 @@ else
   xml = XML::Reader.file(ARGV[0])
 end
 
-nodefile = File.new(ARGV[1], 'w')
-tagfile = File.new(ARGV[2], 'w')
+nodefile = open_etl_file(ARGV[1])
+tagfile = open_etl_file(ARGV[2])
 
 # 240000.times { |n| skip_next(xml, 'node') }
 # seek_to_tag(xml, 'does_not_exist') or exit
