@@ -34,10 +34,10 @@ class FilterJob(MRJob):
 		self.add_passthrough_option('--maxlon')
 
 	def mapper_init(self):
-		self.minlat = float(self.options.minlat)
-		self.minlon = float(self.options.minlon)
-		self.maxlat = float(self.options.maxlat)
-		self.maxlon = float(self.options.maxlon)
+		self.minlat, self.maxlat = sorted([
+			float(self.options.minlat), float(self.options.maxlat)])
+		self.minlon, self.maxlon = sorted([
+			float(self.options.minlon), float(self.options.maxlon)])
 	
 	def mapper(self, _, line):
 		cols = line.split("\t")
