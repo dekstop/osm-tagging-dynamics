@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
 #
-# Filter text files based on column values. 
-# (Initially: node.txt files based on geo coordinates.)
+# Filter *-node.txt records based on geo coordinates.
+#
+# To set the number of splits: 
+#   --jobconf mapred.map.tasks=<num_splits>
 #
 # node.txt file format:
 # - id          INTEGER NOT NULL,
