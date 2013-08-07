@@ -86,49 +86,39 @@ CREATE VIEW view_poi_tag_reach AS
 -- poi versions that introduced new tags (a new tag key in the set of annotations for this poi)
 CREATE VIEW view_poi_tag_additions AS 
   SELECT t2.*
-  FROM poi_tag t2 LEFT OUTER JOIN poi_tag t1
-  ON (t1.poi_id=t2.poi_id
-      AND t1.version=(
-        SELECT MAX(version) FROM poi p
-      WHERE id=t2.poi_id AND version<t2.version)
-    AND t1.key=t2.key)
+  FROM poi_tag t2 JOIN poi_sequence s 
+  ON (t2.poi_id=s.poi_id AND t2.version=s.version)
+  LEFT OUTER JOIN poi_tag t1 
+  ON (t1.poi_id=t2.poi_id AND t1.version=s.prev_version AND t1.key=t2.key)
   WHERE t1.key IS NULL;
 
 -- poi versions that removed particular tags (an existing key in the set of poi annotations)
 CREATE VIEW view_poi_tag_removals AS 
-  SELECT t1.id, t1.poi_id, (t1.version + 1) AS version, t1.key, t1.value
-  FROM poi_tag t1 LEFT OUTER JOIN poi_tag t2
-  ON (t1.poi_id=t2.poi_id 
-    AND t1.version=(
-      SELECT MAX(version) FROM poi p
-      WHERE id=t2.poi_id AND version<t2.version) 
-    AND t1.key=t2.key) 
-  WHERE t2.key IS NULL  
-  AND t1.version < (
-    SELECT MAX(version) 
-    FROM poi_tag tx 
-    WHERE t1.poi_id=tx.poi_id);
+  SELECT t1.id, t1.poi_id, s.next_version AS version, t1.key, t1.value
+  FROM poi_tag t1 JOIN poi_sequence s 
+  ON (t1.poi_id=s.poi_id AND t1.version=s.version)
+  LEFT OUTER JOIN poi_tag t2
+  ON (t1.poi_id=t2.poi_id AND t2.version=s.next_version AND t1.key=t2.key)
+  WHERE s.next_version IS NOT NULL AND t2.key IS NULL;
 
 -- poi versions that updated existing tags (same key, new value)
 CREATE VIEW view_poi_tag_updates AS
   SELECT t2.* 
-  FROM poi_tag t1 JOIN poi_tag t2 
-  ON (t1.poi_id=t2.poi_id 
-    AND t1.version=(
-      SELECT MAX(version) FROM poi p
-      WHERE id=t2.poi_id AND version<t2.version) 
-    AND t1.key=t2.key 
-    AND t1.value!=t2.value);
+  FROM poi_tag t1 JOIN poi_sequence s 
+  ON (t1.poi_id=s.poi_id AND t1.version=s.version)
+  JOIN poi_tag t2 ON (t1.poi_id=t2.poi_id AND t2.version=s.next_version 
+    AND t1.key=t2.key)
+  WHERE t1.value!=t2.value;
 
 -- full tag editing sequence: add/remove/update
 CREATE TYPE action AS ENUM ('add', 'remove', 'update');
 
 CREATE VIEW view_poi_tag_edit_sequence AS
-  SELECT 'add'::action, * FROM view_poi_tag_additions
-  UNION
-  SELECT 'remove'::action, * FROM view_poi_tag_removals
-  UNION
-  SELECT 'update'::action, * FROM view_poi_tag_updates;
+  SELECT 'add'::action, * FROM view_poi_tag_additions2
+  UNION ALL
+  SELECT 'remove'::action, * FROM view_poi_tag_removals2
+  UNION ALL
+  SELECT 'update'::action, * FROM view_poi_tag_updates2;
 
 -- ==========
 -- = Region =
