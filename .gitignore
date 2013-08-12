@@ -6,3 +6,4 @@ data/full-history/*.osh.xml
 .DS_Store
 *.swp
 ._*
+src/mapred/regions/region_*.grunt
