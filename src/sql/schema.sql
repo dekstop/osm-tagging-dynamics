@@ -148,7 +148,7 @@ INSERT INTO region(name, minlat, minlon, maxlat, maxlon) VALUES
 -- Mapping region and poi IDs
 CREATE VIEW view_region_poi AS
   SELECT r.id AS region_id, p.id AS poi_id
-  FROM node p JOIN region r 
+  FROM node p LEFT OUTER JOIN region r 
   ON (p.latitude>=r.minlat AND p.latitude<=r.maxlat 
     AND p.longitude>=r.minlon AND p.longitude<=r.maxlon)
   GROUP BY r.id, p.id;
