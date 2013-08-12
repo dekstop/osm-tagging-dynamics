@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 BIN=$( cd "$( dirname "$0" )" && pwd )
 . ${BIN}/env.sh
@@ -65,6 +65,7 @@ function truncate() {
   $PSQL -c "truncate node" || return 1
   $PSQL -c "truncate poi" || return 1
   $PSQL -c "truncate poi_tag" || return 1
+  $PSQL -c "truncate poi_sequence" || return 1
 }
 
 # args: *-node.txt files
