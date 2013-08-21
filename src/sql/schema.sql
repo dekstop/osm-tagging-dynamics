@@ -4,7 +4,8 @@ DROP VIEW IF EXISTS view_poi_tag_edit_sequence;
 DROP VIEW IF EXISTS view_poi_tag_additions;
 DROP VIEW IF EXISTS view_poi_tag_removals;
 DROP VIEW IF EXISTS view_poi_tag_updates;
-DROP VIEW IF EXISTS view_region_poi;
+DROP VIEW IF EXISTS view_region_poi_any;
+DROP VIEW IF EXISTS view_region_poi_latest;
 
 DROP TABLE IF EXISTS node;
 DROP TABLE IF EXISTS poi;
@@ -146,9 +147,18 @@ INSERT INTO region(name, minlat, minlon, maxlat, maxlon) VALUES
   ('Israel', 29.34, 34.2299999, 33.39, 35.99);
 
 -- Mapping region and poi IDs
-CREATE VIEW view_region_poi AS
+CREATE VIEW view_region_poi_any AS
   SELECT r.id AS region_id, p.id AS poi_id
-  FROM node p LEFT OUTER JOIN region r 
+  FROM poi p LEFT OUTER JOIN region r 
+  ON (p.latitude>=r.minlat AND p.latitude<=r.maxlat 
+    AND p.longitude>=r.minlon AND p.longitude<=r.maxlon)
+  GROUP BY r.id, p.id;
+
+CREATE VIEW view_region_poi_latest AS
+  SELECT r.id AS region_id, p.id AS poi_id
+  FROM (SELECT id, max(version) AS version FROM poi GROUP BY id) pl
+  JOIN poi p ON (pl.id=p.id AND pl.version=p.version) 
+  LEFT OUTER JOIN region r 
   ON (p.latitude>=r.minlat AND p.latitude<=r.maxlat 
     AND p.longitude>=r.minlon AND p.longitude<=r.maxlon)
   GROUP BY r.id, p.id;
