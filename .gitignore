@@ -7,3 +7,4 @@ data/full-history/*.osh.xml
 *.swp
 ._*
 src/mapred/regions/region_*.grunt
+pig_*.log
