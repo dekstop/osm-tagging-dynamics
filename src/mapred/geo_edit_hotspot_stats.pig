@@ -16,7 +16,7 @@ node_tag = LOAD 'data/tsv/test/node_tag' AS (id:long, version:int, key:chararray
 
 -- stratify
 node_geo = FILTER node BY (latitude IS NOT NULL AND longitude IS NOT NULL);
-node_stratified = FOREACH node_geo GENERATE id, version, changeset, timestamp, uid, username, ROUND(latitude * 2) / 2.0 AS latitude, ROUND(longitude * 2) / 2.0 AS longitude; 
+node_stratified = FOREACH node_geo GENERATE id, version, changeset, timestamp, uid, username, ROUND(latitude * 2) / 2.0 + 0.25 AS latitude, ROUND(longitude * 2) / 2.0 + 0.25 AS longitude; 
 
 -- poi/tag join
 poi_versions_tags_t = COGROUP node_stratified BY (id, version) INNER, node_tag BY (id, version) INNER;
