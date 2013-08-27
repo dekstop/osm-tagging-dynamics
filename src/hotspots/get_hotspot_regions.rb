@@ -15,6 +15,13 @@ LON_GRID = 0.5
 
 HOTSPOT_SCORE_PERCENTILE = 0.99 # Share of all points considered hotspots
 
+REGION_SEARCH_DEPTH = 3 # bounding box dimensions in number of LAT_GRID/LON_GRID units from current centre
+REGION_SEARCH_VECTORS = (-REGION_SEARCH_DEPTH..REGION_SEARCH_DEPTH).map do |x|
+  (-REGION_SEARCH_DEPTH..REGION_SEARCH_DEPTH).map do |y| 
+    [x * LAT_GRID, y * LON_GRID]
+  end
+end.flatten(1).select{|v| v!=[0,0] }
+
 REGION_LAT_BORDER = LAT_GRID
 REGION_LON_BORDER = LON_GRID
 
@@ -44,16 +51,13 @@ def moveBy(loc, distance)
 end
 
 # Collect all immediately adjacent locations that have score >= min_score
-def collect_hotspots(map, loc, min_score, hotspots=Set.new)
+def collect_hotspots(map, min_score, loc, hotspots=Set.new)
   hotspots << loc
-  [
-    [LAT_GRID, LON_GRID], [-LAT_GRID, LON_GRID], 
-    [LAT_GRID, -LON_GRID], [-LAT_GRID, -LON_GRID], 
-  ].each do |offset|
+  REGION_SEARCH_VECTORS.each do |offset|
     neighbor = moveBy(loc, offset)
     if !hotspots.include?(neighbor) then
       if !map[neighbor].nil? && map[neighbor][:score] >= min_score then
-        hotspots.merge(collect_hotspots(map, neighbor, min_score, hotspots))
+        hotspots.merge(collect_hotspots(map, min_score, neighbor, hotspots))
       end
     end
   end
@@ -127,7 +131,7 @@ end
 
 # Hotspots
 puts 'Finding hotspots...'
-hotspots = []
+hotspots = Set.new
 locations.each do |loc|
   if !map[loc].nil?
     if (map[loc][:score] >= score_cutoff)
@@ -147,11 +151,15 @@ end
 # Regions
 puts 'Merging regions...'
 regions = []
-hs_to_visit = hotspots.clone
-while !hs_to_visit.empty? 
-  loc = hs_to_visit.shift
-  hs_locations = collect_hotspots(map, loc, HOTSPOT_SCORE_PERCENTILE)
-  hs_locations.each {|loc| hs_to_visit.delete(loc) }
+region_points = []
+to_visit = hotspots.to_a
+while !to_visit.empty? 
+  loc = to_visit.shift
+  # puts "Next centre: #{loc}"
+  hs_locations = collect_hotspots(map, HOTSPOT_SCORE_PERCENTILE, loc)
+  hs_locations.each {|loc| to_visit.delete(loc) }
+  region_points << hs_locations
+
   hs_latitudes = hs_locations.map {|loc| loc[0] }
   hs_longitudes = hs_locations.map {|loc| loc[1] }
 
@@ -164,6 +172,7 @@ while !hs_to_visit.empty?
   regions << region
 end
 
+# As TSV
 File.open("#{outdir}/regions.txt", 'wb') do |f|
   idx = 0
   regions.each do |region|
@@ -172,6 +181,70 @@ File.open("#{outdir}/regions.txt", 'wb') do |f|
       region[:maxlat], region[:maxlon]].join("\t") + "\n"
     idx += 1
   end
+end
+
+# As GeoJSON
+File.open("#{outdir}/regions.geojson", 'wb') do |f|
+  cur_id = 1
+  
+  f << "{\n"
+  f << "\"type\": \"FeatureCollection\",\n"
+  f << "\"crs\": { \"type\": \"name\", \"properties\": { \"name\": \"urn:ogc:def:crs:OGC:1.3:CRS84\" } },\n"
+  f << "\"features\": [\n"
+
+  # # Hotspot points
+  # f << "  { \n"
+  # f << "    \"type\": \"Feature\", \n"
+  # f << "    \"properties\": { \"id\": #{cur_id}, \"name\": \"hotspots\" },\n"
+  # cur_id += 1
+  # f << "    \"geometry\": { \"type\": \"MultiPoint\", \"coordinates\": [ \n"
+  #   hotspots.each_with_index do |loc,idx|
+  #   f << "      [ #{loc[1]}, #{loc[0]} ]"
+  #   f << "," if idx < (hotspots.size-1)
+  #   f << "\n"
+  # end
+  # f << "    ] }\n"
+  # f << "  }"
+  # f << "," if region_points.size>0 || regions.size > 0
+  # f << "\n"
+
+  # Region points
+  region_points.each_with_index do |points, idx|
+    f << "  { \n"
+    f << "    \"type\": \"Feature\", \n"
+    f << "    \"properties\": { \"id\": #{cur_id}, \"name\": \"region_point_#{cur_id}\" },\n"
+    cur_id += 1
+    f << "    \"geometry\": { \"type\": \"MultiPoint\", \"coordinates\": [ \n"
+      points.each_with_index do |loc,idx|
+      f << "      [ #{loc[1]}, #{loc[0]} ]"
+      f << "," if idx < (points.size-1)
+      f << "\n"
+    end
+    f << "    ] }\n"
+    f << "  }"
+    f << "," if idx < (region_points.size-1) || regions.size > 0
+    f << "\n"
+  end
+
+  # Merged regions
+  regions.each_with_index do |region, idx|
+    f << "  { \n"
+    f << "    \"type\": \"Feature\", \n"
+    f << "    \"properties\": { \"id\": #{cur_id}, \"name\": \"region_#{cur_id}\" },\n"
+    cur_id += 1
+    f << "    \"geometry\": { \"type\": \"Polygon\", \"coordinates\": [[ \n"
+    f << "      [ #{region[:minlon]}, #{region[:minlat]} ],\n"
+    f << "      [ #{region[:maxlon]}, #{region[:minlat]} ],\n"
+    f << "      [ #{region[:maxlon]}, #{region[:maxlat]} ],\n"
+    f << "      [ #{region[:minlon]}, #{region[:maxlat]} ],\n"
+    f << "      [ #{region[:minlon]}, #{region[:minlat]} ]\n"
+    f << "    ]] }\n"
+    f << "  }"
+    f << "," if idx < (regions.size-1)
+    f << "\n"
+  end
+
+  f << "]}"
 end
 
 # Done.
