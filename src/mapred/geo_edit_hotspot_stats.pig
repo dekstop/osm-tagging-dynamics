@@ -1,6 +1,8 @@
 -- basic global stats: number of POI, avg num_versions/num_users per POI, etc
 -- stratified to 0.5 lat/lon granularity
 
+SET DEFAULT_PARALLEL 20;
+
 -- inputs
 -- s3://osm-research/tsv-compressed/continents/node
 -- data/tsv/test/node

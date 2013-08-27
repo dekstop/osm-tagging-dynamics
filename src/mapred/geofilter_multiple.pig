@@ -4,6 +4,8 @@
 -- $input_node_tag
 -- $output
 
+SET DEFAULT_PARALLEL 20;
+
 node = LOAD '$input_node' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
 
 node_tag = LOAD '$input_node_tag' AS (id:long, version:int, key:chararray, value:chararray);
