@@ -183,6 +183,25 @@ File.open("#{outdir}/regions.txt", 'wb') do |f|
   end
 end
 
+# As Pig filter
+File.open("#{outdir}/region_filter.pig", 'wb') do |f|
+  f << "-- Generated from #{filename}\n"
+  f << "-- #{Time.now}\n"
+  f << "filtered_node = FILTER node BY \n"
+  regions.each_with_index do |region, idx|
+    f << "  ((#{region[:minlat]} <= latitude) AND (latitude <= #{region[:maxlat]}) AND (#{region[:minlon]} <= longitude) AND (longitude <= #{region[:maxlon]}))"
+    ["region_#{idx}", 
+      region[:minlat], region[:minlon], 
+      region[:maxlat], region[:maxlon]].join("\t") + "\n"
+    if idx < (regions.size-1)
+      f << " OR " 
+    else
+      f << ";"
+    end
+    f << "\n"
+  end
+end
+
 # As GeoJSON
 File.open("#{outdir}/regions.geojson", 'wb') do |f|
   cur_id = 1
