@@ -1,4 +1,5 @@
--- inputs
+-- extract POI in particular regions from node/node_tag data sets
+
 -- parameters:
 -- $input_node
 -- $input_node_tag
@@ -105,19 +106,22 @@ filtered_node = FILTER node BY
   ((11.25 <= latitude) AND (latitude <= 12.25) AND (92.25 <= longitude) AND (longitude <= 93.75)) OR 
   ((51.75 <= latitude) AND (latitude <= 52.75) AND (-7.25 <= longitude) AND (longitude <= -6.25));
 
+-- ID whitelists: all nodes, and POI (nodes with tags)
 filtered_node_group = GROUP filtered_node BY id;
-filtered_id = FOREACH filtered_node_group GENERATE $0;
--- dump filtered_id;
-store filtered_id into '$output/poi_id';
+filtered_node_id = FOREACH filtered_node_group GENERATE $0;
+store filtered_node_id into '$output/node_id';
+
+filtered_node_tag = FILTER node_tag BY (key!='created_by');
+filtered_poi_id_group = COGROUP filtered_node_id BY $0 INNER, filtered_node_tag BY id INNER;
+filtered_poi_id = FOREACH filtered_poi_id_group GENERATE $0;
+store filtered_poi_id into '$output/poi_id';
 
 -- node
-region_node_join = COGROUP node BY id INNER, filtered_id BY $0 INNER;
+region_node_join = COGROUP node BY id INNER, filtered_poi_id BY $0 INNER;
 region_node = FOREACH region_node_join GENERATE FLATTEN($1);
 store region_node into '$output/node';
--- dump region_node
 
 -- node_tag
-region_tag_join = COGROUP node_tag BY id INNER, filtered_id BY $0 INNER;
+region_tag_join = COGROUP node_tag BY id INNER, filtered_poi_id BY $0 INNER;
 region_tag = FOREACH region_tag_join GENERATE FLATTEN($1);
 store region_tag into '$output/node_tag';
--- dump region_tag;
