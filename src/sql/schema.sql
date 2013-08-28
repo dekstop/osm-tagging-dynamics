@@ -115,11 +115,11 @@ CREATE VIEW view_poi_tag_updates AS
 CREATE TYPE action AS ENUM ('add', 'remove', 'update');
 
 CREATE VIEW view_poi_tag_edit_sequence AS
-  SELECT 'add'::action, * FROM view_poi_tag_additions2
+  SELECT 'add'::action, * FROM view_poi_tag_additions
   UNION ALL
-  SELECT 'remove'::action, * FROM view_poi_tag_removals2
+  SELECT 'remove'::action, * FROM view_poi_tag_removals
   UNION ALL
-  SELECT 'update'::action, * FROM view_poi_tag_updates2;
+  SELECT 'update'::action, * FROM view_poi_tag_updates;
 
 -- ==========
 -- = Region =
