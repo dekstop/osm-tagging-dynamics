@@ -6,7 +6,7 @@
 -- $input_node_tag
 -- $output
 
-SET DEFAULT_PARALLEL 20;
+SET default_parallel 4;
 
 node = LOAD '$input_node' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
 clean_node = FILTER node BY (latitude IS NOT NULL AND longitude IS NOT NULL);

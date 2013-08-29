@@ -6,7 +6,7 @@
 -- $input_node_tag
 -- $output
 
-SET DEFAULT_PARALLEL 20;
+SET default_parallel 10;
 SET output.compression.enabled true; 
 SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
 
