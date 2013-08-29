@@ -12,6 +12,6 @@ do
   pig \
     -p input_node=s3://osm-research/tsv-compressed/continents/node/${continent} \
     -p input_node_tag=s3://osm-research/tsv-compressed/continents/node_tag/${continent} \
-    -p output=s3://osm-research/poi-regions/hotspot-regions-20130829-01/continents/${continent} \
+    -p output=s3://osm-research/poi-regions/hotspot-regions-20130829-01/continents/${continent}.lzo \
     ${SRCDIR}/mapred/geofilter.pig || exit 1
 done
