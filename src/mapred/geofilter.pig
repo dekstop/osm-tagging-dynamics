@@ -7,6 +7,8 @@
 -- $output
 
 SET DEFAULT_PARALLEL 20;
+SET output.compression.enabled true; 
+SET output.compression.codec org.apache.hadoop.io.compress.LzopCodec;
 
 node = LOAD '$input_node' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
 clean_node = FILTER node BY (latitude IS NOT NULL AND longitude IS NOT NULL);
