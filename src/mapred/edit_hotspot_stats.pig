@@ -15,8 +15,7 @@ node_tag = LOAD '$input_node_tag' AS (id:long, version:int, key:chararray, value
 clean_node_tag = FILTER node_tag BY (key!='created_by');
 
 -- stratify
-node_geo = FILTER clean_node BY (latitude IS NOT NULL AND longitude IS NOT NULL);
-node_stratified = FOREACH node_geo GENERATE id, version, changeset, timestamp, uid, username, ROUND(latitude * 2) / 2.0 + 0.25 AS latitude, ROUND(longitude * 2) / 2.0 + 0.25 AS longitude; 
+node_stratified = FOREACH clean_node GENERATE id, version, changeset, timestamp, uid, username, ROUND(latitude * 2) / 2.0 + 0.25 AS latitude, ROUND(longitude * 2) / 2.0 + 0.25 AS longitude; 
 
 -- poi/tag join
 poi_versions_tags_t = COGROUP node_stratified BY (id, version) INNER, clean_node_tag BY (id, version) INNER;
