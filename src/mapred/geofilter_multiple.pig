@@ -8,17 +8,19 @@
 SET DEFAULT_PARALLEL 20;
 
 node = LOAD '$input_node' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
+clean_node = FILTER node BY (latitude IS NOT NULL AND longitude IS NOT NULL);
 
 node_tag = LOAD '$input_node_tag' AS (id:long, version:int, key:chararray, value:chararray);
+clean_node_tag = FILTER node_tag BY (key!='created_by');
 
 -- POI IDs
--- filtered_node = FILTER node BY 
+-- filtered_node = FILTER clean_node BY 
 --   ((51.0 <= latitude) AND (latitude <= 52.0) AND (-5.0 <= longitude) AND (longitude <= 0.0)) OR
 --   ((50.0 <= latitude) AND (latitude <= 53.0) AND (8.0 <= longitude) AND (longitude <= 21.0));
 
 -- Generated from ../outputs/20130822 global/data/geo_poi_edit_stats-03.txt
 -- Tue Aug 27 18:45:57 +0100 2013
-filtered_node = FILTER node BY 
+filtered_node = FILTER clean_node BY 
   ((-30.75 <= latitude) AND (latitude <= -28.75) AND (134.75 <= longitude) AND (longitude <= 136.25)) OR 
   ((12.75 <= latitude) AND (latitude <= 18.25) AND (42.75 <= longitude) AND (longitude <= 50.25)) OR 
   ((12.75 <= latitude) AND (latitude <= 14.25) AND (-59.75 <= longitude) AND (longitude <= -58.75)) OR 
@@ -111,17 +113,16 @@ filtered_node_group = GROUP filtered_node BY id;
 filtered_node_id = FOREACH filtered_node_group GENERATE $0;
 store filtered_node_id into '$output/node_id';
 
-filtered_node_tag = FILTER node_tag BY (key!='created_by');
-filtered_poi_id_group = COGROUP filtered_node_id BY $0 INNER, filtered_node_tag BY id INNER;
+filtered_poi_id_group = COGROUP filtered_node_id BY $0 INNER, clean_node_tag BY id INNER;
 filtered_poi_id = FOREACH filtered_poi_id_group GENERATE $0;
 store filtered_poi_id into '$output/poi_id';
 
 -- node
-region_node_join = COGROUP node BY id INNER, filtered_poi_id BY $0 INNER;
+region_node_join = COGROUP clean_node BY id INNER, filtered_poi_id BY $0 INNER;
 region_node = FOREACH region_node_join GENERATE FLATTEN($1);
 store region_node into '$output/node';
 
 -- node_tag
-region_tag_join = COGROUP node_tag BY id INNER, filtered_poi_id BY $0 INNER;
+region_tag_join = COGROUP clean_node_tag BY id INNER, filtered_poi_id BY $0 INNER;
 region_tag = FOREACH region_tag_join GENERATE FLATTEN($1);
 store region_tag into '$output/node_tag';

@@ -1,28 +1,26 @@
 -- basic global stats: number of POI, avg num_versions/num_users per POI, etc
 -- stratified to 0.5 lat/lon granularity
 
+-- parameters:
+-- $input_node
+-- $input_node_tag
+-- $output
+
 SET DEFAULT_PARALLEL 20;
 
--- inputs
--- s3://osm-research/tsv-compressed/continents/node
--- data/tsv/test/node
--- data/etl/antarctica-node.txt.gz
--- data/tsv-compressed/node/antarctica
-node = LOAD 'data/tsv/test/node' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
+node = LOAD '$input_node' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
+clean_node = FILTER node BY (latitude IS NOT NULL AND longitude IS NOT NULL);
 
--- s3://osm-research/tsv-compressed/continents/node_tag
--- data/tsv/test/node_tag
--- data/etl/antarctica-node_tag.txt.gz
--- data/tsv-compressed/node_tag/antarctica
-node_tag = LOAD 'data/tsv/test/node_tag' AS (id:long, version:int, key:chararray, value:chararray);
+node_tag = LOAD '$input_node_tag' AS (id:long, version:int, key:chararray, value:chararray);
+clean_node_tag = FILTER node_tag BY (key!='created_by');
 
 -- stratify
-node_geo = FILTER node BY (latitude IS NOT NULL AND longitude IS NOT NULL);
+node_geo = FILTER clean_node BY (latitude IS NOT NULL AND longitude IS NOT NULL);
 node_stratified = FOREACH node_geo GENERATE id, version, changeset, timestamp, uid, username, ROUND(latitude * 2) / 2.0 + 0.25 AS latitude, ROUND(longitude * 2) / 2.0 + 0.25 AS longitude; 
 
 -- poi/tag join
-poi_versions_tags_t = COGROUP node_stratified BY (id, version) INNER, node_tag BY (id, version) INNER;
-poi_versions_tags = FOREACH poi_versions_tags_t GENERATE flatten($1.id) as id, flatten($1.version) as version, flatten($1.username) as username, flatten(node_stratified.latitude) as lat, flatten(node_stratified.longitude) as lon, node_tag;
+poi_versions_tags_t = COGROUP node_stratified BY (id, version) INNER, clean_node_tag BY (id, version) INNER;
+poi_versions_tags = FOREACH poi_versions_tags_t GENERATE flatten($1.id) as id, flatten($1.version) as version, flatten($1.username) as username, flatten(node_stratified.latitude) as lat, flatten(node_stratified.longitude) as lon, clean_node_tag as node_tag;
 
 -- coint POI
 poi_stats_group = GROUP poi_versions_tags BY id;
@@ -47,6 +45,4 @@ geo_stats = FOREACH geo_stats_group {
 };
 
 -- output
--- s3://osm-research/stats/geo_poi_edit_stats-01
--- stats/geo_poi_edit_stats-01
-store geo_stats into 'geo_poi_edit_stats-01';
+store geo_stats into '$output';
