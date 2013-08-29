@@ -1,6 +1,6 @@
 DROP VIEW IF EXISTS view_poi_currentversion;
 DROP VIEW IF EXISTS view_poi_tag_reach;
-DROP VIEW IF EXISTS view_poi_tag_edit_sequence;
+DROP VIEW IF EXISTS view_poi_tag_edit_actions;
 DROP VIEW IF EXISTS view_poi_tag_additions;
 DROP VIEW IF EXISTS view_poi_tag_removals;
 DROP VIEW IF EXISTS view_poi_tag_updates;
@@ -113,7 +113,7 @@ CREATE VIEW view_poi_tag_updates AS
 -- full tag editing sequence: add/remove/update
 CREATE TYPE action AS ENUM ('add', 'remove', 'update');
 
-CREATE VIEW view_poi_tag_edit_sequence AS
+CREATE VIEW view_poi_tag_edit_actions AS
   SELECT 'add'::action, * FROM view_poi_tag_additions
   UNION ALL
   SELECT 'remove'::action, * FROM view_poi_tag_removals

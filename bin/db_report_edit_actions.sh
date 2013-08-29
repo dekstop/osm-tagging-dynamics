@@ -28,13 +28,13 @@ done
 
 echo
 
-$TIME $PSQL $DATABASE -e -c "CREATE TABLE temp_edit_sequence_${DATE} AS SELECT * FROM view_poi_tag_edit_sequence" || exit 1
+$TIME $PSQL $DATABASE -e -c "CREATE TABLE temp_edit_actions_${DATE} AS SELECT * FROM view_poi_tag_edit_actions" || exit 1
 
-$TIME $PSQL $DATABASE -e -c "CREATE TABLE temp_update_sequence_3month_${DATE} AS
+$TIME $PSQL $DATABASE -e -c "CREATE TABLE temp_edit_actions_3month_${DATE} AS
   SELECT s1.poi_id, s1.key, s2.action, (p2.timestamp-p1.timestamp) as timedelta,
     s1.version as version1, p1.timestamp as timestamp1, p1.username as username1, s1.value as value1, 
     s2.version as version2, p2.username as username2, p2.timestamp as timestamp2, s2.value as value2 
-  FROM temp_edit_sequence_${DATE} s1 JOIN temp_edit_sequence_${DATE} s2
+  FROM temp_edit_actions_${DATE} s1 JOIN temp_edit_actions_${DATE} s2
   ON (s1.poi_id=s2.poi_id 
     AND s1.version=(
       SELECT max(version) FROM poi 
@@ -49,10 +49,10 @@ $TIME $PSQL $DATABASE -e -c "CREATE TABLE temp_update_sequence_3month_${DATE} AS
   AND (p2.timestamp-p1.timestamp) < interval '3 month'
   order by s1.poi_id, s1.key, s1.version" || exit 1
 
-$TIME $PSQL $DATABASE -e -c "CREATE TABLE temp_update_sequence_3month_summary_${DATE} AS
+$TIME $PSQL $DATABASE -e -c "CREATE TABLE temp_edit_actions_3month_summary_${DATE} AS
   select poi_id, substr(key, 0, 20) as key, timestamp2, timedelta, action, 
     version1 as ver1, substr(username1, 0, 20) as username1, substr(value1, 0, 30) as value1, 
     version2 as ver2, substr(username2, 0, 20) as username2, substr(value2, 0, 30) as value2
-    from temp_update_sequence_3month_${DATE}
+    from temp_edit_actions_3month_${DATE}
     where key!='created_by'
     order by poi_id, key, timestamp2" || exit 1
