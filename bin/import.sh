@@ -128,7 +128,7 @@ function loadNodeTagGzData() {
 
 function loadPoiTable() {
   echo "poi: all nodes with tags"
-  $PSQL -c "INSERT INTO poi SELECT DISTINCT * FROM node WHERE node.id IN (SELECT DISTINCT poi_id FROM poi_tag) AND latitude IS NOT NULL AND longitude IS NOT NULL" || return 1
+  $PSQL -c "INSERT INTO poi SELECT DISTINCT * FROM node WHERE node.id IN (SELECT DISTINCT poi_id FROM poi_tag where key!='created_by') AND latitude IS NOT NULL AND longitude IS NOT NULL" || return 1
 }
 
 function loadPoiSequenceTable() {
@@ -137,7 +137,7 @@ function loadPoiSequenceTable() {
   SELECT p.id, p.version, \
   (SELECT max(version) FROM poi p2 WHERE p.id=p2.id AND p.version>p2.version) as prev_version, \
   (SELECT min(version) FROM poi p3 WHERE p.id=p3.id AND p.version<p3.version) as next_version \
-  FROM poi p;"
+  FROM poi p;" || return 1
 }
 
 # ========
