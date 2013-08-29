@@ -64,7 +64,6 @@ CREATE UNIQUE INDEX poi_sequence_poi_id_version ON poi_sequence(poi_id, version)
 -- ===========
 
 CREATE TABLE poi_tag (
-  id          SERIAL PRIMARY KEY,
   poi_id      INTEGER NOT NULL,
   version     INTEGER NOT NULL,
   key         TEXT,
@@ -95,7 +94,7 @@ CREATE VIEW view_poi_tag_additions AS
 
 -- poi versions that removed particular tags (an existing key in the set of poi annotations)
 CREATE VIEW view_poi_tag_removals AS 
-  SELECT t1.id, t1.poi_id, s.next_version AS version, t1.key, t1.value
+  SELECT t1.poi_id, s.next_version AS version, t1.key, t1.value
   FROM poi_tag t1 JOIN poi_sequence s 
   ON (t1.poi_id=s.poi_id AND t1.version=s.version)
   LEFT OUTER JOIN poi_tag t2
