@@ -77,6 +77,15 @@ function loadNodeData() {
   done
 }
 
+# args: *-node.txt.lzo files
+function loadNodeLzoData() {
+  for file in $@
+  do
+    echo $file
+    $TIME pv "${file}" | lzop -d | $PSQL -c "COPY node FROM STDIN NULL AS ''" || return 1
+  done
+}
+
 # args: *-node.txt.gz files
 function loadNodeGzData() {
   for file in $@
@@ -95,6 +104,15 @@ function loadNodeTagData() {
   done
 }
 
+# args: *-node_tag.txt.lzo files
+function loadNodeTagLzoData() {
+  for file in $@
+  do
+    echo $file
+    $TIME pv "${file}" | lzop -d | $PSQL -c "COPY poi_tag(poi_id, version, key, value) FROM STDIN NULL AS ''" || return 1
+  done
+}
+
 # args: *-node_tag.txt.gz files
 function loadNodeTagGzData() {
   for file in $@
@@ -110,7 +128,7 @@ function loadNodeTagGzData() {
 
 function loadPoiTable() {
   echo "poi: all nodes with tags"
-  $PSQL -c "INSERT INTO poi SELECT * FROM node WHERE node.id IN (SELECT DISTINCT poi_id FROM poi_tag) AND latitude IS NOT NULL AND longitude IS NOT NULL" || return 1
+  $PSQL -c "INSERT INTO poi SELECT DISTINCT * FROM node WHERE node.id IN (SELECT DISTINCT poi_id FROM poi_tag) AND latitude IS NOT NULL AND longitude IS NOT NULL" || return 1
 }
 
 function loadPoiSequenceTable() {
@@ -130,8 +148,8 @@ function loadPoiSequenceTable() {
 # rm "${ETL_DATADIR}/"*.txt > /dev/null 2>&1
 
 # To prepare all files
-echo "Extracting data..."
-extractAll ${OSH_DATADIR}/*.osh.pbf || exit 1
+#echo "Extracting data..."
+#extractAll ${OSH_DATADIR}/*.osh.pbf || exit 1
 # extractAll ${OSH_DATADIR}/berlin.osh.pbf || exit 1
 
 # To prepare a specific file
@@ -142,10 +160,16 @@ extractAll ${OSH_DATADIR}/*.osh.pbf || exit 1
 echo "Loading data..."
 truncate || exit 1
 
-loadNodeData "${ETL_DATADIR}/"*-node.txt || exit 1
-loadNodeGzData "${ETL_DATADIR}/"*-node.txt.gz || exit 1
-loadNodeTagGzData "${ETL_DATADIR}/"*-node_tag.txt.gz || exit 1
-loadNodeTagData "${ETL_DATADIR}/"*-node_tag.txt || exit 1
+#ETL_DATADIR=~/osm/outputs/20130822-global/data/regions/hotspot-regions-20130827-africa-02/
+ETL_DATADIR=~/osm/outputs/20130822-global/data/regions/hotspot-regions-20130827-global-02/
+loadNodeLzoData "${ETL_DATADIR}/node/"part*.lzo || exit 1
+loadNodeTagLzoData "${ETL_DATADIR}/node_tag/"part*.lzo || exit 1
+#loadNodeData "${ETL_DATADIR}/node/"part* || exit 1
+#loadNodeTagData "${ETL_DATADIR}/node_tag/"part* || exit 1
+#loadNodeData "${ETL_DATADIR}/"*-node.txt || exit 1
+#loadNodeGzData "${ETL_DATADIR}/"*-node.txt.gz || exit 1
+#loadNodeTagData "${ETL_DATADIR}/"*-node_tag.txt || exit 1
+#loadNodeTagGzData "${ETL_DATADIR}/"*-node_tag.txt.gz || exit 1
 
 echo "Preparing tables..."
 loadPoiTable || exit 1
