@@ -1,5 +1,5 @@
--- basic global stats: number of POI, avg num_versions/num_users per POI, etc
--- stratified to 0.5 lat/lon granularity
+-- Basic global stats: number of POI, avg num_versions/num_users per POI, etc.
+-- Stratified to 0.5 lat/lon granularity.
 
 -- parameters:
 -- $input_node

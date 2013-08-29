@@ -1,4 +1,5 @@
--- extract POI in particular regions from node/node_tag data sets
+-- Extract POI in particular regions from node/node_tag data sets.
+-- Pig doesn't allow for easy parametrisation with lists, so regions are hardcoded.
 
 -- parameters:
 -- $input_node
@@ -120,9 +121,9 @@ store filtered_poi_id into '$output/poi_id';
 -- node
 region_node_join = COGROUP clean_node BY id INNER, filtered_poi_id BY $0 INNER;
 region_node = FOREACH region_node_join GENERATE FLATTEN($1);
-store region_node into '$output/node';
+store region_node into '$output/poi';
 
 -- node_tag
 region_tag_join = COGROUP clean_node_tag BY id INNER, filtered_poi_id BY $0 INNER;
 region_tag = FOREACH region_tag_join GENERATE FLATTEN($1);
-store region_tag into '$output/node_tag';
+store region_tag into '$output/poi_tag';
