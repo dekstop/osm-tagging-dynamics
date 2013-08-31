@@ -19,9 +19,9 @@ function getPoiStats() {
     num_tag_versions::float / num_tags as versions_per_tag
     FROM (SELECT r.name as region, count(distinct p.id) as num_poi, 
       count(distinct p.username) as num_editors,
-      count(distinct CONCAT(t.poi_id, '-', t.key)) as num_tags,
-      count(distinct CONCAT(p.id, '-', p.version)) as num_poi_versions,
-      count(distinct CONCAT(t.poi_id, '-', t.key, '-',t.version)) as num_tag_versions
+      count(distinct CONCAT(t.poi_id::text, '-', t.key)) as num_tags,
+      count(distinct CONCAT(p.id::text, '-', p.version::text)) as num_poi_versions,
+      count(distinct CONCAT(t.poi_id::text, '-', t.key, '-',t.version)) as num_tag_versions
       FROM poi p 
       JOIN view_poi_tag_edit_actions t ON (p.id=t.poi_id AND p.version=t.version)
       JOIN view_region_poi_latest rp ON p.id=rp.poi_id
@@ -37,10 +37,10 @@ function getDelta_tStats() {
   echo $outfile
   $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
     SELECT region, num_poi, num_editors, num_tags, 
-    concat(EXTRACT('day' from avg_delta_t) * 24 + EXTRACT('hour' from avg_delta_t), ':', EXTRACT('minute' from avg_delta_t)) as avg_delta_t
+    CONCAT((EXTRACT('day' from avg_delta_t) * 24 + EXTRACT('hour' from avg_delta_t))::text, ':', EXTRACT('minute' from avg_delta_t)::text) as avg_delta_t
     FROM (SELECT r.name as region, count(distinct p2.id) as num_poi, 
       count(distinct p2.username) as num_editors,
-      count(distinct CONCAT(t.poi_id, '-', t.key)) as num_tags,
+      count(distinct CONCAT(t.poi_id::text, '-', t.key)) as num_tags,
       avg(p2.timestamp-p1.timestamp) as avg_delta_t
       FROM poi p2
       JOIN poi_sequence ps ON (p2.id=ps.poi_id AND p2.version=ps.version)
