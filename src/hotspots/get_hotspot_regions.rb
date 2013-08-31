@@ -228,11 +228,13 @@ File.open("#{outdir}/regions.geojson", 'wb') do |f|
   # f << "\n"
 
   # Region points
+  feature_id = 1
   region_points.each_with_index do |points, idx|
     f << "  { \n"
     f << "    \"type\": \"Feature\", \n"
-    f << "    \"properties\": { \"id\": #{cur_id}, \"name\": \"region_point_#{cur_id}\" },\n"
+    f << "    \"properties\": { \"id\": #{cur_id}, \"name\": \"region_point_#{feature_id}\" },\n"
     cur_id += 1
+    feature_id += 1
     f << "    \"geometry\": { \"type\": \"MultiPoint\", \"coordinates\": [ \n"
       points.each_with_index do |loc,idx|
       f << "      [ #{loc[1]}, #{loc[0]} ]"
@@ -247,10 +249,12 @@ File.open("#{outdir}/regions.geojson", 'wb') do |f|
 
   # Merged regions
   regions.each_with_index do |region, idx|
+    feature_id = 1
     f << "  { \n"
     f << "    \"type\": \"Feature\", \n"
-    f << "    \"properties\": { \"id\": #{cur_id}, \"name\": \"region_#{cur_id}\" },\n"
+    f << "    \"properties\": { \"id\": #{cur_id}, \"name\": \"region_#{feature_id}\" },\n"
     cur_id += 1
+    feature_id += 1
     f << "    \"geometry\": { \"type\": \"Polygon\", \"coordinates\": [[ \n"
     f << "      [ #{region[:minlon]}, #{region[:minlat]} ],\n"
     f << "      [ #{region[:maxlon]}, #{region[:minlat]} ],\n"
