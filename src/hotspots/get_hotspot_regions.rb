@@ -13,7 +13,9 @@ HEADERS = [:lat, :lon, :num_poi, :mean_version, :max_version, :mean_users, :max_
 LAT_GRID = 0.5
 LON_GRID = 0.5
 
-HOTSPOT_SCORE_PERCENTILE = 0.99 # Share of all points considered hotspots
+HOTSPOT_MIN_NUM_POI = 100
+HOTSPOT_MIN_MEAN_USERS = 1.5
+HOTSPOT_SCORE_PERCENTILE = 0.99 # Share of all points *not* considered hotspots
 
 REGION_SEARCH_DEPTH = 3 # bounding box dimensions in number of LAT_GRID/LON_GRID units from current centre
 REGION_SEARCH_VECTORS = (-REGION_SEARCH_DEPTH..REGION_SEARCH_DEPTH).map do |x|
@@ -105,7 +107,8 @@ end
 puts 'Scoring...'
 locations.each do |loc|
   if !map[loc].nil?
-    if (map[loc][:num_poi] >= 100)
+    if (map[loc][:num_poi] >= HOTSPOT_MIN_NUM_POI &&
+      map[loc][:mean_users] >= HOTSPOT_MIN_MEAN_USERS)
       map[loc][:score] = 
         Math.log(map[loc][:mean_version] + 1) *
         Math.log(map[loc][:mean_users] + 1)
