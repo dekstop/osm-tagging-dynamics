@@ -101,7 +101,6 @@ function loadPoiSequenceTable() {
 # = Main =
 # ========
 
-DATABASE=osm_test
 datadir=
 do_truncate=
 create_schema=
