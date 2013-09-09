@@ -23,31 +23,31 @@ clean_node_tag = FILTER node_tag BY (key!='created_by');
 
 -- Generated from outputs/20130904-cultures/5-country-bounding-boxes.geojson with a short Ruby script
 -- 2013-09-05 18:43:28
-filtered_node = FILTER node BY 
-((7.71249215603978 <= latitude) AND (latitude <= 11.5431186830559) AND (54.8372531446962 <= longitude) AND (longitude <= 57.6682401484525)) OR 
-((10.9077503408344 <= latitude) AND (latitude <= 12.6204823937791) AND (54.5896960489239 <= longitude) AND (longitude <= 56.0666945024358)) OR 
-((14.5173791835996 <= latitude) AND (latitude <= 15.2908710784778) AND (54.9297392541263 <= longitude) AND (longitude <= 55.3403140317345)) OR 
-((26.8011671332136 <= latitude) AND (latitude <= 30.8527913444806) AND (51.5253702014124 <= longitude) AND (longitude <= 55.8501971262602)) OR 
-((30.8159583971055 <= latitude) AND (latitude <= 32.4181916079247) AND (53.0689964521429 <= longitude) AND (longitude <= 54.0303216000302)) OR 
-((30.8343748707931 <= latitude) AND (latitude <= 31.663116186734) AND (52.0267412085142 <= longitude) AND (longitude <= 53.057129874723)) OR 
-((25.7330116593342 <= latitude) AND (latitude <= 26.8195836069012) AND (51.6969180978459 <= longitude) AND (longitude <= 55.182900316583)) OR 
-((23.5230348168249 <= latitude) AND (latitude <= 26.1565905541484) AND (51.8336899279967 <= longitude) AND (longitude <= 53.9335495120916)) OR 
-((30.7975419234179 <= latitude) AND (latitude <= 31.3316196603577) AND (54.0093759436495 <= longitude) AND (longitude <= 54.4614424769379)) OR 
-((24.867437396018 <= latitude) AND (latitude <= 25.696178711959) AND (53.9335495120916 <= longitude) AND (longitude <= 54.1713968940168)) OR 
-((27.8877390807807 <= latitude) AND (latitude <= 29.268974607349) AND (55.8191700143212 <= longitude) AND (longitude <= 56.0769737136014)) OR 
-((69.7483837726438 <= latitude) AND (latitude <= 79.8037784060611) AND (8.13674725047218 <= longitude) AND (longitude <= 27.4871162706947)) OR 
-((79.7301125113108 <= latitude) AND (latitude <= 88.2016904075963) AND (11.4031669337774 <= longitude) AND (longitude <= 26.5354951040776)) OR 
-((74.0946715629121 <= latitude) AND (latitude <= 79.2144512480586) AND (26.7330417534582 <= longitude) AND (longitude <= 34.7622261227104)) OR 
-((72.1425253520289 <= latitude) AND (latitude <= 81.1297645115666) AND (27.4871162706947 <= longitude) AND (longitude <= 28.94756203086)) OR 
-((89.9696718816037 <= latitude) AND (latitude <= 94.8684538824993) AND (25.3431233392835 <= longitude) AND (longitude <= 26.6672308349774)) OR 
-((92.2533146188633 <= latitude) AND (latitude <= 96.8206000933825) AND (26.6352883742406 <= longitude) AND (longitude <= 28.4283518818448)) OR 
-((92.179648724113 <= latitude) AND (latitude <= 94.0581290402459) AND (22.5477922864279 <= longitude) AND (longitude <= 25.3443107273072)) OR 
-((116.268396307464 <= latitude) AND (latitude <= 128.423268941265) AND (7.69896671612785 <= longitude) AND (longitude <= 21.2852292783981)) OR 
-((119.509695676478 <= latitude) AND (latitude <= 127.207781677885) AND (4.32948331798473 <= longitude) AND (longitude <= 8.06381632807494)) OR 
-((-91.9574634411287 <= latitude) AND (latitude <= -89.7843195459945) AND (13.9185579901049 <= longitude) AND (longitude <= 16.0178314768882)) OR 
-((-90.9261409146243 <= latitude) AND (latitude <= -89.1765759143045) AND (16.0355321616719 <= longitude) AND (longitude <= 17.7623354560607)) OR 
-((-89.7659030723069 <= latitude) AND (latitude <= -89.0476605984914) AND (14.382345153445 <= longitude) AND (longitude <= 16.0181453961979)) OR 
-((-89.1029100195542 <= latitude) AND (latitude <= -88.3846675457387) AND (15.4328374170771 <= longitude) AND (longitude <= 15.9115944522842));
+filtered_node = FILTER clean_node BY 
+((7.71249215603978 <= longitude) AND (longitude <= 11.5431186830559) AND (54.8372531446962 <= latitude) AND (latitude <= 57.6682401484525)) OR 
+((10.9077503408344 <= longitude) AND (longitude <= 12.6204823937791) AND (54.5896960489239 <= latitude) AND (latitude <= 56.0666945024358)) OR 
+((14.5173791835996 <= longitude) AND (longitude <= 15.2908710784778) AND (54.9297392541263 <= latitude) AND (latitude <= 55.3403140317345)) OR 
+((26.8011671332136 <= longitude) AND (longitude <= 30.8527913444806) AND (51.5253702014124 <= latitude) AND (latitude <= 55.8501971262602)) OR 
+((30.8159583971055 <= longitude) AND (longitude <= 32.4181916079247) AND (53.0689964521429 <= latitude) AND (latitude <= 54.0303216000302)) OR 
+((30.8343748707931 <= longitude) AND (longitude <= 31.663116186734) AND (52.0267412085142 <= latitude) AND (latitude <= 53.057129874723)) OR 
+((25.7330116593342 <= longitude) AND (longitude <= 26.8195836069012) AND (51.6969180978459 <= latitude) AND (latitude <= 55.182900316583)) OR 
+((23.5230348168249 <= longitude) AND (longitude <= 26.1565905541484) AND (51.8336899279967 <= latitude) AND (latitude <= 53.9335495120916)) OR 
+((30.7975419234179 <= longitude) AND (longitude <= 31.3316196603577) AND (54.0093759436495 <= latitude) AND (latitude <= 54.4614424769379)) OR 
+((24.867437396018 <= longitude) AND (longitude <= 25.696178711959) AND (53.9335495120916 <= latitude) AND (latitude <= 54.1713968940168)) OR 
+((27.8877390807807 <= longitude) AND (longitude <= 29.268974607349) AND (55.8191700143212 <= latitude) AND (latitude <= 56.0769737136014)) OR 
+((69.7483837726438 <= longitude) AND (longitude <= 79.8037784060611) AND (8.13674725047218 <= latitude) AND (latitude <= 27.4871162706947)) OR 
+((79.7301125113108 <= longitude) AND (longitude <= 88.2016904075963) AND (11.4031669337774 <= latitude) AND (latitude <= 26.5354951040776)) OR 
+((74.0946715629121 <= longitude) AND (longitude <= 79.2144512480586) AND (26.7330417534582 <= latitude) AND (latitude <= 34.7622261227104)) OR 
+((72.1425253520289 <= longitude) AND (longitude <= 81.1297645115666) AND (27.4871162706947 <= latitude) AND (latitude <= 28.94756203086)) OR 
+((89.9696718816037 <= longitude) AND (longitude <= 94.8684538824993) AND (25.3431233392835 <= latitude) AND (latitude <= 26.6672308349774)) OR 
+((92.2533146188633 <= longitude) AND (longitude <= 96.8206000933825) AND (26.6352883742406 <= latitude) AND (latitude <= 28.4283518818448)) OR 
+((92.179648724113 <= longitude) AND (longitude <= 94.0581290402459) AND (22.5477922864279 <= latitude) AND (latitude <= 25.3443107273072)) OR 
+((116.268396307464 <= longitude) AND (longitude <= 128.423268941265) AND (7.69896671612785 <= latitude) AND (latitude <= 21.2852292783981)) OR 
+((119.509695676478 <= longitude) AND (longitude <= 127.207781677885) AND (4.32948331798473 <= latitude) AND (latitude <= 8.06381632807494)) OR 
+((-91.9574634411287 <= longitude) AND (longitude <= -89.7843195459945) AND (13.9185579901049 <= latitude) AND (latitude <= 16.0178314768882)) OR 
+((-90.9261409146243 <= longitude) AND (longitude <= -89.1765759143045) AND (16.0355321616719 <= latitude) AND (latitude <= 17.7623354560607)) OR 
+((-89.7659030723069 <= longitude) AND (longitude <= -89.0476605984914) AND (14.382345153445 <= latitude) AND (latitude <= 16.0181453961979)) OR 
+((-89.1029100195542 <= longitude) AND (longitude <= -88.3846675457387) AND (15.4328374170771 <= latitude) AND (latitude <= 15.9115944522842));
 
 -- ID whitelists: all nodes, and POI (nodes with tags)
 filtered_node_group = GROUP filtered_node BY id;
