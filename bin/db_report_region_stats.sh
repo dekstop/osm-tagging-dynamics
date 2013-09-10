@@ -27,7 +27,6 @@ function getRegionStats() {
       JOIN view_region_poi_latest rp ON p.id=rp.poi_id
       JOIN region r ON rp.region_id=r.id
       GROUP BY r.name) t
-    WHERE num_poi>100 AND num_tags>100
     ORDER BY num_poi DESC
   " || return 1
 }
@@ -49,85 +48,94 @@ function getRegionEditIntervalStats() {
       JOIN view_region_poi_latest rp ON p2.id=rp.poi_id
       JOIN region r ON rp.region_id=r.id
       GROUP BY r.name) t
-    WHERE num_poi>100 AND num_tags>100
     ORDER BY num_poi DESC
   " || return 1
 }
 
-# =============
-# = POI Stats =
-# =============
+# ==============
+# = Histograms =
+# ==============
 
-function getPoiNumEditorsStats() {
+function getRegionNumEditorsHistogram() {
   outfile=$1
   echo $outfile
   $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
-  SELECT num_editors, count(*) 
+  SELECT r.name as region, num_editors, count(*) as num_poi
   FROM (
-    SELECT count(distinct p.username) as num_editors
+    SELECT p.id, count(distinct p.username) as num_editors
     FROM poi p 
     JOIN view_poi_tag_edit_actions t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
-  GROUP BY num_editors
-  ORDER BY num_editors ASC" || return 1
+  JOIN view_region_poi_latest rp ON t.id=rp.poi_id
+  JOIN region r ON rp.region_id=r.id
+  GROUP BY r.name, num_editors
+  ORDER BY r.name, num_editors ASC" || return 1
 }
 
-function getPoiNumTagsStats() {
+function getRegionNumTagsHistogram() {
   outfile=$1
   echo $outfile
   $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
-  SELECT num_tags, count(*) 
+  SELECT r.name as region, num_tags, count(*) as num_poi
   FROM (
-    SELECT count(distinct t.key) as num_tags
+    SELECT p.id, count(distinct t.key) as num_tags
     FROM poi p 
     JOIN view_poi_tag_edit_actions t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
-  GROUP BY num_tags
-  ORDER BY num_tags ASC" || return 1
+  JOIN view_region_poi_latest rp ON t.id=rp.poi_id
+  JOIN region r ON rp.region_id=r.id
+  GROUP BY r.name, num_tags
+  ORDER BY r.name, num_tags ASC" || return 1
 }
 
-function getPoiNumEditorsPerTagStats() {
+function getRegionNumEditorsPerTagHistogram() {
   outfile=$1
   echo $outfile
   $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
-  SELECT num_editors_per_tag, count(*) 
+  SELECT r.name as region, num_editors_per_tag, count(*) as num_poi
   FROM (
-    SELECT count(distinct p.username) as num_editors_per_tag
+    SELECT p.id, count(distinct p.username) as num_editors_per_tag
     FROM poi p 
     JOIN view_poi_tag_edit_actions t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id, t.key) t
-  GROUP BY num_editors_per_tag
-  ORDER BY num_editors_per_tag ASC" || return 1
+  JOIN view_region_poi_latest rp ON t.id=rp.poi_id
+  JOIN region r ON rp.region_id=r.id
+  GROUP BY r.name, num_editors_per_tag
+  ORDER BY r.name, num_editors_per_tag ASC" || return 1
 }
 
-function getPoiNumVersionsStats() {
+function getRegionNumVersionsHistogram() {
   outfile=$1
   echo $outfile
   $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
-  SELECT num_versions, count(*) 
+  SELECT r.name as region, num_versions, count(*) as num_poi
   FROM (
-    SELECT count(distinct p.version) as num_versions
+    SELECT p.id, count(distinct p.version) as num_versions
     FROM poi p 
     JOIN view_poi_tag_edit_actions t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
-  GROUP BY num_versions
-  ORDER BY num_versions ASC" || return 1
+  JOIN view_region_poi_latest rp ON t.id=rp.poi_id
+  JOIN region r ON rp.region_id=r.id
+  GROUP BY r.name, num_versions
+  ORDER BY r.name, num_versions ASC" || return 1
 }
 
-function getPoiEditIntervalStats() {
+function getRegionEditIntervalHistogram() {
   outfile=$1
   echo $outfile
   $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
-  SELECT num_days, count(*) 
+  SELECT r.name as region, num_days, count(*) as num_poi
   FROM (
-    SELECT extract('day' FROM avg(p2.timestamp-p1.timestamp)) as num_days
+    SELECT p2.id, extract('day' FROM avg(p2.timestamp-p1.timestamp)) as num_days
     FROM poi p2
     JOIN poi_sequence ps ON (p2.id=ps.poi_id AND p2.version=ps.version)
     JOIN poi p1 ON (ps.poi_id=p1.id AND ps.prev_version=p1.version)
     JOIN view_poi_tag_edit_actions t ON (p2.id=t.poi_id AND p2.version=t.version)
     GROUP BY p2.id, p2.version) t
-  GROUP BY num_days
-  ORDER BY num_days ASC" || return 1
+  JOIN view_region_poi_latest rp ON t.id=rp.poi_id
+  JOIN region r ON rp.region_id=r.id
+  GROUP BY r.name, num_days
+  ORDER BY r.name, num_days ASC" || return 1
 }
 
 # ========
@@ -135,12 +143,6 @@ function getPoiEditIntervalStats() {
 # ========
 
 outdir=
-
-if [[ $# -lt 1 ]]
-then
-  echo "Usage : $0 <output_dir> [--database <db_name>]"
-  exit 1
-fi
 
 while test $# != 0
 do
@@ -160,13 +162,19 @@ do
   shift
 done
 
+if [[ -z "$outdir" ]]
+then
+  echo "Usage : $0 <output_dir> [--database <db_name>]"
+  exit 1
+fi
+
 echo
 
 getRegionStats $outdir/regionStats.txt || exit 1
 getRegionEditIntervalStats $outdir/regionEditIntervalStats.txt || exit 1
 
-getPoiNumEditorsStats $outdir/poiNumEditorsStats.txt || exit 1
-getPoiNumTagsStats $outdir/poiNumTagsStats.txt || exit 1
-getPoiNumEditorsPerTagStats $outdir/poiNumEditorsPerTagStats.txt || exit 1
-getPoiNumVersionsStats $outdir/poiNumVersionsStats.txt || exit 1
-getPoiEditIntervalStats $outdir/poiEditIntervalStats.txt || exit 1
+getRegionNumEditorsHistogram $outdir/regionNumEditorsHistogram.txt || exit 1
+getRegionNumTagsHistogram $outdir/regionNumTagsHistogram.txt || exit 1
+getRegionNumEditorsPerTagHistogram $outdir/regionNumEditorsPerTagHistogram.txt || exit 1
+getRegionNumVersionsHistogram $outdir/regionNumVersionsHistogram.txt || exit 1
+getRegionEditIntervalHistogram $outdir/regionEditIntervalHistogram.txt || exit 1
