@@ -28,7 +28,7 @@ done
 
 echo
 
-$TIME $PSQL $DATABASE -e -c "CREATE TABLE temp_edit_actions_${DATE} AS SELECT * FROM view_poi_tag_edit_actions" || exit 1
+$TIME $PSQL $DATABASE -e -c "CREATE TABLE IF NOT EXISTS temp_edit_actions_${DATE} AS SELECT * FROM view_poi_tag_edit_actions" || exit 1
 
 $TIME $PSQL $DATABASE -e -c "CREATE TABLE temp_edit_actions_3month_${DATE} AS
   SELECT s1.poi_id, s1.key, s2.action, (p2.timestamp-p1.timestamp) as timedelta,

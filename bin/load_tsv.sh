@@ -90,11 +90,12 @@ function migrateNodeDataToPoiTables() {
 
 function loadPoiSequenceTable() {
   echo "poi_sequence: poi edit sequence without redactions"
-  $TIME $PSQL $DATABASE -c "INSERT INTO poi_sequence (poi_id, version, prev_version, next_version) \
-  SELECT p.id, p.version, \
-  (SELECT max(version) FROM poi p2 WHERE p.id=p2.id AND p.version>p2.version) as prev_version, \
-  (SELECT min(version) FROM poi p3 WHERE p.id=p3.id AND p.version<p3.version) as next_version \
-  FROM poi p;" || return 1
+  $TIME $PSQL $DATABASE -c "INSERT INTO poi_sequence SELECT * FROM view_poi_sequence" || return 1
+}
+
+function loadPoiTagEditActionTable() {
+  echo "poi_tag_edit_action: tag versions that introduce changes"
+  $TIME $PSQL $DATABASE -c "INSERT INTO poi_tag_edit_action SELECT * FROM view_poi_tag_edit_action" || return 1
 }
 
 # ========
@@ -189,6 +190,7 @@ fi
 
 echo "Preparing derivative tables..."
 loadPoiSequenceTable || exit 1
+loadPoiTagEditActionTable || exit 1
 echo
 
 if [ $drop_index ]

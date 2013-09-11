@@ -1,18 +1,20 @@
-DROP VIEW IF EXISTS view_poi_currentversion;
 DROP VIEW IF EXISTS view_poi_tag_reach;
-DROP VIEW IF EXISTS view_poi_tag_edit_actions;
-DROP VIEW IF EXISTS view_poi_tag_additions;
-DROP VIEW IF EXISTS view_poi_tag_removals;
-DROP VIEW IF EXISTS view_poi_tag_updates;
+DROP VIEW IF EXISTS view_poi_tag_edit_action;
+DROP VIEW IF EXISTS view_poi_tag_addition;
+DROP VIEW IF EXISTS view_poi_tag_removal;
+DROP VIEW IF EXISTS view_poi_tag_update;
+DROP VIEW IF EXISTS view_poi_sequence;
 DROP VIEW IF EXISTS view_region_poi_any;
 DROP VIEW IF EXISTS view_region_poi_latest;
 
 DROP TABLE IF EXISTS node;
 DROP TABLE IF EXISTS poi;
 DROP TABLE IF EXISTS poi_tag;
+DROP TABLE IF EXISTS poi_sequence;
+DROP TABLE IF EXISTS poi_tag_edit_action;
 DROP TABLE IF EXISTS region;
 
-DROP TYPE IF EXISTS action;
+DROP TYPE IF EXISTS action CASCADE;
 
 -- ========
 -- = Node =
@@ -49,7 +51,13 @@ CREATE TABLE poi (
 CREATE UNIQUE INDEX idx_poi_id_version ON poi(id, version);
   
 -- Sequence of poi versions, skipping over redactions.
-DROP TABLE IF EXISTS poi_sequence;
+-- As view, and as table (to create a materialised view during ETL.)
+CREATE VIEW view_poi_sequence AS
+  SELECT p.id, p.version,
+  (SELECT max(version) FROM poi p2 WHERE p.id=p2.id AND p.version>p2.version) as prev_version,
+  (SELECT min(version) FROM poi p3 WHERE p.id=p3.id AND p.version<p3.version) as next_version
+  FROM poi p;
+
 CREATE TABLE poi_sequence (
   poi_id        INTEGER NOT NULL,
   version       INTEGER NOT NULL,
@@ -84,7 +92,7 @@ CREATE VIEW view_poi_tag_reach AS
 -- ===================
 
 -- poi versions that introduced new tags (a new tag key in the set of annotations for this poi)
-CREATE VIEW view_poi_tag_additions AS 
+CREATE VIEW view_poi_tag_addition AS 
   SELECT t2.*
   FROM poi_tag t2 JOIN poi_sequence s 
   ON (t2.poi_id=s.poi_id AND t2.version=s.version)
@@ -93,7 +101,7 @@ CREATE VIEW view_poi_tag_additions AS
   WHERE t1.key IS NULL;
 
 -- poi versions that removed particular tags (an existing key in the set of poi annotations)
-CREATE VIEW view_poi_tag_removals AS 
+CREATE VIEW view_poi_tag_removal AS 
   SELECT t1.poi_id, s.next_version AS version, t1.key, t1.value
   FROM poi_tag t1 JOIN poi_sequence s 
   ON (t1.poi_id=s.poi_id AND t1.version=s.version)
@@ -102,7 +110,7 @@ CREATE VIEW view_poi_tag_removals AS
   WHERE s.next_version IS NOT NULL AND t2.key IS NULL;
 
 -- poi versions that updated existing tags (same key, new value)
-CREATE VIEW view_poi_tag_updates AS
+CREATE VIEW view_poi_tag_update AS
   SELECT t2.* 
   FROM poi_tag t1 JOIN poi_sequence s 
   ON (t1.poi_id=s.poi_id AND t1.version=s.version)
@@ -110,15 +118,28 @@ CREATE VIEW view_poi_tag_updates AS
     AND t1.key=t2.key)
   WHERE t1.value!=t2.value;
 
--- full tag editing sequence: add/remove/update
+-- Full tag editing sequence: add/remove/update
 CREATE TYPE action AS ENUM ('add', 'remove', 'update');
 
-CREATE VIEW view_poi_tag_edit_actions AS
-  SELECT 'add'::action, * FROM view_poi_tag_additions
+-- Combined: this excludes versions of a tag that did not introduce any changes.
+-- As view, and as table (to create a materialised view during ETL.)
+CREATE VIEW view_poi_tag_edit_action AS
+  SELECT *, 'add'::action FROM view_poi_tag_addition
   UNION ALL
-  SELECT 'remove'::action, * FROM view_poi_tag_removals
+  SELECT *, 'remove'::action FROM view_poi_tag_removal
   UNION ALL
-  SELECT 'update'::action, * FROM view_poi_tag_updates;
+  SELECT *, 'update'::action FROM view_poi_tag_update;
+
+CREATE TABLE poi_tag_edit_action (
+  poi_id      INTEGER NOT NULL,
+  version     INTEGER NOT NULL,
+  key         TEXT,
+  value       TEXT,
+  action      action NOT NULL
+);
+
+CREATE UNIQUE INDEX poi_tag_edit_action_poi_id_version_key ON poi_tag_edit_action(poi_id, version, key);
+
 
 -- ==========
 -- = Region =

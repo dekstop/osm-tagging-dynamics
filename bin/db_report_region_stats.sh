@@ -23,8 +23,8 @@ function getRegionStats() {
       count(distinct (p.id::text || '-' || p.version::text)) as num_poi_versions,
       count(distinct (t.poi_id::text || '-' || t.key || '-' || t.version)) as num_tag_versions
       FROM poi p 
-      JOIN view_poi_tag_edit_actions t ON (p.id=t.poi_id AND p.version=t.version)
-      JOIN view_region_poi_latest rp ON p.id=rp.poi_id
+      JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
+      JOIN ${table_region_poi_latest} rp ON p.id=rp.poi_id
       JOIN region r ON rp.region_id=r.id
       GROUP BY r.name) t
     ORDER BY num_poi DESC
@@ -44,8 +44,8 @@ function getRegionEditIntervalStats() {
       FROM poi p2
       JOIN poi_sequence ps ON (p2.id=ps.poi_id AND p2.version=ps.version)
       JOIN poi p1 ON (ps.poi_id=p1.id AND ps.prev_version=p1.version)
-      JOIN view_poi_tag_edit_actions t ON (p2.id=t.poi_id AND p2.version=t.version)
-      JOIN view_region_poi_latest rp ON p2.id=rp.poi_id
+      JOIN poi_tag_edit_action t ON (p2.id=t.poi_id AND p2.version=t.version)
+      JOIN ${table_region_poi_latest} rp ON p2.id=rp.poi_id
       JOIN region r ON rp.region_id=r.id
       GROUP BY r.name) t
     ORDER BY num_poi DESC
@@ -64,9 +64,9 @@ function getRegionNumEditorsHistogram() {
   FROM (
     SELECT p.id, count(distinct p.username) as num_editors
     FROM poi p 
-    JOIN view_poi_tag_edit_actions t ON (p.id=t.poi_id AND p.version=t.version)
+    JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
-  JOIN view_region_poi_latest rp ON t.id=rp.poi_id
+  JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
   JOIN region r ON rp.region_id=r.id
   GROUP BY r.name, num_editors
   ORDER BY r.name, num_editors ASC" || return 1
@@ -80,9 +80,9 @@ function getRegionNumTagsHistogram() {
   FROM (
     SELECT p.id, count(distinct t.key) as num_tags
     FROM poi p 
-    JOIN view_poi_tag_edit_actions t ON (p.id=t.poi_id AND p.version=t.version)
+    JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
-  JOIN view_region_poi_latest rp ON t.id=rp.poi_id
+  JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
   JOIN region r ON rp.region_id=r.id
   GROUP BY r.name, num_tags
   ORDER BY r.name, num_tags ASC" || return 1
@@ -96,9 +96,9 @@ function getRegionNumEditorsPerTagHistogram() {
   FROM (
     SELECT p.id, count(distinct p.username) as num_editors_per_tag
     FROM poi p 
-    JOIN view_poi_tag_edit_actions t ON (p.id=t.poi_id AND p.version=t.version)
+    JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id, t.key) t
-  JOIN view_region_poi_latest rp ON t.id=rp.poi_id
+  JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
   JOIN region r ON rp.region_id=r.id
   GROUP BY r.name, num_editors_per_tag
   ORDER BY r.name, num_editors_per_tag ASC" || return 1
@@ -112,9 +112,9 @@ function getRegionNumVersionsHistogram() {
   FROM (
     SELECT p.id, count(distinct p.version) as num_versions
     FROM poi p 
-    JOIN view_poi_tag_edit_actions t ON (p.id=t.poi_id AND p.version=t.version)
+    JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
-  JOIN view_region_poi_latest rp ON t.id=rp.poi_id
+  JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
   JOIN region r ON rp.region_id=r.id
   GROUP BY r.name, num_versions
   ORDER BY r.name, num_versions ASC" || return 1
@@ -130,19 +130,45 @@ function getRegionEditIntervalHistogram() {
     FROM poi p2
     JOIN poi_sequence ps ON (p2.id=ps.poi_id AND p2.version=ps.version)
     JOIN poi p1 ON (ps.poi_id=p1.id AND ps.prev_version=p1.version)
-    JOIN view_poi_tag_edit_actions t ON (p2.id=t.poi_id AND p2.version=t.version)
+    JOIN poi_tag_edit_action t ON (p2.id=t.poi_id AND p2.version=t.version)
     GROUP BY p2.id, p2.version) t
-  JOIN view_region_poi_latest rp ON t.id=rp.poi_id
+  JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
   JOIN region r ON rp.region_id=r.id
   GROUP BY r.name, num_days
   ORDER BY r.name, num_days ASC" || return 1
+}
+
+function getRegionTagReversionHistogram() {
+  outfile=$1
+  echo $outfile
+  $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
+  SELECT r.name as region, num_steps, count(distinct t2.id) as num_poi, avg(num_users) as avg_num_users
+  FROM (
+    SELECT id, max(num_steps) as num_steps, max(num_users) as num_users
+    FROM (
+      SELECT p.id, key, value, count(*) as num_steps, count(distinct username) as num_users, min(p.version) as start_version
+      FROM poi p 
+      JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version) 
+      WHERE action IN ('add', 'update') 
+      GROUP BY p.id, key, value 
+      HAVING count(*)>1
+    ) t1
+    GROUP BY id, start_version
+  ) t2
+  JOIN ${table_region_poi_latest} rp ON t2.id=rp.poi_id
+  JOIN region r ON rp.region_id=r.id
+  GROUP BY r.name, num_steps" || return 1
 }
 
 # ========
 # = Main =
 # ========
 
+DATE=`date +%Y%m%d`
+table_region_poi_latest=view_region_poi_latest
+
 outdir=
+materialise_views=
 
 while test $# != 0
 do
@@ -153,6 +179,7 @@ do
       # Note: this is a global variable, initially set in env.sh
       DATABASE=$1
       ;;
+    --materialise-views) echo "Will materialise views."; materialise_views=t ;;
     *) 
       echo "Writing files to: ${1}"
       outdir=$1 
@@ -162,13 +189,24 @@ do
   shift
 done
 
+echo
+
 if [[ -z "$outdir" ]]
 then
   echo "Usage : $0 <output_dir> [--database <db_name>]"
   exit 1
 fi
 
-echo
+if [ $materialise_views ]
+then
+  echo "Materialising views..."
+  table_region_poi_latest=temp_region_poi_latest_${DATE}
+  $TIME $PSQL $DATABASE -e -c "CREATE TABLE ${table_region_poi_latest} AS SELECT * FROM view_region_poi_latest" # || exit 1
+  $TIME $PSQL $DATABASE -e -c "CREATE UNIQUE INDEX ${table_region_poi_latest}_region_id_poi_id ON ${table_region_poi_latest}(region_id, poi_id)" # || exit 1
+fi
+
+# From a previous run...
+table_region_poi_latest=temp_region_poi_latest_20130910
 
 getRegionStats $outdir/regionStats.txt || exit 1
 getRegionEditIntervalStats $outdir/regionEditIntervalStats.txt || exit 1
@@ -178,3 +216,4 @@ getRegionNumTagsHistogram $outdir/regionNumTagsHistogram.txt || exit 1
 getRegionNumEditorsPerTagHistogram $outdir/regionNumEditorsPerTagHistogram.txt || exit 1
 getRegionNumVersionsHistogram $outdir/regionNumVersionsHistogram.txt || exit 1
 getRegionEditIntervalHistogram $outdir/regionEditIntervalHistogram.txt || exit 1
+getRegionTagReversionHistogram $outdir/regionTagReversionHistogram.txt || exit 1
