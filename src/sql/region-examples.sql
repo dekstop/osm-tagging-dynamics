@@ -8,4 +8,5 @@ INSERT INTO region(name, minlat, minlon, maxlat, maxlon) VALUES
   ('Paris', 48.501, 1.947, 49.093, 2.793),
   ('Mainz', 49.9507, 8.2051, 50.0385, 8.3349),
   ('South Africa', -35.86, 12.15, -20.63, 36.85),
-  ('Israel', 29.34, 34.2299999, 33.39, 35.99);
+  ('Israel', 29.34, 34.2299999, 33.39, 35.99),
+  ('Germany', 47, 5, 54, 15);
