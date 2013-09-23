@@ -13,6 +13,8 @@ DROP TABLE IF EXISTS poi_tag;
 DROP TABLE IF EXISTS poi_sequence;
 DROP TABLE IF EXISTS poi_tag_edit_action;
 DROP TABLE IF EXISTS region;
+DROP TABLE IF EXISTS changeset;
+DROP TABLE IF EXISTS changeset_size;
 
 DROP TYPE IF EXISTS action CASCADE;
 
@@ -170,3 +172,29 @@ CREATE VIEW view_region_poi_latest AS
   ON (p.latitude>=r.minlat AND p.latitude<=r.maxlat 
     AND p.longitude>=r.minlon AND p.longitude<=r.maxlon)
   GROUP BY r.id, p.id;
+
+-- ========================
+-- = Changeset Statistics =
+-- ========================
+
+CREATE TABLE changeset (
+  id          INTEGER NOT NULL,
+  num_nodes   INTEGER NOT NULL,
+  first_time  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+  last_time   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+  minlat      NUMERIC,
+  minlon      NUMERIC,
+  maxlat      NUMERIC,
+  maxlon      NUMERIC
+);
+
+CREATE UNIQUE INDEX changeset_id ON changeset(id);
+CREATE INDEX changeset_num_nodes ON changeset(num_nodes);
+
+CREATE TABLE changeset_size (
+  num_nodes   INTEGER NOT NULL,
+  count       INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX changeset_size_num_nodes ON changeset_size(num_nodes);
+CREATE INDEX changeset_size_count ON changeset_size(count);

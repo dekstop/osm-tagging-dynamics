@@ -22,7 +22,7 @@ function getRegionStats() {
       count(distinct (t.poi_id::text || '-' || t.key)) as num_tags,
       count(distinct (p.id::text || '-' || p.version::text)) as num_poi_versions,
       count(distinct (t.poi_id::text || '-' || t.key || '-' || t.version)) as num_tag_versions
-      FROM poi p 
+      FROM poi p ${sql_changeset_join}
       JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
       JOIN ${table_region_poi_latest} rp ON p.id=rp.poi_id
       JOIN region r ON rp.region_id=r.id
@@ -37,15 +37,15 @@ function getRegionEditIntervalStats() {
   $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
     SELECT region, num_poi, num_editors, num_tags, 
     extract('day' FROM avg_delta_t) as avg_num_days
-    FROM (SELECT r.name as region, count(distinct p2.id) as num_poi, 
-      count(distinct p2.username) as num_editors,
+    FROM (SELECT r.name as region, count(distinct p.id) as num_poi, 
+      count(distinct p.username) as num_editors,
       count(distinct (t.poi_id::text || '-' || t.key)) as num_tags,
-      avg(p2.timestamp-p1.timestamp) as avg_delta_t
-      FROM poi p2
-      JOIN poi_sequence ps ON (p2.id=ps.poi_id AND p2.version=ps.version)
-      JOIN poi p1 ON (ps.poi_id=p1.id AND ps.prev_version=p1.version)
-      JOIN poi_tag_edit_action t ON (p2.id=t.poi_id AND p2.version=t.version)
-      JOIN ${table_region_poi_latest} rp ON p2.id=rp.poi_id
+      avg(p.timestamp-p0.timestamp) as avg_delta_t
+      FROM poi p ${sql_changeset_join}
+      JOIN poi_sequence ps ON (p.id=ps.poi_id AND p.version=ps.version)
+      JOIN poi p0 ON (ps.poi_id=p0.id AND ps.prev_version=p0.version)
+      JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
+      JOIN ${table_region_poi_latest} rp ON p.id=rp.poi_id
       JOIN region r ON rp.region_id=r.id
       GROUP BY r.name) t
     ORDER BY num_poi DESC
@@ -63,7 +63,7 @@ function getRegionNumEditorsHistogram() {
   SELECT r.name as region, num_editors, count(*) as num_poi
   FROM (
     SELECT p.id, count(distinct p.username) as num_editors
-    FROM poi p 
+    FROM poi p ${sql_changeset_join}
     JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
@@ -79,7 +79,7 @@ function getRegionNumTagsHistogram() {
   SELECT r.name as region, num_tags, count(*) as num_poi
   FROM (
     SELECT p.id, count(distinct t.key) as num_tags
-    FROM poi p 
+    FROM poi p ${sql_changeset_join}
     JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
@@ -92,10 +92,10 @@ function getRegionNumEditorsPerTagHistogram() {
   outfile=$1
   echo $outfile
   $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
-  SELECT r.name as region, num_editors_per_tag, count(*) as num_poi
+  SELECT r.name as region, num_editors_per_tag, count(distinct t.id) as num_poi
   FROM (
     SELECT p.id, count(distinct p.username) as num_editors_per_tag
-    FROM poi p 
+    FROM poi p ${sql_changeset_join}
     JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id, t.key) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
@@ -111,7 +111,7 @@ function getRegionNumVersionsHistogram() {
   SELECT r.name as region, num_versions, count(*) as num_poi
   FROM (
     SELECT p.id, count(distinct p.version) as num_versions
-    FROM poi p 
+    FROM poi p ${sql_changeset_join}
     JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
@@ -120,18 +120,50 @@ function getRegionNumVersionsHistogram() {
   ORDER BY r.name, num_versions ASC" || return 1
 }
 
+function getRegionMaxVersionsHistogram() {
+  outfile=$1
+  echo $outfile
+  $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
+  SELECT r.name as region, max_version, count(*) as num_poi
+  FROM (
+    SELECT p.id, max(p.version) as max_version
+    FROM poi p ${sql_changeset_join}
+    JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
+    GROUP BY p.id) t
+  JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
+  JOIN region r ON rp.region_id=r.id
+  GROUP BY r.name, max_version
+  ORDER BY r.name, max_version ASC" || return 1
+}
+
+function getRegionActionsPerVersionHistogram() {
+  outfile=$1
+  echo $outfile
+  $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
+  SELECT r.name as region, action, version, sum(num_edits) as num_edits
+  FROM (
+    SELECT p.id, t.action as action, p.version as version, count(*) as num_edits
+    FROM poi p ${sql_changeset_join}
+    JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
+    GROUP BY p.id, t.action, p.version) t
+  JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
+  JOIN region r ON rp.region_id=r.id
+  GROUP BY r.name, action, version
+  ORDER BY r.name, action, version ASC" || return 1
+}
+
 function getRegionEditIntervalHistogram() {
   outfile=$1
   echo $outfile
   $TIME $PSQL $DATABASE --no-align --field-separator="	" --pset footer=off --output=${outfile} -c "
-  SELECT r.name as region, num_days, count(*) as num_poi
+  SELECT r.name as region, num_days, count(distinct t.id) as num_poi
   FROM (
-    SELECT p2.id, extract('day' FROM avg(p2.timestamp-p1.timestamp)) as num_days
-    FROM poi p2
-    JOIN poi_sequence ps ON (p2.id=ps.poi_id AND p2.version=ps.version)
-    JOIN poi p1 ON (ps.poi_id=p1.id AND ps.prev_version=p1.version)
-    JOIN poi_tag_edit_action t ON (p2.id=t.poi_id AND p2.version=t.version)
-    GROUP BY p2.id, p2.version) t
+    SELECT p.id, extract('day' FROM avg(p.timestamp-p0.timestamp)) as num_days
+    FROM poi p ${sql_changeset_join}
+    JOIN poi_sequence ps ON (p.id=ps.poi_id AND p.version=ps.version)
+    JOIN poi p0 ON (ps.poi_id=p0.id AND ps.prev_version=p0.version)
+    JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
+    GROUP BY p.id, p.version) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
   JOIN region r ON rp.region_id=r.id
   GROUP BY r.name, num_days
@@ -147,7 +179,7 @@ function getRegionTagReversionHistogram() {
     SELECT id, max(num_steps) as num_steps, max(num_users) as num_users
     FROM (
       SELECT p.id, key, value, count(*) as num_steps, count(distinct username) as num_users, min(p.version) as start_version
-      FROM poi p 
+      FROM poi p ${sql_changeset_join}
       JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version) 
       WHERE action IN ('add', 'update') 
       GROUP BY p.id, key, value 
@@ -166,6 +198,7 @@ function getRegionTagReversionHistogram() {
 
 DATE=`date +%Y%m%d`
 table_region_poi_latest=view_region_poi_latest
+sql_changeset_join=
 
 outdir=
 materialise_views=
@@ -173,6 +206,11 @@ materialise_views=
 while test $# != 0
 do
   case "$1" in
+    --changeset-maxsize) 
+      shift
+      echo "Maximum changeset size: ${1} nodes"
+      sql_changeset_join=" JOIN changeset c ON (p.changeset=c.id AND c.num_nodes<=${1}) "
+      ;;
     --database) 
       shift
       echo "Querying database: ${1}"
@@ -193,7 +231,7 @@ echo
 
 if [[ -z "$outdir" ]]
 then
-  echo "Usage : $0 <output_dir> [--database <db_name>]"
+  echo "Usage : $0 <output_dir> [--database <db_name>] [--changeset-maxsize <num_nodes>]"
   exit 1
 fi
 
@@ -215,5 +253,7 @@ getRegionNumEditorsHistogram $outdir/regionNumEditorsHistogram.txt || exit 1
 getRegionNumTagsHistogram $outdir/regionNumTagsHistogram.txt || exit 1
 getRegionNumEditorsPerTagHistogram $outdir/regionNumEditorsPerTagHistogram.txt || exit 1
 getRegionNumVersionsHistogram $outdir/regionNumVersionsHistogram.txt || exit 1
+getRegionMaxVersionsHistogram $outdir/regionMaxVersionsHistogram.txt || exit 1
+getRegionActionsPerVersionHistogram $outdir/regionActionsPerVersionHistogram.txt || exit 1
 getRegionEditIntervalHistogram $outdir/regionEditIntervalHistogram.txt || exit 1
 getRegionTagReversionHistogram $outdir/regionTagReversionHistogram.txt || exit 1
