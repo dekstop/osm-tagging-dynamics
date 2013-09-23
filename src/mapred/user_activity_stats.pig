@@ -11,8 +11,9 @@ SET output.compression.enabled true;
 SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
 
 node = LOAD '$input' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
+clean_node = FILTER node BY (timestamp IS NOT NULL AND username IS NOT NULL AND latitude IS NOT NULL AND longitude IS NOT NULL);
 
-username_group = GROUP node BY username;
+username_group = GROUP clean_node BY username;
 username_stats = FOREACH username_group {
   entries = $1;
   node_ids = DISTINCT entries.id;
