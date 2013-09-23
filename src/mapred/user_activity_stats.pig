@@ -6,10 +6,10 @@
 -- $output
 
 
-/*SET default_parallel 10;
+SET default_parallel 10;
 SET output.compression.enabled true; 
 SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
-*/
+
 node = LOAD '$input' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
 
 username_group = GROUP node BY username;
