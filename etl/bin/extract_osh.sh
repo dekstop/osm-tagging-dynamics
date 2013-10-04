@@ -84,9 +84,9 @@ else
     oshfile=$1
     # oshfile=${OSH_DATADIR}/test/berlin-short.osh.xml.bz2
     name=`basename $oshfile .bz2`
-    name=`basename name .gz`
-    name=`basename name .xml`
-    name=`basename name .osh`
+    name=`basename $name .gz`
+    name=`basename $name .xml`
+    name=`basename $name .osh`
     nodefile="${ETL_DATADIR}/${name}-node.txt.gz"
     tagfile="${ETL_DATADIR}/${name}-node_tag.txt.gz"
     extractXmlData $oshfile $nodefile $tagfile || exit 1
