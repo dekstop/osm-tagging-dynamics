@@ -8,3 +8,5 @@ etl/data/full-history/*.osh.xml
 ._*
 etl/src/mapred/regions/region_*.grunt
 pig_*.log
+py-vis/env/
+*.pyc
