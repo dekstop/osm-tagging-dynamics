@@ -1,10 +1,10 @@
-bin/env.sh
-data/etl
-data/full-history/*.osh.xml.gz
-data/full-history/*.osh.pbf
-data/full-history/*.osh.xml
+etl/bin/env.sh
+etl/data/etl
+etl/data/full-history/*.osh.xml.gz
+etl/data/full-history/*.osh.pbf
+etl/data/full-history/*.osh.xml
 .DS_Store
 *.swp
 ._*
-src/mapred/regions/region_*.grunt
+etl/src/mapred/regions/region_*.grunt
 pig_*.log
