@@ -35,7 +35,7 @@ function extractXmlData() {
     echo "  Found ${tagfile}.gz"
   else
     echo "  Extracting tag edit history..."
-    $TIME $RUBY ${ETL_SRCDIR}/extract_POI_tag_history.rb "${xmlfile}" "${nodefile}.gz" "${tagfile}.gz" || return 1
+    $TIME $RUBY ${ETL_SRCDIR}/extract_POI_tag_history.rb "${xmlfile}" "${nodefile}" "${tagfile}" || return 1
   fi
 }
 
@@ -61,16 +61,35 @@ function extractAll() {
 # = Main =
 # ========
 
-rm "${OSH_DATADIR}/"*.osh.xml.gz > /dev/null 2>&1
-rm "${ETL_DATADIR}/"*.txt > /dev/null 2>&1
+# rm "${OSH_DATADIR}/"*.osh.xml.gz > /dev/null 2>&1
+# rm "${ETL_DATADIR}/"*.txt > /dev/null 2>&1
 
 # To prepare all files
-echo "Extracting data..."
-extractAll ${OSH_DATADIR}/*.osh.pbf || exit 1
-# extractAll ${OSH_DATADIR}/berlin.osh.pbf || exit 1
+# echo "Extracting data..."
+# extractAll ${OSH_DATADIR}/*.osh.pbf || exit 1
 
 # To prepare a specific file
 # name=berlin
 # convertToXml "${OSH_DATADIR}/${name}.osh.pbf" "${OSH_DATADIR}/${name}.osh.xml.gz" || exit 1
 # extractXmlData "${OSH_DATADIR}/${name}.osh.xml.gz" "${ETL_DATADIR}/${name}-node.txt.gz" "${ETL_DATADIR}/${name}-node_tag.txt.gz" || exit 1
 
+if [[ $# -lt 1 ]]
+then
+  echo "Usage : $0 <my_history_file.osh.xml[.gz|.bz2]>"
+  echo "Will extract raw node and tag data and store in ${ETL_DATADIR}"
+  exit 1
+else
+  while test $# != 0
+  do
+    oshfile=$1
+    # oshfile=${OSH_DATADIR}/test/berlin-short.osh.xml.bz2
+    name=`basename $oshfile .bz2`
+    name=`basename name .gz`
+    name=`basename name .xml`
+    name=`basename name .osh`
+    nodefile="${ETL_DATADIR}/${name}-node.txt.gz"
+    tagfile="${ETL_DATADIR}/${name}-node_tag.txt.gz"
+    extractXmlData $oshfile $nodefile $tagfile || exit 1
+    shift
+  done
+fi

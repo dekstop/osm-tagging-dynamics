@@ -116,7 +116,7 @@ end
 # ========
 
 if ARGV.size!=3
-  puts '<OSM *.osh.xml.gz file> <output POI file> <output tag file>'
+  puts '<OSM *.osh.xml[.gz|.bz2] file> <output POI file> <output tag file>'
   puts 'Produces a set of TSV files that can be loaded into a DB.'
   puts 'Will use compression on output files with a .gz suffix.'
   exit 1
@@ -124,6 +124,9 @@ end
 
 if (ARGV[0].end_with?('.gz'))
   xml = XML::Reader.io(Zlib::GzipReader.new(File.new(ARGV[0])))
+elsif (ARGV[0].end_with?('.bz2'))
+  require 'bzip2'
+  xml = XML::Reader.io(Bzip2::Reader.new(File.new(ARGV[0])))
 else
   xml = XML::Reader.file(ARGV[0])
 end
