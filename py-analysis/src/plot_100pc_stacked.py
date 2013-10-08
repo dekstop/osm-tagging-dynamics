@@ -10,6 +10,34 @@ import matplotlib.pyplot as plt
 
 from app import *
 
+# ==========
+# = Charts =
+# ==========
+
+def plot(pivot, groups, aspects, title=None, nolegend=False, colors = ['r', 'y', 'b']):
+  N = len(groups)
+  ind = np.arange(N)
+  width = 1
+  idx = 0
+  bar_plots = [None] * len(aspects)
+  bottom = [0.0] * N
+  for aspect in aspects:
+    aspect_values = pivot.ix[aspect].values
+    bar_plots[idx] = plt.bar(ind, aspect_values, width, bottom=bottom, color=colors[idx])
+    bottom += aspect_values
+    idx += 1
+
+  # Labels etc
+  if title:
+    plt.title(title) 
+
+  plt.xticks(ind + width/2., groups)
+  plt.gca().axes.get_yaxis().set_visible(False)
+
+  if nolegend==False:
+    # drawing is from bottom to top, so label order is reversed:
+    plt.legend(reversed(bar_plots), reversed(aspects), loc=4)
+  
 # ========
 # = Main =
 # ========
@@ -41,30 +69,7 @@ if __name__ == "__main__":
   # Make plot
   fig = plt.figure()
   fig.patch.set_facecolor('white')
-
-  N = len(groups)
-  ind = np.arange(N)
-  width = 0.35
-  idx = 0
-  bar_plots = [None] * len(aspects)
-  colors = ['r', 'y', 'g', 'b']
-  bottom = [0.0] * N
-  for aspect in aspects:
-    aspect_values = pivot_norm.ix[aspect].values
-    bar_plots[idx] = plt.bar(ind, aspect_values, width, bottom=bottom, color=colors[idx])
-    bottom += aspect_values
-    idx += 1
-
-  # Labels etc
-  if args.title:
-    plt.title(args.title) 
-
-  plt.xticks(ind + width/2., groups)
-  plt.gca().axes.get_yaxis().set_visible(False)
-
-  if args.nolegend==False:
-    # drawing is from bottom to top, so label order is reversed:
-    plt.legend(reversed(bar_plots), reversed(aspects), loc=4) 
+  plot(pivot_norm, groups, aspects, title=args.title, nolegend=args.nolegend)
   
   # Save to file.
   # plt.show()

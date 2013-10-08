@@ -1,79 +1,70 @@
 import matplotlib
 matplotlib.use('Agg')
 
-import cStringIO
+import csv
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-
-import numpy as np
 import pandas
+import string
 
-from app import *
+import plot_100pc_stacked
+
+# =========
+# = Tools =
+# =========
+
+def get_data_filename(datadir, max_cs, min_edits):
+  if max_cs == None:
+    ftempl = string.Template("${datadir}/editing_group_activity_min_edits_${min_edits}.txt")
+  else:
+    ftempl = string.Template("${datadir}/editing_group_activity_max_cs_${max_cs}_min_edits_${min_edits}.txt")
+  return ftempl.substitute(datadir=datadir, max_cs=max_cs, min_edits=min_edits)
 
 # ========
 # = Main =
 # ========
 
 if __name__ == "__main__":
-  # session = getSession()
-  # result = session.execute("SELECT 1 as name")
-  # for f in result:
-  #   print f['name']
-
-  # Load data
-  data = [
-    {'region':'Belarus', 'usertype':'only_creators', 'num_users':548, 'num_poi':5583, 'num_edits':5583},
-    {'region':'Denmark', 'usertype':'only_creators', 'num_users':659, 'num_poi':7773, 'num_edits':7773},
-    {'region':'Guatemala', 'usertype':'only_creators', 'num_users':63, 'num_poi':637, 'num_edits':637},
-    {'region':'India', 'usertype':'only_creators', 'num_users':926, 'num_poi':7316, 'num_edits':7316},
-    {'region':'Philippines', 'usertype':'only_creators', 'num_users':479, 'num_poi':19728, 'num_edits':19728},
-    {'region':'Belarus', 'usertype':'only_editors', 'num_users':237, 'num_poi':5509, 'num_edits':5975},
-    {'region':'Denmark', 'usertype':'only_editors', 'num_users':385, 'num_poi':15649, 'num_edits':16294},
-    {'region':'Guatemala', 'usertype':'only_editors', 'num_users':49, 'num_poi':218, 'num_edits':253},
-    {'region':'India', 'usertype':'only_editors', 'num_users':262, 'num_poi':2548, 'num_edits':2682},
-    {'region':'Philippines', 'usertype':'only_editors', 'num_users':203, 'num_poi':2594, 'num_edits':3117},
-    {'region':'Belarus', 'usertype':'creators_and_editors', 'num_users':718, 'num_poi':103301, 'num_edits':132747},
-    {'region':'Denmark', 'usertype':'creators_and_editors', 'num_users':1035, 'num_poi':2599237, 'num_edits':2934137},
-    {'region':'Guatemala', 'usertype':'creators_and_editors', 'num_users':83, 'num_poi':7640, 'num_edits':15249},
-    {'region':'India', 'usertype':'creators_and_editors', 'num_users':937, 'num_poi':390813, 'num_edits':421802},
-    {'region':'Philippines', 'usertype':'creators_and_editors', 'num_users':595, 'num_poi':184362, 'num_edits':238036},
-  ]
+  datadir = "/home/martind/osm/outputs/20131007-thresholds/data"
+  outdir = "/home/martind/osm/outputs/20131007-thresholds"
   
-  df = pandas.DataFrame(data)
-  # print df[df['region']=='Belarus']
-
-  pivot = df.pivot(index='usertype', columns='region', values='num_poi')
-  regions = pivot.columns
-  groups = pivot.index.tolist()
+  all_min_edits = [1, 2, 5, 10, 20, 50, 100, 200, 500]
+  nrows = len(all_min_edits)
+  all_max_cs = [None, 50000, 20000, 10000, 5000, 2000]
+  ncols = len(all_max_cs)
   
-  pivot_norm = pivot.astype(float) / pivot.sum()
+  groupcol = 'usertype'
+  aspectcol = 'region'
+  valuecol = 'num_poi'
+  outfiles = [
+    outdir + '/all_countries_%s.png' % (valuecol),
+    outdir + '/all_countries_%s.pdf' % (valuecol)]
 
-  # Make plot
-  fig = plt.figure()
+  fig = plt.figure(figsize=(8*ncols, 6*nrows))
   fig.patch.set_facecolor('white')
+  plt.subplots_adjust(hspace=.2, wspace=0.1)
+  n = 1
+  for min_edits in all_min_edits:
+    for max_cs in all_max_cs:
+      plt.subplot(nrows, ncols, n)
+      
+      filename = get_data_filename(datadir, max_cs, min_edits)
+      print filename
+      df = pandas.read_csv(filename, index_col=None, dialect=csv.excel_tab)
+      pivot = df.pivot(index=groupcol, columns=aspectcol, values=valuecol)
+      groups = pivot.columns
+      aspects = pivot.index.tolist()
+      
+      pivot_norm = pivot.astype(float) / pivot.sum()
+      
+      # Make plot
+      plot_100pc_stacked.plot(pivot_norm, groups, aspects, 
+        title="Min user edits: %s\nmax changeset size: %s" % (min_edits, max_cs or '-'), 
+        nolegend=((n % ncols-1)!=0), 
+        colors=['#eeeeee', '#a8ddb5', '#a6bddb'])
 
-  N = len(regions)
-  ind = np.arange(N)
-  width = 0.35
-  idx = 0
-  bar_plots = [None] * len(groups)
-  colors = ['r', 'y', 'g']
-  bottom = [0.0] * N
-  for group in groups:
-    region_values = pivot_norm.ix[group].values
-    bar_plots[idx] = plt.bar(ind, region_values, width, bottom=bottom, color=colors[idx])
-    bottom += region_values
-    idx += 1
-
-  # Labels
-  plt.title('Editing activity by user group, in number of POI edited')
-  plt.xticks(ind + width/2., regions)
-  # plt.ylabel('Number of POI')
-  plt.yticks([])
-  plt.legend(reversed(bar_plots), reversed(groups), loc=4) # drawing is from bottom to top, so label order is reversed
+      n += 1
   
   # Save to file.
-  # plt.show()
-  canvas = FigureCanvas(fig)
-  output = cStringIO.StringIO()
-  canvas.print_png('test.png')
+  # plt.show()  
+  for outfile in outfiles:
+    plt.savefig(outfile, bbox_inches='tight')
