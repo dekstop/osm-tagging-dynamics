@@ -1,6 +1,5 @@
 import ConfigParser
-from datetime import datetime
-from decimal import Decimal, InvalidOperation
+import csv
 import os
 
 from sqlalchemy import *
@@ -43,3 +42,22 @@ def getSession():
     if (session==None):
         session = Session()
     return session
+
+# ============
+# = File I/O =
+# ============
+
+# Write a SQLAlchemy Result object to a TSV file.
+def save_result(result, filename):
+  outfile = open(filename, 'wb')
+  outcsv = csv.writer(outfile, dialect='excel-tab')
+  outcsv.writerow(result.keys())
+  for row in result:
+    outcsv.writerow(row)
+  outfile.close()
+
+# Write a string-like object to a text file.
+def save_text(text, filename):
+  outfile = open(filename, 'wb')
+  outfile.write(text)
+  outfile.close()

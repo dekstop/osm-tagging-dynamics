@@ -56,21 +56,21 @@ if __name__ == "__main__":
   ind = np.arange(N)
   width = 0.35
   idx = 0
-  bars = [None] * len(groups)
+  bar_plots = [None] * len(groups)
   colors = ['r', 'y', 'g']
   bottom = [0.0] * N
   for group in groups:
     region_values = pivot_norm.ix[group].values
-    bars[idx] = plt.bar(ind, region_values, width, bottom=bottom, color=colors[idx])
+    bar_plots[idx] = plt.bar(ind, region_values, width, bottom=bottom, color=colors[idx])
     bottom += region_values
     idx += 1
 
   # Labels
-  plt.title('Editing activity by user group')
+  plt.title('Editing activity by user group, in number of POI edited')
   plt.xticks(ind + width/2., regions)
-  plt.ylabel('Number of POI')
+  # plt.ylabel('Number of POI')
   plt.yticks([])
-  plt.legend(bars, groups, loc=4)
+  plt.legend(reversed(bar_plots), reversed(groups), loc=4) # drawing is from bottom to top, so label order is reversed
   
   # Save to file.
   # plt.show()
