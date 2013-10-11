@@ -34,10 +34,13 @@ if __name__ == "__main__":
   
   groupcol = 'usertype'
   aspectcol = 'region'
-  valuecol = 'num_poi'
+  valuecol = 'num_edits'
   outfiles = [
-    outdir + '/all_countries_%s.png' % (valuecol),
-    outdir + '/all_countries_%s.pdf' % (valuecol)]
+    outdir + '/all_countries_%s_volume.png' % (valuecol),
+    outdir + '/all_countries_%s_volume.pdf' % (valuecol)]
+  
+  all = pandas.read_csv(get_data_filename(datadir, None, 1), index_col=None, dialect=csv.excel_tab)
+  all_pivot = all.pivot(index=groupcol, columns=aspectcol, values=valuecol)
 
   fig = plt.figure(figsize=(8*ncols, 6*nrows))
   fig.patch.set_facecolor('white')
@@ -54,11 +57,11 @@ if __name__ == "__main__":
       groups = pivot.columns
       aspects = pivot.index.tolist()
       
-      pivot_norm = pivot.astype(float) / pivot.sum()
+      pivot_norm = pivot.astype(float) / all_pivot
       
       # Make plot
       plot_100pc_stacked.plot(pivot_norm, groups, aspects, 
-        title="Min user edits: %s\nmax changeset size: %s" % (min_edits, max_cs or '-'), 
+        title="Min user edits: %s\nMax changeset size: %s" % (min_edits, max_cs or '-'), 
         nolegend=((n % ncols-1)!=0), 
         colors=['#eeeeee', '#a8ddb5', '#a6bddb'])
 

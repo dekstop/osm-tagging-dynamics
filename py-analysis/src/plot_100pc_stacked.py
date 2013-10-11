@@ -29,7 +29,7 @@ def plot(pivot, groups, aspects, title=None, nolegend=False, colors = ['r', 'y',
 
   # Labels etc
   if title:
-    plt.title(title) 
+    plt.title(title, horizontalalignment='left', x=0) 
 
   plt.xticks(ind + width/2., groups)
   plt.gca().axes.get_yaxis().set_visible(False)
@@ -69,7 +69,9 @@ if __name__ == "__main__":
   # Make plot
   fig = plt.figure()
   fig.patch.set_facecolor('white')
-  plot(pivot_norm, groups, aspects, title=args.title, nolegend=args.nolegend)
+  plot(pivot_norm, groups, aspects, 
+    title=args.title, nolegend=args.nolegend, 
+    colors=['#eeeeee', '#a8ddb5', '#a6bddb'])
   
   # Save to file.
   # plt.show()
