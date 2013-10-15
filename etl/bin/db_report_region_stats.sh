@@ -244,7 +244,7 @@ then
 fi
 
 # From a previous run...
-table_region_poi_latest=temp_region_poi_latest_20130910
+table_region_poi_latest=temp_region_poi_latest_20131011
 
 getRegionStats $outdir/regionStats.txt || exit 1
 getRegionEditIntervalStats $outdir/regionEditIntervalStats.txt || exit 1

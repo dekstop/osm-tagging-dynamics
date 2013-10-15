@@ -84,18 +84,39 @@ function migrateNodeDataToPoiTables() {
   $TIME $PSQL $DATABASE -c "INSERT INTO poi SELECT DISTINCT * FROM node WHERE node.id IN (SELECT DISTINCT poi_id FROM poi_tag) AND latitude IS NOT NULL AND longitude IS NOT NULL" || return 1
 }
 
-# =====================
-# = Derivative Tables =
-# =====================
+# ======================
+# = Materialised views =
+# ======================
 
-function loadPoiSequenceTable() {
+function materialisePoiSequenceTableView() {
   echo "poi_sequence: poi edit sequence without redactions"
   $TIME $PSQL $DATABASE -c "INSERT INTO poi_sequence SELECT * FROM view_poi_sequence" || return 1
 }
 
-function loadPoiTagEditActionTable() {
+function materialisePoiTagEditActionView() {
   echo "poi_tag_edit_action: tag versions that introduce changes"
   $TIME $PSQL $DATABASE -c "INSERT INTO poi_tag_edit_action SELECT * FROM view_poi_tag_edit_action" || return 1
+}
+
+# =====================
+# = Derivative tables =
+# =====================
+
+function loadUserEditsSchema() {
+  echo "user_edits schema: creators, editors, and their edit actions."
+  $TIME $PSQL $DATABASE -c "CREATE SCHEMA user_edits;" || return 1
+  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_all_edits AS SELECT p.uid, p.id as poi_id, p.version FROM poi p JOIN poi_tag_edit_action a ON (p.id=a.poi_id AND p.version=a.version) GROUP BY p.uid, p.id, p.version;" || return 1
+  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_all_edits;" || return 1
+  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_edits_creators AS SELECT uid, poi_id, 1 as version FROM user_edits.poi_all_edits e WHERE version=1 GROUP BY uid, poi_id;" || return 1
+  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_edits_creators;" || return 1
+  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_edits_editors AS SELECT uid, poi_id, version FROM user_edits.poi_all_edits e WHERE version>1 GROUP BY uid, poi_id, version;" || return 1
+  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_edits_editors;" || return 1
+  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_edits_only_creators AS SELECT c.uid, c.poi_id, 1 as version FROM user_edits.poi_edits_creators c LEFT OUTER JOIN (SELECT distinct uid FROM user_edits.poi_edits_editors) e ON (c.uid=e.uid) WHERE e.uid IS NULL GROUP BY c.uid, c.poi_id;" || return 1
+  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_edits_only_creators;" || return 1
+  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_edits_creators_and_editors AS SELECT a.uid, a.poi_id, a.version FROM user_edits.poi_all_edits a JOIN (SELECT c.uid FROM (SELECT DISTINCT uid FROM user_edits.poi_edits_creators) c JOIN (SELECT DISTINCT uid FROM user_edits.poi_edits_editors) e ON c.uid=e.uid) t ON (a.uid=t.uid);" || return 1
+  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_edits_creators_and_editors;" || return 1
+  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_edits_only_editors AS SELECT e.uid, e.poi_id, e.version FROM user_edits.poi_edits_editors e LEFT OUTER JOIN (SELECT distinct uid FROM user_edits.poi_edits_creators) c ON (c.uid=e.uid) WHERE c.uid IS NULL GROUP BY e.uid, e.poi_id, e.version;" || return 1
+  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_edits_only_editors;" || return 1
 }
 
 # ========
@@ -188,9 +209,9 @@ else
   echo
 fi
 
-echo "Preparing derivative tables..."
-loadPoiSequenceTable || exit 1
-loadPoiTagEditActionTable || exit 1
+echo "Materialised views..."
+materialisePoiSequenceTableView || exit 1
+materialisePoiTagEditActionView || exit 1
 echo
 
 if [ $drop_index ]
@@ -199,3 +220,11 @@ then
   createIndex || exit 1
   echo
 fi
+
+echo "Preparing schemas..."
+loadUserEditsSchema || exit 1
+echo
+
+echo "Next Steps:"
+echo "- populate the region table"
+echo "- populate the changesets table"
