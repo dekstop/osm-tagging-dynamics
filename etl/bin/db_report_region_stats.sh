@@ -22,7 +22,7 @@ function getRegionStats() {
       count(distinct (t.poi_id::text || '-' || t.key)) as num_tags,
       count(distinct (p.id::text || '-' || p.version::text)) as num_poi_versions,
       count(distinct (t.poi_id::text || '-' || t.key || '-' || t.version)) as num_tag_versions
-      FROM poi p ${sql_changeset_join}
+      FROM ${poi_table} p ${sql_changeset_join}
       JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
       JOIN ${table_region_poi_latest} rp ON p.id=rp.poi_id
       JOIN region r ON rp.region_id=r.id
@@ -41,9 +41,9 @@ function getRegionEditIntervalStats() {
       count(distinct p.username) as num_editors,
       count(distinct (t.poi_id::text || '-' || t.key)) as num_tags,
       avg(p.timestamp-p0.timestamp) as avg_delta_t
-      FROM poi p ${sql_changeset_join}
+      FROM ${poi_table} p ${sql_changeset_join}
       JOIN poi_sequence ps ON (p.id=ps.poi_id AND p.version=ps.version)
-      JOIN poi p0 ON (ps.poi_id=p0.id AND ps.prev_version=p0.version)
+      JOIN ${poi_table} p0 ON (ps.poi_id=p0.id AND ps.prev_version=p0.version)
       JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
       JOIN ${table_region_poi_latest} rp ON p.id=rp.poi_id
       JOIN region r ON rp.region_id=r.id
@@ -63,7 +63,7 @@ function getRegionNumEditorsHistogram() {
   SELECT r.name as region, num_editors, count(*) as num_poi
   FROM (
     SELECT p.id, count(distinct p.username) as num_editors
-    FROM poi p ${sql_changeset_join}
+    FROM ${poi_table} p ${sql_changeset_join}
     JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
@@ -79,7 +79,7 @@ function getRegionNumTagsHistogram() {
   SELECT r.name as region, num_tags, count(*) as num_poi
   FROM (
     SELECT p.id, count(distinct t.key) as num_tags
-    FROM poi p ${sql_changeset_join}
+    FROM ${poi_table} p ${sql_changeset_join}
     JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
@@ -95,7 +95,7 @@ function getRegionNumEditorsPerTagHistogram() {
   SELECT r.name as region, num_editors_per_tag, count(distinct t.id) as num_poi
   FROM (
     SELECT p.id, count(distinct p.username) as num_editors_per_tag
-    FROM poi p ${sql_changeset_join}
+    FROM ${poi_table} p ${sql_changeset_join}
     JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id, t.key) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
@@ -111,7 +111,7 @@ function getRegionNumVersionsHistogram() {
   SELECT r.name as region, num_versions, count(*) as num_poi
   FROM (
     SELECT p.id, count(distinct p.version) as num_versions
-    FROM poi p ${sql_changeset_join}
+    FROM ${poi_table} p ${sql_changeset_join}
     JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
@@ -127,7 +127,7 @@ function getRegionMaxVersionsHistogram() {
   SELECT r.name as region, max_version, count(*) as num_poi
   FROM (
     SELECT p.id, max(p.version) as max_version
-    FROM poi p ${sql_changeset_join}
+    FROM ${poi_table} p ${sql_changeset_join}
     JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
@@ -143,7 +143,7 @@ function getRegionActionsPerVersionHistogram() {
   SELECT r.name as region, action, version, sum(num_edits) as num_edits
   FROM (
     SELECT p.id, t.action as action, p.version as version, count(*) as num_edits
-    FROM poi p ${sql_changeset_join}
+    FROM ${poi_table} p ${sql_changeset_join}
     JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id, t.action, p.version) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
@@ -159,9 +159,9 @@ function getRegionEditIntervalHistogram() {
   SELECT r.name as region, num_days, count(distinct t.id) as num_poi
   FROM (
     SELECT p.id, extract('day' FROM avg(p.timestamp-p0.timestamp)) as num_days
-    FROM poi p ${sql_changeset_join}
+    FROM ${poi_table} p ${sql_changeset_join}
     JOIN poi_sequence ps ON (p.id=ps.poi_id AND p.version=ps.version)
-    JOIN poi p0 ON (ps.poi_id=p0.id AND ps.prev_version=p0.version)
+    JOIN ${poi_table} p0 ON (ps.poi_id=p0.id AND ps.prev_version=p0.version)
     JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version)
     GROUP BY p.id, p.version) t
   JOIN ${table_region_poi_latest} rp ON t.id=rp.poi_id
@@ -179,7 +179,7 @@ function getRegionTagReversionHistogram() {
     SELECT id, max(num_steps) as num_steps, max(num_users) as num_users
     FROM (
       SELECT p.id, key, value, count(*) as num_steps, count(distinct username) as num_users, min(p.version) as start_version
-      FROM poi p ${sql_changeset_join}
+      FROM ${poi_table} p ${sql_changeset_join}
       JOIN poi_tag_edit_action t ON (p.id=t.poi_id AND p.version=t.version) 
       WHERE action IN ('add', 'update') 
       GROUP BY p.id, key, value 
@@ -198,6 +198,7 @@ function getRegionTagReversionHistogram() {
 
 DATE=`date +%Y%m%d`
 table_region_poi_latest=view_region_poi_latest
+poi_table=poi
 sql_changeset_join=
 
 outdir=
@@ -206,16 +207,21 @@ materialise_views=
 while test $# != 0
 do
   case "$1" in
-    --changeset-maxsize) 
-      shift
-      echo "Maximum changeset size: ${1} nodes"
-      sql_changeset_join=" JOIN changeset c ON (p.changeset=c.id AND c.num_nodes<=${1}) "
-      ;;
     --database) 
       shift
       echo "Querying database: ${1}"
       # Note: this is a global variable, initially set in env.sh
       DATABASE=$1
+      ;;
+    --poi-table) 
+      shift
+      poi_table=$1
+      echo "Querying against POI table: ${poi_table}"
+      ;;
+    --changeset-maxsize) 
+      shift
+      echo "Maximum changeset size: ${1} nodes"
+      sql_changeset_join=" JOIN changeset c ON (p.changeset=c.id AND c.num_nodes<=${1}) "
       ;;
     --materialise-views) echo "Will materialise views."; materialise_views=t ;;
     *) 
