@@ -1,6 +1,6 @@
 import ConfigParser
 import csv
-import os
+import os, errno
 
 from sqlalchemy import *
 from sqlalchemy.orm import *
@@ -46,6 +46,14 @@ def getSession():
 # ============
 # = File I/O =
 # ============
+
+def mkdir_p(path):
+  try:
+    os.makedirs(path)
+  except OSError as exc:
+    if exc.errno == errno.EEXIST and os.path.isdir(path):
+      pass
+    else: raise
 
 # Write a SQLAlchemy Result object to a TSV file.
 def save_result(result, filename):
