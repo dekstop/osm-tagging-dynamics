@@ -27,6 +27,44 @@ def avg(numbers):
 # = Plots =
 # =========
 
+# data is a mapping of column -> row -> groupid -> value
+def plot_group_volume(data, columns, rows, outdir, filename_base, **kwargs):
+  ncols = len(columns)
+  nrows = len(rows)
+
+  fig = plt.figure(figsize=(4*ncols, 3*nrows))
+  plt.subplots_adjust(hspace=.2, wspace=0.2)
+  fig.patch.set_facecolor('white')
+
+  n = 1
+  for row in rows:
+    for column in columns:
+
+      if n <= ncols: # first row
+        ax1 = plt.subplot(nrows, ncols, n, title=column)
+      else:
+        ax1 = plt.subplot(nrows, ncols, n)
+      
+      if (n % ncols == 1): # first column
+        plt.ylabel(row)
+
+      colors = ['b', 'c', 'm', 'y', 'r', 'k']
+      left = 0
+      total = decimal.Decimal(sum(data[column][row].values()))
+      for groupid in sorted(data[column][row].keys()):
+        col = colors.pop(0)
+        val = data[column][row][groupid] / total
+        ax1.barh(0, val, 1, left=left, color=col, **kwargs)
+        left += val
+
+      # ax1.get_xaxis().set_visible(False)
+      ax1.get_yaxis().set_ticks([])
+
+      n += 1
+  
+  plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
+  plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+
 # data is a mapping of column -> row -> list of items (values)
 # item_groupids is a mapping of column -> list of groupids, one per item
 # kwargs is passed on to plt.scatter(...).
@@ -62,7 +100,7 @@ def plot_group_scatter(data, anchor_row, item_groupids, columns, rows, outdir, f
         plt.ylabel(row)
 
       colors = ['b', 'c', 'm', 'y', 'r', 'k']
-      for groupid in group_x.keys(): #sorted(group_x.keys(), reverse=True):
+      for groupid in sorted(group_x.keys()):
         col = colors.pop(0)
         ax1.scatter(group_x[groupid], group_y[groupid], color=col, **kwargs)
 
@@ -131,18 +169,20 @@ if __name__ == "__main__":
   metrics = ['num_poi', 
     'num_poi_created', 'num_poi_edited', 
     'num_changesets', 'num_edits', 
-    'num_tag_keys', 'num_tag_add', 'num_tag_update', 'num_tag_remove']
-  user_scores = ['poi_edit_score', 'tag_edit_score', 'tag_removal_score']
+    'num_tag_keys', 'num_tag_add', 'num_tag_update', 'num_tag_remove',
+    'days_active', 'lifespan_days']
+  user_scores = ['poi_edit_score', 'tag_edit_score', 'tag_removal_score', 'edit_pace']
   
   data = defaultdict(lambda: defaultdict(list)) # region -> metric -> list of user values
-  region_users = defaultdict(set)    # region -> set of uids
-  region_num_edits = defaultdict(int)      # region -> num_edits
-  user_groups = defaultdict(list) # region -> list of user groups
+  region_users = defaultdict(set)     # region -> set of uids
+  region_num_edits = defaultdict(int) # region -> num_edits
+  user_groups = defaultdict(list)     # region -> list of user groups
   
   # User scores. region -> group -> list of values
   poi_edit_score = defaultdict(lambda: defaultdict(list)) 
   tag_edit_score = defaultdict(lambda: defaultdict(list))
   tag_removal_score = defaultdict(lambda: defaultdict(list))
+  edit_pace = defaultdict(lambda: defaultdict(list))
 
   # Group scores. region -> group -> value
   group_num_users = defaultdict(lambda: defaultdict(int)) 
@@ -154,7 +194,8 @@ if __name__ == "__main__":
     """SELECT r.name AS region, seg.groupid as groupid, seg.uid as uid, %s,
     1.0 * (num_poi_edited + 1)/(num_poi_created + 1) as poi_edit_score, 
     1.0 * (num_tag_update + 1)/(num_tag_add + 1) as tag_edit_score, 
-    1.0 * (num_tag_remove + 1)/(num_tag_add + 1) as tag_removal_score
+    1.0 * (num_tag_remove + 1)/(num_tag_add + 1) as tag_removal_score,
+    1.0 * num_edits / days_active as edit_pace
     FROM sample_1pc.region_user_segment seg
     JOIN sample_1pc.user_edit_stats ues ON (seg.region_id=ues.region_id AND seg.uid=ues.uid)
     JOIN region r ON seg.region_id=r.id
@@ -176,6 +217,7 @@ if __name__ == "__main__":
     poi_edit_score[region][groupid].append(row['poi_edit_score'])
     tag_edit_score[region][groupid].append(row['tag_edit_score'])
     tag_removal_score[region][groupid].append(row['tag_removal_score'])
+    edit_pace[region][groupid].append(row['edit_pace'])
     
     group_num_users[region][groupid] += 1
     group_num_edits[region][groupid] += row['num_edits']
@@ -194,10 +236,12 @@ if __name__ == "__main__":
   # Compute derived scores
   #
 
-  edits_per_user = defaultdict(dict)        # region -> group -> aggregate score
-  avg_poi_edit_score = defaultdict(dict)    # region -> group -> aggregate score
-  avg_tag_edit_score = defaultdict(dict)    # region -> group -> aggregate score
-  avg_tag_removal_score = defaultdict(dict) # region -> group -> aggregate score
+  # region -> group -> aggregate score
+  edits_per_user = defaultdict(dict)
+  avg_poi_edit_score = defaultdict(dict)
+  avg_tag_edit_score = defaultdict(dict)
+  avg_tag_removal_score = defaultdict(dict)
+  avg_edit_pace = defaultdict(dict)
   
   for region in regions:
     for groupid in groups[region]:
@@ -207,6 +251,7 @@ if __name__ == "__main__":
       avg_poi_edit_score[region][groupid] = avg(poi_edit_score[region][groupid])
       avg_tag_edit_score[region][groupid] = avg(tag_edit_score[region][groupid])
       avg_tag_removal_score[region][groupid] = avg(tag_removal_score[region][groupid])
+      avg_edit_pace[region][groupid] = avg(edit_pace[region][groupid])
 
   #
   # Report
@@ -221,7 +266,8 @@ if __name__ == "__main__":
     'num_users', 'perc_users', 
     'num_edits', 'perc_edits',
     'edits_per_user', 
-    'avg_poi_edit_score', 'avg_tag_edit_score', 'avg_tag_removal_score'])
+    'avg_poi_edit_score', 'avg_tag_edit_score', 'avg_tag_removal_score', 
+    'avg_edit_pace'])
   
   for region in regions:
     for groupid in groups[region]:
@@ -235,14 +281,31 @@ if __name__ == "__main__":
         edits_per_user[region][groupid],
         avg_poi_edit_score[region][groupid],
         avg_tag_edit_score[region][groupid],
-        avg_tag_removal_score[region][groupid]])
+        avg_tag_removal_score[region][groupid],
+        avg_edit_pace[region][groupid]])
+
+  #
+  # Volume plot
+  # 
+  
+  volume_data = dict()
+  for region in regions:
+    volume_data[region] = dict()
+    volume_data[region]['num_users'] = group_num_users[region]
+    volume_data[region]['num_edits'] = group_num_edits[region]
+
+  plot_group_volume(volume_data, regions, ['num_users', 'num_edits'], 
+    args.outdir, 'volume_%s' % (args.scheme_name))
 
   #
   # Scatter plot
   #
   
-  # plot_group_scatter(data, 'num_edits', user_groups, regions, metrics, 
-    # args.outdir, 'scatter_num_edits_%s' % (args.scheme_name))
+  plot_group_scatter(data, 'num_edits', user_groups, regions, metrics, 
+    args.outdir, 'scatter_num_edits_%s' % (args.scheme_name))
+  
+  plot_group_scatter(data, 'days_active', user_groups, regions, metrics, 
+    args.outdir, 'scatter_days_active_%s' % (args.scheme_name))
   
   #
   # Scores plot
@@ -255,7 +318,9 @@ if __name__ == "__main__":
     scores_data[region]['avg_poi_edit_score'] = avg_poi_edit_score[region]
     scores_data[region]['avg_tag_edit_score'] = avg_tag_edit_score[region]
     scores_data[region]['avg_tag_removal_score'] = avg_tag_removal_score[region]
+    scores_data[region]['avg_edit_pace'] = avg_edit_pace[region]
   
   plot_group_scores(scores_data, regions, 
-    ['edits_per_user', 'avg_poi_edit_score', 'avg_tag_edit_score', 'avg_tag_removal_score'], 
+    ['edits_per_user', 'avg_poi_edit_score', 'avg_tag_edit_score', 
+    'avg_tag_removal_score', 'avg_edit_pace'], 
     args.outdir, 'scores_%s' % (args.scheme_name))

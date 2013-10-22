@@ -123,7 +123,8 @@ if __name__ == "__main__":
   metrics = ['num_poi', 
     'num_poi_created', 'num_poi_edited', 
     'num_changesets', 'num_edits', 
-    'num_tag_keys', 'num_tag_add', 'num_tag_update', 'num_tag_remove']
+    'num_tag_keys', 'num_tag_add', 'num_tag_update', 'num_tag_remove',
+    'days_active', 'lifespan_days']
   
   data = dict()
   for metric in metrics:
