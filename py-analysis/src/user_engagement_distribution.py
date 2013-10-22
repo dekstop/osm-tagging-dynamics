@@ -9,6 +9,7 @@ import argparse
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
+import numpy
 import powerlaw
 
 from app import *
@@ -58,7 +59,7 @@ def plot_dist(data, columns, rows, filename):
   for row in rows:
     for column in columns:
 
-      print "==== %s: %s ====" % (column, row)
+      print "= %s: %s =" % (column, row)
       
       values = list(value for value in data[row][column] if value>0)
       # print data[row][column]
@@ -120,6 +121,13 @@ if __name__ == "__main__":
     'num_poi_created', 'num_poi_edited', 
     'num_changesets', 'num_edits', 
     'num_tag_keys', 'num_tag_add', 'num_tag_update', 'num_tag_remove']
+  
+  segmentation_metric = 'num_edits'
+  segmentation_bands = [20, 50, 80]
+
+  data = dict()
+  for metric in metrics:
+    data[metric] = defaultdict(list)
 
   # getDb().echo = True    
   session = getSession()
@@ -128,18 +136,14 @@ if __name__ == "__main__":
     JOIN region r ON s.region_id=r.id""" % (', '.join(metrics)))
   # print result.keys()
 
-  data = dict()
-  for metric in metrics:
-    data[metric] = defaultdict(list)
-
-  n = 0
+  num_users = 0
   for row in result:
     for metric in metrics:
       region = row['region']
       data[metric][region].append(row[metric])
-    n += 1
+    num_users += 1
   
-  print "Loaded %d rows." % (n)
+  print "Loaded data for %d users." % (num_users)
   
   regions = sorted(data[metrics[0]].keys())
   ncols = len(regions)
@@ -155,9 +159,91 @@ if __name__ == "__main__":
   # Plot1: histogram
   plot_hist(data, regions, metrics, "%s/user_hist.pdf" % (args.outdir), 
     normed=True, range=[0, 20])
-
+  
   plot_hist(data, regions, metrics, "%s/user_hist_log.pdf" % (args.outdir), 
     normed=True, log=True, range=[0, 20])
-
+  
   # Plot2: distribution estimation
   plot_dist(data, regions, metrics, "%s/user_dist_fit.pdf" % (args.outdir))
+
+  #
+  # User engagement bands per region
+  #
+  
+  scores = ['edits_per_user', 'poi_edit_score', 'tag_edit_score', 'tag_removal_score']
+
+  filename = "%s/segments.txt" % (args.outdir)
+  outfile = open(filename, 'wb')
+  outcsv = csv.writer(outfile, dialect='excel-tab')
+  header = ['region', 'band', 'low', 'high', 
+    'num_users', 'total_users', 
+    'num_edits', 'total_edits']
+  header.extend(metrics)
+  header.extend(scores)
+  outcsv.writerow(header)
+
+  for region in regions:
+    print "= %s =" % (region)
+
+    values = data[segmentation_metric][region]
+    total_edits = sum(values)
+    total_users = len(values)
+
+    # inverted percentile: we're interested in the n% _top_ entries
+    top_bands = segmentation_bands #list(100 - numpy.array(segmentation_bands))
+    thresholds = numpy.percentile(values, top_bands) 
+    thresholds.append(max(values))
+
+    # remove duplicate thresholds for low-data regions
+    thresholds = sorted(list(set(thresholds)))
+    print thresholds
+    
+    low = 0
+    band_idx = 1
+    for high in thresholds:
+      print "Band: %f < %s <= %f" % (low, segmentation_metric, high)
+      
+      result = session.execute(
+        """SELECT avg(%s), 
+        1.0*sum(num_edits)/count(distinct uid) as edits_per_user, 
+        avg(num_poi_edited/(num_poi_created + 1)) as poi_edit_score, 
+        avg(num_tag_update/(num_tag_add + 1)) as tag_edit_score, 
+        avg(num_tag_remove/(num_tag_add + 1)) as tag_removal_score, 
+        sum(num_edits) as num_edits,
+        count(distinct uid) as num_users 
+        FROM sample_1pc.user_edit_stats s 
+        JOIN region r ON s.region_id=r.id
+        WHERE r.name='%s' 
+        AND s.num_edits>%f
+        AND s.num_edits<=%f""" % ('), avg('.join(metrics), region, low, high))
+      
+      for row in result:
+        outdata = [region, 'band_%d' % (band_idx), low, high, 
+          row['num_users'], total_users, 
+          row['num_edits'], total_edits]
+        
+        print "Number of users: %d (total: %d)" % (row['num_users'], total_users)
+        print "Number of edits: %d (total: %d)" % (row['num_edits'], total_edits)
+
+        for idx in range(len(metrics)):
+          print "  avg %s: %f" % (metrics[idx], row[idx])
+          outdata.append(row[idx])
+
+        for col in scores:
+          print "  %s: %f" % (col, row[col])
+          outdata.append(row[col])
+        
+        outcsv.writerow(outdata)
+      
+      low = high
+      band_idx += 1
+    
+  outfile.close()
+  
+  # for metric in metrics:
+  #   print "= %s =" % (metric)
+  #   for region in regions:
+  #     print "%s" % (region)
+  #     for band in bands:
+  #       v = numpy.percentile(data[metric][region], band)
+  #       print "  %.0f%%: %.2f" % (band, v)
