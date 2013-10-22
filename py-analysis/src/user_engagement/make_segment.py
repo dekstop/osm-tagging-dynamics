@@ -4,17 +4,59 @@
 
 import argparse
 from collections import defaultdict
+import decimal
 import sys
 
 import numpy
 
 from app import *
 
+# =========
+# = Tools =
+# =========
+
+# This is *not* the classic percentile function (numpy.percentile) --
+# it determines thresholds based on the *sum* of observations, not their count,
+# and it orders observations in descending order.
+#
+# The process:
+# - calculate the total (the sum of all values)
+# - order all values by size, *descending*
+# - for each requested percentile: 
+#   - pick the n largest entries whose sum just exceeded the percentile (as percentage of the total)
+#   - return the smallest value in this selected group
+def top_percentile(values, percentiles):
+  values = sorted(values, reverse=True)
+  percentiles = sorted(percentiles)
+
+  total = sum(values)
+  thresholds = []
+  for perc in percentiles:
+    ax = decimal.Decimal(0)
+    for val in values:
+      ax += val
+      if (100*ax/total >= perc):
+        # print "threshold: %f at value: %d (%f%%)" % (perc, val, 100*ax/total)
+        thresholds.append(val)
+        break
+  return thresholds
+
+# a = [1,2,3,4,5,6,7,8,9,10]
+# b = [1,1,1,1,1,1,1,1,1,1]
+# p = [1, 10,20,50]
+# print a, p
+# print top_percentile(a, p)
+# print numpy.percentile(a, p)
+# print b, p
+# print top_percentile(b, p)
+# print numpy.percentile(b, p)
+
 # ========
 # = Main =
 # ========
 
 if __name__ == "__main__":
+  
   parser = argparse.ArgumentParser(description='Segment the users of each region by a single anchoring metric.')
   parser.add_argument('scheme_name', help='name for this segmentation scheme')
   parser.add_argument('metric', help='metric along which users are segmented')
@@ -72,19 +114,27 @@ if __name__ == "__main__":
     band_thresholds[region] = defaultdict(list)
   
   for region in regions:
+    # print region
     values = data[region]
-    thresholds = numpy.percentile(values, sorted(args.bands)) 
-    thresholds.append(max(values))
 
+    # classic percentile
+    thresholds = sorted(numpy.percentile(values, args.bands))
+    
+    # top-ranked percentile
+    # thresholds = sorted(top_percentile(values, args.bands))
+    
+    # if (max(values) not in thresholds):
+    thresholds.append(max(values))
+    
     # remove duplicate thresholds for low-data regions
     unique_thresholds = sorted(list(set(thresholds)))
     if (unique_thresholds != thresholds):
-      print "Warning: duplicate band thresholds found, reducing number of bands."
+      print "Warning: duplicate band thresholds found for region '%s', reducing number of bands." % (region)
       print "Requested: %s" % (thresholds)
       print "Without duplicates: %s" % (unique_thresholds)
     
     thresholds = unique_thresholds
-    
+
     band_expr = ''
     band_idx = 1
     low = 0
