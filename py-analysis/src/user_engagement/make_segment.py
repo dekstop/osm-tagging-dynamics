@@ -61,6 +61,8 @@ if __name__ == "__main__":
   parser.add_argument('scheme_name', help='name for this segmentation scheme')
   parser.add_argument('metric', help='metric along which users are segmented')
   parser.add_argument('outdir', help='output directory for segmentation reports')
+  parser.add_argument('--regions', dest='regions', type=str, nargs='+', default=None, 
+      action='store', help='list of region names')
   parser.add_argument('--bands', dest='bands', type=int, nargs='+', default=[25,50,75], 
       action='store', help='percentile bands, a space-separated list of numbers [0..100]. Default: 25 50 75 (quartiles)')
   parser.add_argument('--overwrite', dest='overwrite', default=False, 
@@ -89,9 +91,13 @@ if __name__ == "__main__":
   # Load data
   #
   
-  result = session.execute(
-    """SELECT r.name AS region, %s FROM sample_1pc.user_edit_stats s 
-    JOIN region r ON s.region_id=r.id""" % (args.metric))
+  query = """SELECT r.name AS region, %s FROM sample_1pc.user_edit_stats s 
+    JOIN region r ON s.region_id=r.id""" % (args.metric)
+  if args.regions!=None:
+    str_regions = "', '".join(args.regions)
+    print "Limiting to regions: '%s'" % (str_regions)
+    query += " WHERE r.name IN ('%s')" % (str_regions)
+  result = session.execute(query)
   # print result.keys()
 
   data = defaultdict(list)
