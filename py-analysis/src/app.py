@@ -69,3 +69,41 @@ def save_text(text, filename):
   outfile = open(filename, 'wb')
   outfile.write(text)
   outfile.close()
+
+# ==================
+# = Plotting tools =
+# ==================
+
+CLASSIC_COLORS = ['b', 'c', 'm', 'y', 'r', 'k']
+
+LIGHT_COLOR = '#EEEEEE'
+
+# Broadly color-blind suitable.
+# Cf. http://www.colourlovers.com/lover/martind/palettes
+QUALITATIVE_LIGHT = ['#A8DDB5', '#A6BDDB', '#E8AFB8', '#FFEEB3', '#BBE0E8']
+QUALITATIVE_MEDIUM = ['#9BDDAB', '#98BCEB', '#F29DAB', '#F2DD91', '#8BD8E8']
+QUALITATIVE_DARK = ['#6EDD89', '#75A8EB', '#F2798C', '#F2D779', '#74D3E8']
+
+# 123456 -> "123.5k".
+# The resulting string should never be longer than 6 characters. (Unless it's a massively large number...)
+# TODO: support small fractions < 0.1
+def simplified_SI_format(x, p):
+  suffixes = ['k', 'M', 'G', 'T', 'P']
+  suffix = ''
+  is_fractional = (x<1 and x!=0)
+  sign = ''
+  if x < 0:
+    x *= -1
+    sign = '-'
+
+  scale_idx = 0
+  while (x >= 1000 and scale_idx<len(suffixes)):
+    x /= 1000.0
+    suffix = suffixes[scale_idx]
+    is_fractional = True
+    scale_idx += 1
+
+  if is_fractional:
+    return "%s%.1f%s" % (sign, x, suffix)
+  else:
+    return "%s%d%s" % (sign, int(x), suffix)

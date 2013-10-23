@@ -48,7 +48,7 @@ def plot_group_volume(data, columns, rows, outdir, filename_base, **kwargs):
       if (n % ncols == 1): # first column
         plt.ylabel(row)
 
-      colors = ['b', 'c', 'm', 'y', 'r', 'k']
+      colors = list(QUALITATIVE_MEDIUM) # ['b', 'c', 'm', 'y', 'r', 'k']
       left = 0
       total = decimal.Decimal(sum(data[column][row].values()))
       for groupid in sorted(data[column][row].keys()):
@@ -99,7 +99,7 @@ def plot_group_scatter(data, anchor_row, item_groupids, columns, rows, outdir, f
       if (n % ncols == 1): # first column
         plt.ylabel(row)
 
-      colors = ['b', 'c', 'm', 'y', 'r', 'k']
+      colors = list(QUALITATIVE_DARK) # ['b', 'c', 'm', 'y', 'r', 'k']
       for groupid in sorted(group_x.keys()):
         col = colors.pop(0)
         ax1.scatter(group_x[groupid], group_y[groupid], color=col, **kwargs)
@@ -136,13 +136,15 @@ def plot_group_scores(data, columns, rows, outdir, filename_base, **kwargs):
       if (n % ncols == 1): # first column
         plt.ylabel(row)
 
-      colors = ['b', 'c', 'm', 'y', 'r', 'k']
+      colors = list(QUALITATIVE_MEDIUM) # ['b', 'c', 'm', 'y', 'r', 'k']
       celldata = []
       for groupid in sorted(data[column][row].keys()):
         celldata.append(data[column][row][groupid])
 
       ax1.bar(range(1, len(celldata)+1), celldata, color=colors, **kwargs)
 
+      ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+      ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
       ax1.tick_params(axis='y', which='major', labelsize='x-small')
       ax1.tick_params(axis='y', which='minor', labelsize='xx-small')
       ax1.get_xaxis().set_visible(False)
@@ -293,7 +295,7 @@ if __name__ == "__main__":
     volume_data[region] = dict()
     volume_data[region]['num_users'] = group_num_users[region]
     volume_data[region]['num_edits'] = group_num_edits[region]
-
+  
   plot_group_volume(volume_data, regions, ['num_users', 'num_edits'], 
     args.outdir, 'volume_%s' % (args.scheme_name))
 

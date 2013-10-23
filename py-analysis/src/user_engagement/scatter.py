@@ -14,35 +14,24 @@ from matplotlib import ticker
 from app import *
 
 # =========
+# = Tools =
+# =========
+
+def remove_zero_or_less(x, y):
+  x1 = []
+  y1 = []
+  for idx in range(len(x)):
+    if (x[idx]>0 and y[idx]>0):
+      x1.append(x[idx])
+      y1.append(y[idx])
+  return (x1, y1)
+
+# =========
 # = Plots =
 # =========
 
-def custom_number_format(x, p):
-  sign = ''
-  suffix = ''
-  is_fractional = False
-
-  if x < 0:
-    x *= -1
-    sign = '-'
-
-  if x >= 1000:
-    x /= 1000
-    suffix = 'k'
-    is_fractional = True
-
-  if x >= 1000:
-    x /= 1000
-    suffix = 'M'
-    is_fractional = True
-
-  if is_fractional:
-    return "%s%.1f%s" % (sign, x, suffix)
-  else:
-    return "%s%d%s" % (sign, int(x), suffix)
-
 # kwargs is passed on to plt.scatter(...).
-def plot_scatter(data, anchor_row, columns, rows, outdir, filename_base, **kwargs):
+def plot_scatter(data, anchor_row, columns, rows, outdir, filename_base, log_scale=False, **kwargs):
   ncols = len(columns)
   nrows = len(rows)
 
@@ -57,6 +46,9 @@ def plot_scatter(data, anchor_row, columns, rows, outdir, filename_base, **kwarg
       x = data[anchor_row][column]
       y = data[row][column]
 
+      if log_scale:
+        (x, y) = remove_zero_or_less(x, y)
+
       if n <= ncols: # first row
         ax1 = plt.subplot(nrows, ncols, n, title=column)
       else:
@@ -66,12 +58,15 @@ def plot_scatter(data, anchor_row, columns, rows, outdir, filename_base, **kwarg
         plt.ylabel(row)
 
       plt.scatter(x,y, **kwargs)
+      
+      if log_scale:
+        ax1.set_xscale('log')
+        ax1.set_yscale('log')
+      else:
+        ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+        ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
       ax1.tick_params(axis='both', which='major', labelsize='x-small')
       ax1.tick_params(axis='both', which='minor', labelsize='xx-small')
-      # ax1.ticklabel_format(style='sci', axis='both', scilimits=(0,0))
-
-      ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(custom_number_format))
-      ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(custom_number_format))
 
       n += 1
   
@@ -129,7 +124,13 @@ if __name__ == "__main__":
   # 
   
   plot_scatter(data, 'num_edits', regions, metrics, 
-    args.outdir, "scatter_num_edits")
+    args.outdir, 'scatter_num_edits')
+
+  plot_scatter(data, 'num_edits', regions, metrics, 
+    args.outdir, 'scatter_num_edits_log', log_scale=True)
 
   plot_scatter(data, 'days_active', regions, metrics, 
-    args.outdir, "scatter_days_active")
+    args.outdir, 'scatter_days_active')
+
+  plot_scatter(data, 'days_active', regions, metrics, 
+    args.outdir, 'scatter_days_active_log', log_scale=True)
