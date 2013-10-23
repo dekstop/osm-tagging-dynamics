@@ -32,7 +32,7 @@ def plot_group_volume(data, columns, rows, outdir, filename_base, **kwargs):
   ncols = len(columns)
   nrows = len(rows)
 
-  fig = plt.figure(figsize=(4*ncols, 3*nrows))
+  fig = plt.figure(figsize=(4*ncols, 1.7*nrows))
   plt.subplots_adjust(hspace=.2, wspace=0.2)
   fig.patch.set_facecolor('white')
 
