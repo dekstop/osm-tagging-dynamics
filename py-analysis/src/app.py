@@ -84,6 +84,11 @@ QUALITATIVE_LIGHT = ['#A8DDB5', '#A6BDDB', '#E8AFB8', '#FFEEB3', '#BBE0E8']
 QUALITATIVE_MEDIUM = ['#9BDDAB', '#98BCEB', '#F29DAB', '#F2DD91', '#8BD8E8']
 QUALITATIVE_DARK = ['#6EDD89', '#75A8EB', '#F2798C', '#F2D779', '#74D3E8']
 
+# Temp hack to show filtered top/bottom bands
+# QUALITATIVE_LIGHT = ['#EEEEEE', '#A8DDB5', '#A6BDDB', '#E8AFB8', '#FFEEB3', '#BBE0E8', '#EEEEEE']
+# QUALITATIVE_MEDIUM = ['#EEEEEE', '#9BDDAB', '#98BCEB', '#F29DAB', '#F2DD91', '#8BD8E8', '#EEEEEE']
+# QUALITATIVE_DARK = ['#EEEEEE', '#6EDD89', '#75A8EB', '#F2798C', '#F2D779', '#74D3E8', '#EEEEEE']
+
 # 123456 -> "123.5k".
 # The resulting string should never be longer than 6 characters. (Unless it's a massively large number...)
 # TODO: support small fractions < 0.1

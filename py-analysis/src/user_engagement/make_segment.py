@@ -65,6 +65,10 @@ if __name__ == "__main__":
       action='store', help='list of region names')
   parser.add_argument('--bands', dest='bands', type=int, nargs='+', default=[25,50,75], 
       action='store', help='percentile bands, a space-separated list of numbers [0..100]. Default: 25 50 75 (quartiles)')
+  parser.add_argument('--drop-bottom', dest='drop_bottom', default=False, 
+    action='store_true', help='drop the bottom band (filter it out)')
+  parser.add_argument('--drop-top', dest='drop_top', default=False, 
+    action='store_true', help='drop the top band (filter it out)')
   parser.add_argument('--overwrite', dest='overwrite', default=False, 
     action='store_true', help='overwrite existing data if the scheme already exists')
   args = parser.parse_args()
@@ -142,23 +146,31 @@ if __name__ == "__main__":
     thresholds = unique_thresholds
 
     band_expr = ''
-    band_idx = 1
+    groupid = 1
     low = 0
     for high in thresholds:
-      band_expr += "WHEN (%s > %f AND %s <= %f) THEN %d " % (args.metric, low, args.metric, high, band_idx)
-      band_thresholds[region][band_idx] = [low, high]
+      band_expr += "WHEN (%s > %f AND %s <= %f) THEN %d " % (args.metric, low, args.metric, high, groupid)
+      band_thresholds[region][groupid] = [low, high]
 
-      band_idx += 1
+      groupid += 1
       low = high
 
-    result = session.execute(
-    """INSERT INTO sample_1pc.region_user_segment(region_id, scheme, uid, groupid) 
+    query = """INSERT INTO sample_1pc.region_user_segment(region_id, scheme, uid, groupid) 
       SELECT r.id, '%s', uid, 
       CASE %s END
       FROM sample_1pc.user_edit_stats ues
       JOIN region r ON ues.region_id=r.id
       WHERE r.name='%s'
-      """ % (args.scheme_name, band_expr, region))
+      """ % (args.scheme_name, band_expr, region)
+    if args.drop_bottom:
+      minval = thresholds[0]
+      print "Filtering the bottom band for region '%s': %s > %f" % (region, args.metric, minval)
+      query += " AND %s > %f" % (args.metric, minval)
+    if args.drop_top:
+      maxval = thresholds[len(thresholds)-2]
+      print "Filtering the top band for region '%s': %s <= %f" % (region, args.metric, maxval)
+      query += " AND %s <= %f" % (args.metric, maxval)
+    result = session.execute(query)
   session.commit()
   
   #
