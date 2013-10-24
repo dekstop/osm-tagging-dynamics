@@ -28,7 +28,9 @@ def avg(numbers):
 # =========
 
 # data is a mapping of column -> row -> groupid -> value
-def plot_group_volume(data, columns, rows, outdir, filename_base, **kwargs):
+def plot_group_volume(data, columns, rows, outdir, filename_base, 
+  colors=QUALITATIVE_MEDIUM, **kwargs):
+  
   ncols = len(columns)
   nrows = len(rows)
 
@@ -48,11 +50,12 @@ def plot_group_volume(data, columns, rows, outdir, filename_base, **kwargs):
       if (n % ncols == 1): # first column
         plt.ylabel(row)
 
-      colors = list(QUALITATIVE_MEDIUM) # ['b', 'c', 'm', 'y', 'r', 'k']
+      colidx = 0
       left = 0
       total = decimal.Decimal(sum(data[column][row].values()))
       for groupid in sorted(data[column][row].keys()):
-        col = colors.pop(0)
+        col = colors[colidx]
+        colidx = (colidx+1) % len(colors)
         val = data[column][row][groupid] / total
         ax1.barh(0, val, 1, left=left, color=col, **kwargs)
         left += val
@@ -68,7 +71,9 @@ def plot_group_volume(data, columns, rows, outdir, filename_base, **kwargs):
 # data is a mapping of column -> row -> list of items (values)
 # item_groupids is a mapping of column -> list of groupids, one per item
 # kwargs is passed on to plt.scatter(...).
-def plot_group_scatter(data, anchor_row, item_groupids, columns, rows, outdir, filename_base, **kwargs):
+def plot_group_scatter(data, anchor_row, item_groupids, columns, rows, outdir, 
+  filename_base, colors=QUALITATIVE_DARK, **kwargs):
+  
   ncols = len(columns)
   nrows = len(rows)
 
@@ -99,9 +104,10 @@ def plot_group_scatter(data, anchor_row, item_groupids, columns, rows, outdir, f
       if (n % ncols == 1): # first column
         plt.ylabel(row)
 
-      colors = list(QUALITATIVE_DARK) # ['b', 'c', 'm', 'y', 'r', 'k']
+      colidx = 0
       for groupid in sorted(group_x.keys()):
-        col = colors.pop(0)
+        col = colors[colidx]
+        colidx = (colidx+1) % len(colors)
         ax1.scatter(group_x[groupid], group_y[groupid], color=col, **kwargs)
 
       ax1.set_xscale('log')
@@ -116,7 +122,7 @@ def plot_group_scatter(data, anchor_row, item_groupids, columns, rows, outdir, f
 
 # data is a mapping of column -> row -> group -> value
 # kwargs is passed on to plt.scatter(...).
-def plot_group_scores(data, columns, rows, outdir, filename_base, **kwargs):
+def plot_group_scores(data, columns, rows, outdir, filename_base, colors = QUALITATIVE_MEDIUM, **kwargs):
   ncols = len(columns)
   nrows = len(rows)
 
@@ -136,7 +142,6 @@ def plot_group_scores(data, columns, rows, outdir, filename_base, **kwargs):
       if (n % ncols == 1): # first column
         plt.ylabel(row)
 
-      colors = list(QUALITATIVE_MEDIUM) # ['b', 'c', 'm', 'y', 'r', 'k']
       celldata = []
       for groupid in sorted(data[column][row].keys()):
         celldata.append(data[column][row][groupid])

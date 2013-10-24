@@ -63,7 +63,7 @@ if __name__ == "__main__":
   parser.add_argument('outdir', help='output directory for segmentation reports')
   parser.add_argument('--regions', dest='regions', type=str, nargs='+', default=None, 
       action='store', help='list of region names')
-  parser.add_argument('--bands', dest='bands', type=int, nargs='+', default=[25,50,75], 
+  parser.add_argument('--bands', dest='bands', type=float, nargs='+', default=[25,50,75], 
       action='store', help='percentile bands, a space-separated list of numbers [0..100]. Default: 25 50 75 (quartiles)')
   parser.add_argument('--drop-bottom', dest='drop_bottom', default=False, 
     action='store_true', help='drop the bottom band (filter it out)')
