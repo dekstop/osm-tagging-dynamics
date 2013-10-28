@@ -69,6 +69,89 @@ def cumsum_percentile(values, percentiles):
                                     # (happens when a percentile is '100' or more)
   return thresholds
 
+# Computes percentile band breaks so that every band is half the size of the previous one.
+# bottom, top are in range [0..100]
+def get_shrinking_percentile_bands(bottom, top, num_bands):
+  num_slots = pow(2, num_bands) - 1
+  v = bottom
+  bands = [bottom]
+  for i in range(num_bands-1):
+    band_slot_width = pow(2, (num_bands-1) - i)
+    v += 1.0 * (top-bottom) * band_slot_width / num_slots
+    bands.append(v)
+  bands.append(top)
+  return bands
+
+# code from http://danieljlewis.org/files/2010/06/Jenks.pdf
+# described at http://danieljlewis.org/2010/06/07/jenks-natural-breaks-algorithm-in-python/
+def get_jenks_breaks(values, num_breaks):
+  values.sort()
+  mat1 = []
+  for i in range(0,len(values)+1):
+    temp = []
+    for j in range(0,num_breaks+1):
+      temp.append(0)
+    mat1.append(temp)
+  mat2 = []
+  for i in range(0,len(values)+1):
+    temp = []
+    for j in range(0,num_breaks+1):
+      temp.append(0)
+    mat2.append(temp)
+  for i in range(1,num_breaks+1):
+    mat1[1][i] = 1
+    mat2[1][i] = 0
+    for j in range(2,len(values)+1):
+      mat2[j][i] = float('inf')
+  v = 0.0
+  for l in range(2,len(values)+1):
+    s1 = 0.0
+    s2 = 0.0
+    w = 0.0
+    for m in range(1,l+1):
+      i3 = l - m + 1
+      val = float(values[i3-1])
+      s2 += val * val
+      s1 += val
+      w += 1
+      v = s2 - (s1 * s1) / w
+      i4 = i3 - 1
+      if i4 != 0:
+        for j in range(2,num_breaks+1):
+          if mat2[l][j] >= (v + mat2[i4][j - 1]):
+            mat1[l][j] = i3
+            mat2[l][j] = v + mat2[i4][j - 1]
+    mat1[l][1] = 1
+    mat2[l][1] = v
+  k = len(values)
+  breaks = []
+  for i in range(0,num_breaks+1):
+    breaks.append(0)
+  breaks[num_breaks] = float(values[len(values) - 1])
+  countNum = num_breaks
+  while countNum >= 2:#print "rank = " + str(mat1[k][countNum])
+    id = int((mat1[k][countNum]) - 2)
+    #print "val = " + str(values[id])
+    breaks[countNum - 1] = values[id]
+    k = int((mat1[k][countNum] - 1))
+    countNum -= 1
+  return breaks
+
+# Jiang (2011): Head/tail Breaks
+# Computes breaks by iteratively segmenting the remaining top end along the mean.
+def get_head_tail_breaks(values, num_breaks):
+  values = sorted(values)
+  breaks = [values[0]-1]
+  for n in range(num_breaks-1):
+    mean = numpy.mean(values)
+    breaks.append(mean)
+    values = [v for v in values if v>mean]
+    if len(values)==1:
+      break
+  breaks.append(values[-1])
+  return breaks
+  
+
 # ========
 # = Main =
 # ========
@@ -84,10 +167,35 @@ if __name__ == "__main__":
   parser.add_argument('--overwrite', dest='overwrite', default=False, 
     action='store_true', help='overwrite existing data if the scheme already exists')
 
-  parser.add_argument('--percentiles', dest='percentiles', type=float, nargs='+', default=[0,25,50,75,100], 
+  subparsers = parser.add_subparsers(dest='segmentation_type')
+
+  subparser1 = subparsers.add_parser('percentiles')
+  subparser1.add_argument('percentiles', type=float, nargs='+', default=[0,25,50,75,100], 
       action='store', help='percentile bands, a space-separated list of numbers [0..100]. Default: 0 25 50 75 100 (quartiles)')
-  parser.add_argument('--cumsum', dest='cumsum', default=False, 
+  subparser1.add_argument('--cumsum', dest='cumsum', default=False, 
     action='store_true', help='determine percentile thresholds based on the cumulative sum of observations, not their count')
+
+  subparser2 = subparsers.add_parser('jenks')
+  subparser2.add_argument('num_breaks', type=int, action='store', help='number of breaks')
+  # subparser2.add_argument('--min-percentile', dest='min_percentile', type=float, default=None, 
+  #     action='store', help='minimum percentile of the data to include')
+  # subparser2.add_argument('--max-percentile', dest='max_percentile', type=float, default=None, 
+  #     action='store', help='maximum percentile of the data to include')
+
+  subparser3 = subparsers.add_parser('shrinking-percentiles')
+  subparser3.add_argument('num_breaks', type=int, action='store', help='number of breaks')
+  subparser3.add_argument('--min-percentile', dest='min_percentile', type=float, default=0, 
+      action='store', help='minimum percentile of the data to include')
+  subparser3.add_argument('--max-percentile', dest='max_percentile', type=float, default=100, 
+      action='store', help='maximum percentile of the data to include')
+
+  subparser4 = subparsers.add_parser('head-tail')
+  subparser4.add_argument('num_breaks', type=int, action='store', help='number of breaks')
+  # subparser4.add_argument('--min-percentile', dest='min_percentile', type=float, default=0, 
+  #     action='store', help='minimum percentile of the data to include')
+  # subparser4.add_argument('--max-percentile', dest='max_percentile', type=float, default=100, 
+  #     action='store', help='maximum percentile of the data to include')
+
   args = parser.parse_args()
 
   # getDb().echo = True
@@ -144,12 +252,25 @@ if __name__ == "__main__":
     # print region
     values = data[region]
 
-    # percentiles
-    if args.cumsum:
-      thresholds = sorted(cumsum_percentile(values, args.percentiles))
-    else:
-      # classic percentile
-      thresholds = sorted(percentile(values, args.percentiles))
+    # calculate thresholds
+    if args.segmentation_type=='percentiles':
+      if args.cumsum:
+        # percentiles of the cumulative sum
+        thresholds = sorted(cumsum_percentile(values, args.percentiles))
+      else:
+        # classic percentiles
+        thresholds = sorted(percentile(values, args.percentiles))
+    elif args.segmentation_type=='jenks':
+      # jenks natural breaks
+      thresholds = sorted(get_jenks_breaks(values, args.num_breaks))
+    elif args.segmentation_type=='shrinking-percentiles':
+      # poor man's 2:1 iterative segmentation
+      bands = get_shrinking_percentile_bands(args.min_percentile, args.max_percentile, args.num_breaks)
+      thresholds = sorted(percentile(values, bands))
+    elif args.segmentation_type=='head-tail':
+      thresholds = sorted(get_head_tail_breaks(values, args.num_breaks))
+
+    print thresholds
     
     # remove duplicate thresholds for low-data regions
     unique_thresholds = sorted(list(set(thresholds)))
