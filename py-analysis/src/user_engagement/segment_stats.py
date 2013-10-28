@@ -28,7 +28,7 @@ def avg(numbers):
 # =========
 
 # data is a mapping of column -> row -> groupid -> value
-def plot_group_volume(data, columns, rows, outdir, filename_base, 
+def group_volume_plot(data, columns, rows, outdir, filename_base, 
   colors=QUALITATIVE_MEDIUM, **kwargs):
   
   ncols = len(columns)
@@ -71,7 +71,7 @@ def plot_group_volume(data, columns, rows, outdir, filename_base,
 # data is a mapping of column -> row -> list of items (values)
 # item_groupids is a mapping of column -> list of groupids, one per item
 # kwargs is passed on to plt.scatter(...).
-def plot_group_scatter(data, anchor_row, item_groupids, columns, rows, outdir, 
+def group_scatterplot(data, anchor_row, item_groupids, columns, rows, outdir, 
   filename_base, colors=QUALITATIVE_DARK, **kwargs):
   
   ncols = len(columns)
@@ -120,9 +120,51 @@ def plot_group_scatter(data, anchor_row, item_groupids, columns, rows, outdir,
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
 
+# data is a mapping of column -> row -> group -> list of values
+# kwargs is passed on to plt.boxplot(...).
+def group_boxplot(data, columns, rows, outdir, filename_base, **kwargs):
+  ncols = len(columns)
+  nrows = len(rows)
+
+  fig = plt.figure(figsize=(3*ncols, 3*nrows))
+  plt.subplots_adjust(hspace=.2, wspace=0.2)
+  fig.patch.set_facecolor('white')
+
+  n = 1
+  for row in rows:
+    for column in columns:
+
+      if n <= ncols: # first row
+        ax1 = plt.subplot(nrows, ncols, n, title=column)
+      else:
+        ax1 = plt.subplot(nrows, ncols, n)
+      
+      if (n % ncols == 1): # first column
+        plt.ylabel(row)
+
+      celldata = []
+      for groupid in sorted(data[column][row].keys()):
+        # boxplot / mlab bug: can't deal with Decimal types
+        celldata.append([float(v) for v in data[column][row][groupid]]) 
+        # print data[column][row][groupid]
+
+      ax1.boxplot(celldata, **kwargs)
+
+      ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+      ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+      ax1.tick_params(axis='y', which='major', labelsize='x-small')
+      ax1.tick_params(axis='y', which='minor', labelsize='xx-small')
+      ax1.get_xaxis().set_visible(False)
+
+      n += 1
+  
+  plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
+  plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+
+
 # data is a mapping of column -> row -> group -> value
-# kwargs is passed on to plt.scatter(...).
-def plot_group_scores(data, columns, rows, outdir, filename_base, colors = QUALITATIVE_MEDIUM, **kwargs):
+# kwargs is passed on to plt.bar(...).
+def group_scores_plot(data, columns, rows, outdir, filename_base, colors=QUALITATIVE_MEDIUM, **kwargs):
   ncols = len(columns)
   nrows = len(rows)
 
@@ -280,7 +322,7 @@ if __name__ == "__main__":
     for groupid in groups[region]:
       num_users = group_num_users[region][groupid]
       num_edits = group_num_edits[region][groupid]
-
+  
       outcsv.writerow([
         region, args.scheme_name, groupid,
         num_users, 100 * decimal.Decimal(num_users) / len(region_users[region]),
@@ -301,18 +343,40 @@ if __name__ == "__main__":
     volume_data[region]['num_users'] = group_num_users[region]
     volume_data[region]['num_edits'] = group_num_edits[region]
   
-  plot_group_volume(volume_data, regions, ['num_users', 'num_edits'], 
+  group_volume_plot(volume_data, regions, ['num_users', 'num_edits'], 
     args.outdir, 'volume_%s' % (args.scheme_name))
 
   #
   # Scatter plot
   #
   
-  plot_group_scatter(data, 'num_edits', user_groups, regions, metrics, 
+  group_scatterplot(data, 'num_edits', user_groups, regions, metrics, 
     args.outdir, 'scatter_num_edits_%s' % (args.scheme_name))
   
-  plot_group_scatter(data, 'days_active', user_groups, regions, metrics, 
+  group_scatterplot(data, 'days_active', user_groups, regions, metrics, 
     args.outdir, 'scatter_days_active_%s' % (args.scheme_name))
+  
+  #
+  # Scores boxlot
+  #
+  
+  group_data = dict()
+  for region in regions:
+    group_data[region] = dict()
+    group_data[region]['edits_per_user'] = edits_per_user[region]
+    group_data[region]['poi_edit_score'] = poi_edit_score[region]
+    group_data[region]['tag_edit_score'] = tag_edit_score[region]
+    group_data[region]['tag_removal_score'] = tag_removal_score[region]
+    group_data[region]['edit_pace'] = edit_pace[region]
+  
+  group_boxplot(group_data, regions, ['poi_edit_score', 'tag_edit_score', 
+    'tag_removal_score', 'edit_pace'], 
+    args.outdir, 'boxplot_%s' % (args.scheme_name))
+
+  group_boxplot(group_data, regions, ['poi_edit_score', 'tag_edit_score', 
+    'tag_removal_score', 'edit_pace'], 
+    args.outdir, 'boxplot_no-fliers_%s' % (args.scheme_name), sym='')
+    
   
   #
   # Scores plot
@@ -327,7 +391,7 @@ if __name__ == "__main__":
     scores_data[region]['avg_tag_removal_score'] = avg_tag_removal_score[region]
     scores_data[region]['avg_edit_pace'] = avg_edit_pace[region]
   
-  plot_group_scores(scores_data, regions, 
+  group_scores_plot(scores_data, regions, 
     ['edits_per_user', 'avg_poi_edit_score', 'avg_tag_edit_score', 
     'avg_tag_removal_score', 'avg_edit_pace'], 
     args.outdir, 'scores_%s' % (args.scheme_name))
