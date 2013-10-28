@@ -15,41 +15,59 @@ from app import *
 # = Tools =
 # =========
 
+# This is close to the classic percentile function (numpy.percentile) --
+# it determines thresholds based on the count of observations.
+#
+# The process:
+# - count the number of values
+# - order all values by size
+# - for each requested percentile: 
+#   - pick the n smallest entries whose number is still below the percentile (as percentage of the count)
+#   - return the largest value in this selected group, or min(values)-1 if all values exceed the threshold
+def percentile(values, percentiles):
+  values = sorted(values)
+  percentiles = sorted(percentiles)
+  count = len(values)
+  thresholds = []
+  for perc in percentiles:
+    prev = min(values)-1
+    for idx in range(count):
+      if (100.0*(idx+1)/count > perc):  # exceeded the threshold?
+        thresholds.append(prev)         # pick previous value
+        break
+      prev = values[idx]
+    if prev not in thresholds:      # threshold was never exceeded? 
+      thresholds.append(values[-1]) # pick max value
+                                    # (happens when a percentile is '100' or more)
+  return thresholds
+
 # This is *not* the classic percentile function (numpy.percentile) --
-# it determines thresholds based on the *sum* of observations, not their count,
-# and it orders observations in descending order.
+# it determines thresholds based on the *cumulative sum* of observations, not their count.
 #
 # The process:
 # - calculate the total (the sum of all values)
-# - order all values by size, *descending*
+# - order all values by size
 # - for each requested percentile: 
-#   - pick the n largest entries whose sum just exceeded the percentile (as percentage of the total)
-#   - return the smallest value in this selected group
-def top_percentile(values, percentiles):
-  values = sorted(values, reverse=True)
+#   - pick the n smallest entries whose sum is still below the percentile (as percentage of the total)
+#   - return the largest value in this selected group, or None if all values exceed the threshold
+def cumsum_percentile(values, percentiles):
+  values = sorted(values)
   percentiles = sorted(percentiles)
-
   total = sum(values)
   thresholds = []
   for perc in percentiles:
     ax = decimal.Decimal(0)
+    prev = min(values)-1
     for val in values:
       ax += val
-      if (100*ax/total >= perc):
-        # print "threshold: %f at value: %d (%f%%)" % (perc, val, 100*ax/total)
-        thresholds.append(val)
+      if (100*ax/total > perc):  # exceeded the threshold?
+        thresholds.append(prev)   # pick previous value
         break
+      prev = val
+    if prev not in thresholds:      # threshold was never exceeded? 
+      thresholds.append(values[-1]) # pick max value
+                                    # (happens when a percentile is '100' or more)
   return thresholds
-
-# a = [1,2,3,4,5,6,7,8,9,10]
-# b = [1,1,1,1,1,1,1,1,1,1]
-# p = [1, 10,20,50]
-# print a, p
-# print top_percentile(a, p)
-# print numpy.percentile(a, p)
-# print b, p
-# print top_percentile(b, p)
-# print numpy.percentile(b, p)
 
 # ========
 # = Main =
@@ -63,14 +81,13 @@ if __name__ == "__main__":
   parser.add_argument('outdir', help='output directory for segmentation reports')
   parser.add_argument('--regions', dest='regions', type=str, nargs='+', default=None, 
       action='store', help='list of region names')
-  parser.add_argument('--bands', dest='bands', type=float, nargs='+', default=[25,50,75], 
-      action='store', help='percentile bands, a space-separated list of numbers [0..100]. Default: 25 50 75 (quartiles)')
-  parser.add_argument('--drop-bottom', dest='drop_bottom', default=False, 
-    action='store_true', help='drop the bottom band (filter it out)')
-  parser.add_argument('--drop-top', dest='drop_top', default=False, 
-    action='store_true', help='drop the top band (filter it out)')
   parser.add_argument('--overwrite', dest='overwrite', default=False, 
     action='store_true', help='overwrite existing data if the scheme already exists')
+
+  parser.add_argument('--percentiles', dest='percentiles', type=float, nargs='+', default=[0,25,50,75,100], 
+      action='store', help='percentile bands, a space-separated list of numbers [0..100]. Default: 0 25 50 75 100 (quartiles)')
+  parser.add_argument('--cumsum', dest='cumsum', default=False, 
+    action='store_true', help='determine percentile thresholds based on the cumulative sum of observations, not their count')
   args = parser.parse_args()
 
   # getDb().echo = True
@@ -105,13 +122,13 @@ if __name__ == "__main__":
   # print result.keys()
 
   data = defaultdict(list)
-  num_users = 0
+  num_records = 0
   for row in result:
     region = row['region']
     data[region].append(row[args.metric])
-    num_users += 1
+    num_records += 1
   
-  print "Loaded %d records." % (num_users)
+  print "Loaded %d records." % (num_records)
 
   regions = sorted(data.keys())
   
@@ -127,14 +144,12 @@ if __name__ == "__main__":
     # print region
     values = data[region]
 
-    # classic percentile
-    thresholds = sorted(numpy.percentile(values, args.bands))
-    
-    # top-ranked percentile
-    # thresholds = sorted(top_percentile(values, args.bands))
-    
-    # if (max(values) not in thresholds):
-    thresholds.append(max(values))
+    # percentiles
+    if args.cumsum:
+      thresholds = sorted(cumsum_percentile(values, args.percentiles))
+    else:
+      # classic percentile
+      thresholds = sorted(percentile(values, args.percentiles))
     
     # remove duplicate thresholds for low-data regions
     unique_thresholds = sorted(list(set(thresholds)))
@@ -144,16 +159,21 @@ if __name__ == "__main__":
       print "Without duplicates: %s" % (unique_thresholds)
     
     thresholds = unique_thresholds
+    min_threshold = thresholds[0]   # may be None: "don't apply a min threshold"
+    max_threshold = thresholds[-1]  # will never be None, but may be max(data)
 
     band_expr = ''
     groupid = 1
-    low = 0
-    for high in thresholds:
-      band_expr += "WHEN (%s > %f AND %s <= %f) THEN %d " % (args.metric, low, args.metric, high, groupid)
+    low = thresholds[0]
+    for high in thresholds[1:]:
+      parts = []
+      if low!=None: # only the first threshold can ever be 'None'
+        parts.append("%s > %f" % (args.metric, low))
+      parts.append("%s <= %f" % (args.metric, high)) 
+      band_expr += "WHEN (" + " AND ".join(parts) + ") THEN %d" % (groupid)
       band_thresholds[region][groupid] = [low, high]
-
-      groupid += 1
       low = high
+      groupid += 1
 
     query = """INSERT INTO sample_1pc.region_user_segment(region_id, scheme, uid, groupid) 
       SELECT r.id, '%s', uid, 
@@ -162,14 +182,15 @@ if __name__ == "__main__":
       JOIN region r ON ues.region_id=r.id
       WHERE r.name='%s'
       """ % (args.scheme_name, band_expr, region)
-    if args.drop_bottom:
-      minval = thresholds[0]
-      print "Filtering the bottom band for region '%s': %s > %f" % (region, args.metric, minval)
-      query += " AND %s > %f" % (args.metric, minval)
-    if args.drop_top:
-      maxval = thresholds[len(thresholds)-2]
-      print "Filtering the top band for region '%s': %s <= %f" % (region, args.metric, maxval)
-      query += " AND %s <= %f" % (args.metric, maxval)
+
+    if min_threshold and min_threshold>=min(values):
+      print "Filtering the bottom band for region '%s': %s > %f" % (region, args.metric, min_threshold)
+      query += " AND %s > %f" % (args.metric, min_threshold)
+
+    if max_threshold<max(values):
+      print "Filtering the top band for region '%s': %s <= %f" % (region, args.metric, max_threshold)
+      query += " AND %s <= %f" % (args.metric, max_threshold)
+
     result = session.execute(query)
   session.commit()
   
