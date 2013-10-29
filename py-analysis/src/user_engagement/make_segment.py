@@ -162,6 +162,8 @@ if __name__ == "__main__":
   parser.add_argument('scheme_name', help='name for this segmentation scheme')
   parser.add_argument('metric', help='metric along which users are segmented')
   parser.add_argument('outdir', help='output directory for segmentation reports')
+  parser.add_argument('--schema', dest='schema', type=str, default='public', 
+      action='store', help='parent schema that contains data tables. Default: public')
   parser.add_argument('--regions', dest='regions', type=str, nargs='+', default=None, 
       action='store', help='list of region names')
   parser.add_argument('--overwrite', dest='overwrite', default=False, 
@@ -205,13 +207,13 @@ if __name__ == "__main__":
   # Overwrite check
   #
   
-  row = session.execute("""SELECT count(*) as total FROM sample_1pc.region_user_segment 
-      WHERE scheme='%s'""" % (args.scheme_name)).fetchone()
+  row = session.execute("""SELECT count(*) as total FROM %s.region_user_segment 
+      WHERE scheme='%s'""" % (args.schema, args.scheme_name)).fetchone()
 
   if row['total'] > 0:
     if args.overwrite:
-      session.execute("""DELETE FROM sample_1pc.region_user_segment 
-        WHERE scheme='%s'""" % (args.scheme_name))
+      session.execute("""DELETE FROM %s.region_user_segment 
+        WHERE scheme='%s'""" % (args.schema, args.scheme_name))
     else:
       print "Error: the segmentation scheme '%s' already exists!" % (args.scheme_name)
       sys.exit(1)
@@ -220,8 +222,8 @@ if __name__ == "__main__":
   # Load data
   #
   
-  query = """SELECT r.name AS region, %s FROM sample_1pc.user_edit_stats s 
-    JOIN region r ON s.region_id=r.id""" % (args.metric)
+  query = """SELECT r.name AS region, %s FROM %s.user_edit_stats s 
+    JOIN region r ON s.region_id=r.id""" % (args.metric, args.schema)
   if args.regions!=None:
     str_regions = "', '".join(args.regions)
     print "Limiting to regions: '%s'" % (str_regions)
@@ -296,13 +298,13 @@ if __name__ == "__main__":
       low = high
       groupid += 1
 
-    query = """INSERT INTO sample_1pc.region_user_segment(region_id, scheme, uid, groupid) 
+    query = """INSERT INTO %s.region_user_segment(region_id, scheme, uid, groupid) 
       SELECT r.id, '%s', uid, 
       CASE %s END
-      FROM sample_1pc.user_edit_stats ues
+      FROM %s.user_edit_stats ues
       JOIN region r ON ues.region_id=r.id
       WHERE r.name='%s'
-      """ % (args.scheme_name, band_expr, region)
+      """ % (args.schema, args.scheme_name, band_expr, args.schema, region)
 
     if min_threshold and min_threshold>=min(values):
       print "Filtering the bottom band for region '%s': %s > %f" % (region, args.metric, min_threshold)
@@ -345,12 +347,12 @@ if __name__ == "__main__":
   
   result = session.execute(
     """SELECT r.name as region, scheme, groupid, count(distinct seg.uid) as num_users, sum(%s) as total
-      FROM sample_1pc.region_user_segment seg
-      JOIN sample_1pc.user_edit_stats ues ON (seg.region_id=ues.region_id AND seg.uid=ues.uid)
+      FROM %s.region_user_segment seg
+      JOIN %s.user_edit_stats ues ON (seg.region_id=ues.region_id AND seg.uid=ues.uid)
       JOIN region r ON seg.region_id=r.id
       WHERE seg.scheme='%s'
       GROUP BY r.name, scheme, groupid
-      ORDER BY r.name, scheme, groupid""" % (args.metric, args.scheme_name))
+      ORDER BY r.name, scheme, groupid""" % (args.metric, args.schema, args.schema, args.scheme_name))
 
   for row in result:
     region = row['region']

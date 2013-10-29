@@ -114,6 +114,8 @@ def plot_dist(data, columns, rows, outdir, filename_base):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Compute long-tail distribution metrics: coefficients, goodness of fit.')
   parser.add_argument('outdir', help='directory for output files')
+  parser.add_argument('--schema', dest='schema', type=str, default='public', 
+      action='store', help='parent schema that contains data tables. Default: public')
   args = parser.parse_args()
 
   #
@@ -133,8 +135,8 @@ if __name__ == "__main__":
   # getDb().echo = True    
   session = getSession()
   result = session.execute(
-    """SELECT r.name AS region, %s FROM sample_1pc.user_edit_stats s 
-    JOIN region r ON s.region_id=r.id""" % (', '.join(metrics)))
+    """SELECT r.name AS region, %s FROM %s.user_edit_stats s 
+    JOIN region r ON s.region_id=r.id""" % (', '.join(metrics)), args.schema)
   # print result.keys()
 
   num_users = 0

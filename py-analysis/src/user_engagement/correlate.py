@@ -120,6 +120,8 @@ def corr_plot_report(data, metrics, outdir, filename_base, **kwargs):
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Pearson/Spearman correlation between pairs of user engagement metrics.')
+  parser.add_argument('--schema', dest='schema', type=str, default='public', 
+      action='store', help='parent schema that contains data tables. Default: public')
   parser.add_argument('--regions', dest='regions', type=str, nargs='+', default=None, 
       action='store', help='list of region names')
   parser.add_argument('--scheme', dest='scheme_name', type=str, default=None, 
@@ -142,8 +144,8 @@ if __name__ == "__main__":
   # getDb().echo = True    
   session = getSession()
   query = """SELECT r.name AS region, %s
-    FROM sample_1pc.user_edit_stats ues
-    JOIN region r ON ues.region_id=r.id """ % (', '.join(metrics))
+    FROM %s.user_edit_stats ues
+    JOIN region r ON ues.region_id=r.id """ % (', '.join(metrics), args.schema)
   conditions = []
   if args.scheme_name!=None:
     print "Loading segmented data scheme: '%s'" % (args.scheme_name)

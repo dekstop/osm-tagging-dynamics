@@ -209,6 +209,8 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Summary stats for the groups of a user segmentation scheme.')
   parser.add_argument('scheme_name', help='name of the segmentation scheme')
   parser.add_argument('outdir', help='directory for output files')
+  parser.add_argument('--schema', dest='schema', type=str, default='public', 
+      action='store', help='parent schema that contains data tables. Default: public')
   args = parser.parse_args()
 
   #
@@ -245,10 +247,10 @@ if __name__ == "__main__":
     1.0 * (num_tag_update + 1)/(num_tag_add + 1) as tag_edit_score, 
     1.0 * (num_tag_remove + 1)/(num_tag_add + 1) as tag_removal_score,
     1.0 * num_edits / days_active as edit_pace
-    FROM sample_1pc.region_user_segment seg
-    JOIN sample_1pc.user_edit_stats ues ON (seg.region_id=ues.region_id AND seg.uid=ues.uid)
+    FROM %s.region_user_segment seg
+    JOIN %s.user_edit_stats ues ON (seg.region_id=ues.region_id AND seg.uid=ues.uid)
     JOIN region r ON seg.region_id=r.id
-    WHERE seg.scheme='%s'""" % (', '.join(metrics), args.scheme_name))
+    WHERE seg.scheme='%s'""" % (', '.join(metrics), args.schema, args.schema, args.scheme_name))
   # print result.keys()
 
   num_records = 0
