@@ -150,6 +150,9 @@ def group_boxplot(data, columns, rows, outdir, filename_base, **kwargs):
 
       ax1.boxplot(celldata, **kwargs)
 
+      means = [numpy.mean(x) for x in celldata]
+      ax1.scatter(range(1, len(celldata)+1), means, marker='x', color='r')
+
       ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
       ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
       ax1.tick_params(axis='y', which='major', labelsize='x-small')
