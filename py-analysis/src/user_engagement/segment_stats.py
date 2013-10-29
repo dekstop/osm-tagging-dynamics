@@ -20,8 +20,23 @@ from app import *
 # = Tools =
 # =========
 
-def avg(numbers):
-  return decimal.Decimal(sum(numbers)) / decimal.Decimal(len(numbers))
+# summarisation of bands
+
+def mean(numbers):
+  # return decimal.Decimal(sum(numbers)) / decimal.Decimal(len(numbers))
+  return numpy.mean([float(n) for n in numbers])
+
+def median(numbers):
+  return numpy.median([float(n) for n in numbers])
+
+group_summary = median
+
+# values: ordered list of values
+# groupids: a list of same order+size, associates a group ID with every value
+# group: the ID of the group we're interested in
+# -> unpacks all this and returns all values for the specified metric and group
+def get_metric_for_group(values, groupids, group):
+  return [value for idx, value in enumerate(values) if groupids[idx]==group]
 
 # =========
 # = Plots =
@@ -292,20 +307,22 @@ if __name__ == "__main__":
 
   # region -> group -> aggregate score
   edits_per_user = defaultdict(dict)
-  avg_poi_edit_score = defaultdict(dict)
-  avg_tag_edit_score = defaultdict(dict)
-  avg_tag_removal_score = defaultdict(dict)
-  avg_edit_pace = defaultdict(dict)
+  group_poi_edit_score = defaultdict(dict)
+  group_tag_edit_score = defaultdict(dict)
+  group_tag_removal_score = defaultdict(dict)
+  group_edit_pace = defaultdict(dict)
   
   for region in regions:
     for groupid in groups[region]:
       num_users = group_num_users[region][groupid]
       num_edits = group_num_edits[region][groupid]
-      edits_per_user[region][groupid] = decimal.Decimal(num_edits) / decimal.Decimal(num_users)
-      avg_poi_edit_score[region][groupid] = avg(poi_edit_score[region][groupid])
-      avg_tag_edit_score[region][groupid] = avg(tag_edit_score[region][groupid])
-      avg_tag_removal_score[region][groupid] = avg(tag_removal_score[region][groupid])
-      avg_edit_pace[region][groupid] = avg(edit_pace[region][groupid])
+      # edits_per_user[region][groupid] = decimal.Decimal(num_edits) / decimal.Decimal(num_users)
+      edits_per_user[region][groupid] = group_summary(get_metric_for_group(
+        data[region][metric], user_groups[region], groupid))
+      group_poi_edit_score[region][groupid] = group_summary(poi_edit_score[region][groupid])
+      group_tag_edit_score[region][groupid] = group_summary(tag_edit_score[region][groupid])
+      group_tag_removal_score[region][groupid] = group_summary(tag_removal_score[region][groupid])
+      group_edit_pace[region][groupid] = group_summary(edit_pace[region][groupid])
 
   #
   # Report
@@ -320,8 +337,8 @@ if __name__ == "__main__":
     'num_users', 'perc_users', 
     'num_edits', 'perc_edits',
     'edits_per_user', 
-    'avg_poi_edit_score', 'avg_tag_edit_score', 'avg_tag_removal_score', 
-    'avg_edit_pace'])
+    'group_poi_edit_score', 'group_tag_edit_score', 'group_tag_removal_score', 
+    'group_edit_pace'])
   
   for region in regions:
     for groupid in groups[region]:
@@ -333,10 +350,10 @@ if __name__ == "__main__":
         num_users, 100 * decimal.Decimal(num_users) / len(region_users[region]),
         num_edits, 100 * decimal.Decimal(num_edits) / region_num_edits[region],
         edits_per_user[region][groupid],
-        avg_poi_edit_score[region][groupid],
-        avg_tag_edit_score[region][groupid],
-        avg_tag_removal_score[region][groupid],
-        avg_edit_pace[region][groupid]])
+        group_poi_edit_score[region][groupid],
+        group_tag_edit_score[region][groupid],
+        group_tag_removal_score[region][groupid],
+        group_edit_pace[region][groupid]])
 
   #
   # Volume plot
@@ -391,12 +408,12 @@ if __name__ == "__main__":
   for region in regions:
     scores_data[region] = dict()
     scores_data[region]['edits_per_user'] = edits_per_user[region]
-    scores_data[region]['avg_poi_edit_score'] = avg_poi_edit_score[region]
-    scores_data[region]['avg_tag_edit_score'] = avg_tag_edit_score[region]
-    scores_data[region]['avg_tag_removal_score'] = avg_tag_removal_score[region]
-    scores_data[region]['avg_edit_pace'] = avg_edit_pace[region]
+    scores_data[region]['group_poi_edit_score'] = group_poi_edit_score[region]
+    scores_data[region]['group_tag_edit_score'] = group_tag_edit_score[region]
+    scores_data[region]['group_tag_removal_score'] = group_tag_removal_score[region]
+    scores_data[region]['group_edit_pace'] = group_edit_pace[region]
   
   group_scores_plot(scores_data, regions, 
-    ['edits_per_user', 'avg_poi_edit_score', 'avg_tag_edit_score', 
-    'avg_tag_removal_score', 'avg_edit_pace'], 
+    ['edits_per_user', 'group_poi_edit_score', 'group_tag_edit_score', 
+    'group_tag_removal_score', 'group_edit_pace'], 
     args.outdir, 'scores_%s' % (args.scheme_name))
