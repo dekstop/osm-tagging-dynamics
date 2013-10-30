@@ -169,6 +169,11 @@ if __name__ == "__main__":
   parser.add_argument('--overwrite', dest='overwrite', default=False, 
     action='store_true', help='overwrite existing data if the scheme already exists')
 
+  parser.add_argument('--filter-lower', dest='filter_lower', type=float, default=None, 
+      action='store', help='filter the metric using a lower percentile threshold (inclusive)')
+  parser.add_argument('--filter-upper', dest='filter_upper', type=float, default=None, 
+      action='store', help='filter the metric using am upper percentile threshold (inclusive)')
+
   subparsers = parser.add_subparsers(dest='segmentation_type')
 
   subparser1 = subparsers.add_parser('percentiles')
@@ -243,6 +248,30 @@ if __name__ == "__main__":
   regions = sorted(data.keys())
   
   #
+  # Filtering
+  #
+
+  # region -> threshold
+  filter_min = dict()
+  filter_max = dict()
+  
+  if args.filter_lower:
+    print "Filtering: %s >= %.3f%%" % (args.metric, args.filter_lower)
+    for region in regions:
+      values = data[region]
+      filter_min[region] = percentile(values, [args.filter_lower])[0]
+      data[region] = [val for val in data[region] if val>=filter_min[region]]
+      print "  region '%s': %s >= %d" % (region, args.metric, filter_min[region])
+
+  if args.filter_upper:
+    print "Filtering: %s <= %.3f" % (args.metric, args.filter_upper)
+    for region in regions:
+      values = data[region]
+      filter_max[region] = percentile(values, [args.filter_upper])[0]
+      data[region] = [val for val in data[region] if val<=filter_max[region]]
+      print "  region '%s': %s <= %d" % (region, args.metric, filter_max[region])
+  
+  #
   # Get bands per region
   #
   
@@ -272,7 +301,7 @@ if __name__ == "__main__":
     elif args.segmentation_type=='head-tail':
       thresholds = sorted(get_head_tail_breaks(values, args.num_breaks))
 
-    print thresholds
+    print "%s: %s" % (region, str(thresholds))
     
     # remove duplicate thresholds for low-data regions
     unique_thresholds = sorted(list(set(thresholds)))
@@ -313,6 +342,11 @@ if __name__ == "__main__":
     if max_threshold<max(values):
       print "Filtering the top band for region '%s': %s <= %f" % (region, args.metric, max_threshold)
       query += " AND %s <= %f" % (args.metric, max_threshold)
+    
+    if region in filter_min and filter_min[region]:
+      query += " AND %s >= %f" % (args.metric, filter_min[region])
+    if region in filter_max and filter_max[region]:
+      query += " AND %s <= %f" % (args.metric, filter_max[region])
 
     result = session.execute(query)
   session.commit()
