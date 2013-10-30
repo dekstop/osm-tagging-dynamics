@@ -137,7 +137,7 @@ def group_scatterplot(data, anchor_row, item_groupids, columns, rows, outdir,
 
 # data is a mapping of column -> row -> group -> list of values
 # kwargs is passed on to plt.boxplot(...).
-def group_boxplot(data, columns, rows, outdir, filename_base, **kwargs):
+def group_boxplot(data, columns, rows, outdir, filename_base, plot_means=False **kwargs):
   ncols = len(columns)
   nrows = len(rows)
 
@@ -165,8 +165,9 @@ def group_boxplot(data, columns, rows, outdir, filename_base, **kwargs):
 
       ax1.boxplot(celldata, **kwargs)
 
-      means = [numpy.mean(x) for x in celldata]
-      ax1.scatter(range(1, len(celldata)+1), means, marker='x', color='r')
+      if plot_means:
+        means = [numpy.mean(x) for x in celldata]
+        ax1.scatter(range(1, len(celldata)+1), means, marker='x', color='r')
 
       ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
       ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
