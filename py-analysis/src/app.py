@@ -109,6 +109,6 @@ def simplified_SI_format(x, p):
     scale_idx += 1
 
   if is_fractional:
-    return "%s%.1f%s" % (sign, x, suffix)
+    return "%s%.2f%s" % (sign, x, suffix)
   else:
     return "%s%d%s" % (sign, int(x), suffix)
