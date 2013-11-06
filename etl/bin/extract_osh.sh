@@ -65,7 +65,8 @@ function extractAll() {
 # rm "${ETL_DATADIR}/"*.txt > /dev/null 2>&1
 
 # To prepare all files
-# echo "Extracting data..."
+echo "Extracting data..."
+extractAll $@ || exit 1
 # extractAll ${OSH_DATADIR}/*.osh.pbf || exit 1
 
 # To prepare a specific file
@@ -73,23 +74,23 @@ function extractAll() {
 # convertToXml "${OSH_DATADIR}/${name}.osh.pbf" "${OSH_DATADIR}/${name}.osh.xml.gz" || exit 1
 # extractXmlData "${OSH_DATADIR}/${name}.osh.xml.gz" "${ETL_DATADIR}/${name}-node.txt.gz" "${ETL_DATADIR}/${name}-node_tag.txt.gz" || exit 1
 
-if [[ $# -lt 1 ]]
-then
-  echo "Usage : $0 <my_history_file.osh.xml[.gz|.bz2]>"
-  echo "Will extract raw node and tag data and store in ${ETL_DATADIR}"
-  exit 1
-else
-  while test $# != 0
-  do
-    oshfile=$1
-    # oshfile=${OSH_DATADIR}/test/berlin-short.osh.xml.bz2
-    name=`basename $oshfile .bz2`
-    name=`basename $name .gz`
-    name=`basename $name .xml`
-    name=`basename $name .osh`
-    nodefile="${ETL_DATADIR}/${name}-node.txt.gz"
-    tagfile="${ETL_DATADIR}/${name}-node_tag.txt.gz"
-    extractXmlData $oshfile $nodefile $tagfile || exit 1
-    shift
-  done
-fi
+# if [[ $# -lt 1 ]]
+# then
+#   echo "Usage : $0 <my_history_file.osh.xml[.gz|.bz2]>"
+#   echo "Will extract raw node and tag data and store in ${ETL_DATADIR}"
+#   exit 1
+# else
+#   while test $# != 0
+#   do
+#     oshfile=$1
+#     # oshfile=${OSH_DATADIR}/test/berlin-short.osh.xml.bz2
+#     name=`basename $oshfile .bz2`
+#     name=`basename $name .gz`
+#     name=`basename $name .xml`
+#     name=`basename $name .osh`
+#     nodefile="${ETL_DATADIR}/${name}-node.txt.gz"
+#     tagfile="${ETL_DATADIR}/${name}-node_tag.txt.gz"
+#     extractXmlData $oshfile $nodefile $tagfile || exit 1
+#     shift
+#   done
+# fi
