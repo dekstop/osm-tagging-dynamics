@@ -16,7 +16,7 @@ function convertToXml() {
     echo "  Found ${xmlfile}"
   else
     echo "  Converting to .xml.gz ..."
-    $TIME $OSMCONVERT "${oshfile}" | gzip > "${xmlfile}" || return 1
+    $TIME $OSMCONVERT "${oshfile}" --drop-ways --drop-relations | gzip > "${xmlfile}" || return 1
   fi
 }
 

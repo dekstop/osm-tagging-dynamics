@@ -19,5 +19,6 @@ Fetch .osh.pbf OSM history files, see data/_data.txt
 
 Convert/load data:
 $ cp bin/env.sh-example bin/env.sh
-$ ./bin/extract_osh.sh <osh file>
+$ ./bin/fetch_osh.sh
+$ ./bin/extract_osh.sh <.osh.pbf files>
 $ ./bin/load_tsv.sh <tsv files>
