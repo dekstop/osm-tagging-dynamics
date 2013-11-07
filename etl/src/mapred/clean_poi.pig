@@ -10,8 +10,8 @@
 -- $output          output directory
 
 SET default_parallel 10;
-/*SET output.compression.enabled true; */
-/*SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;*/
+SET output.compression.enabled true; 
+SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
 
 node = LOAD '$input_node' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
 
