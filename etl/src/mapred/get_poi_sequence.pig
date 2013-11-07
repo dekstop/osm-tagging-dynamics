@@ -1,21 +1,21 @@
 -- Compute poi_sequence data (skip lists) of cleaned POI data.
 
+-- Parameters:
+-- $input_poi
+-- $output
+
 -- Output columns:
 -- ../poi_id_version/: {id, version}
 -- ../poi_sequence/: {id, version, prev_version, next_version}
-
--- Parameters:
--- $input_node
--- $output
 
 SET default_parallel 10;
 SET output.compression.enabled true; 
 SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
 
-node = LOAD '$input_node' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
+poi = LOAD '$input_poi' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
 
 -- extract all versions
-poi_id_version_t = FOREACH node GENERATE id, version;
+poi_id_version_t = FOREACH poi GENERATE id, version;
 poi_id_version = DISTINCT poi_id_version_t;
 -- poi_id_version: {id: long,version: int}
 
