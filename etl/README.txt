@@ -26,10 +26,19 @@ $ cp bin/env.sh-example bin/env.sh
 $ ./bin/fetch_osh.sh
 $ ./bin/extract_osh.sh <.osh.pbf files>
 
-Optionally:
+Recommended but optional:
 - compress with lzop
+  $ lzop --delete -v data/etl/*.txt
 - index with com.hadoop.compression.lzo.LzoIndexer
-- clean raw node data with src/mapred/clean_poi.pig to extract POI data
+  $ hadoop jar .../hadoop-lzo.jar com.hadoop.compression.lzo.LzoIndexer data/etl/
+- clean/filter raw node data to extract POI data
+  - upload to a Hadoop cluster
+  $ pig src/mapred/clean_poi.pig
 
 To load:
 $ ./bin/load_tsv.sh <tsv files>
+
+Some key derivative data sets may be too expensive to compute in DB. You can compute 
+these in Hadoop instead, then load into your DB manually.
+- poi_sequence:
+  $ pig -p input_node=<path-to-POI-node-data> -p output=<outdir> src/mapred/get_poi_sequence.pig
