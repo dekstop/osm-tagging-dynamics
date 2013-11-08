@@ -5,7 +5,7 @@
  =================
 
 Prerequisites for ETL tools:
-- Postgres 8+
+- Postgres 9+
 - Ruby with libxml-ruby gem (and optionally: bzip2-ruby)
 - osmconvert
 - ...?
@@ -33,12 +33,13 @@ Recommended but optional:
   $ hadoop jar .../hadoop-lzo.jar com.hadoop.compression.lzo.LzoIndexer data/etl/
 - clean/filter raw node data to extract POI data
   - upload to a Hadoop cluster
-  $ pig src/mapred/clean_poi.pig
+  $ pig <...> src/mapred/clean_poi.pig
 
 To load:
 $ ./bin/load_tsv.sh <tsv files>
 
-Some key derivative data sets may be too expensive to compute in DB. You can compute 
-these in Hadoop instead, then load into your DB manually.
-- poi_sequence:
-  $ pig -p input_node=<path-to-POI-node-data> -p output=<outdir> src/mapred/get_poi_sequence.pig
+Some key derivative data sets may be too expensive to compute in DB. 
+You can compute these in Hadoop instead, then load into your DB manually.
+- poi_sequence: src/mapred/deriv_poi_sequence.pig
+- tag_edit_action: src/mapred/deriv_poi_tag_edit_action.pig
+- changeset: src/mapred/deriv_changeset.pig

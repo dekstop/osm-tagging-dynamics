@@ -71,7 +71,7 @@ end
 # ========
 
 if (ARGV.size!=2) then
-  puts "<geo_edit_hotspots_stats.txt> <result dirname>"
+  puts "<edit_hotspot_stats.txt> <result dirname>"
   exit 1
 end
 

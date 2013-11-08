@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BIN=$( cd "$( dirname "$0" )" && pwd )
+BIN=$( cd "$( dirname "$0" )" && cd ../../bin && pwd )
 . ${BIN}/env.sh
 
 # ================
