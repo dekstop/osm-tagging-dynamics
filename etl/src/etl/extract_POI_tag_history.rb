@@ -141,29 +141,32 @@ keep_scanning = true
 while keep_scanning
   seek_to_tag(xml, 'node') or break
   node = get_attributes(xml)
-
   id = parse_int(node['id'])
   version = parse_int(node['version'])
-  changeset = parse_int(node['changeset'])
-  timestamp = escape(node['timestamp'])
-  uid = parse_int(node['uid'])
-  username = escape(node['user'])
-  lat = parse_float(node['lat'])
-  lon = parse_float(node['lon'])
 
-  nodefile.write("#{id}\t#{version}\t#{changeset}\t#{timestamp}\t#{uid}\t" +
-    "#{username}\t#{lat}\t#{lon}\n")
-  
+  # We're only capturing nodes with tags.
   seek_to_next_tag(xml) or keep_scanning=false
-  if keep_scanning
-    if is_a(xml, 'tag')
-      while is_a(xml, 'tag')
-        tag = get_attributes(xml)
+  if keep_scanning and is_a(xml, 'tag')
+    # Get tags
+    has_tags = false
+    while is_a(xml, 'tag')
+      tag = get_attributes(xml)
+      if tag['k']!='created_by'
         tagfile.write("#{id}\t#{version}\t#{escape(tag['k'])}\t#{escape(tag['v'])}\n")
-        seek_to_next_tag(xml) # or puts "done"
+        has_tags = true
       end
-    else
-      # No tags for this node & version
+      seek_to_next_tag(xml) # or puts "done"
+    end
+    # Capture node info too, now that we have tag data for it.
+    if has_tags
+      changeset = parse_int(node['changeset'])
+      timestamp = escape(node['timestamp'])
+      uid = parse_int(node['uid'])
+      username = escape(node['user'])
+      lat = parse_float(node['lat'])
+      lon = parse_float(node['lon'])
+      nodefile.write("#{id}\t#{version}\t#{changeset}\t#{timestamp}\t#{uid}\t" +
+        "#{username}\t#{lat}\t#{lon}\n")
     end
   end
 end
