@@ -42,8 +42,6 @@ def is_a(xml, tag_name)
   (xml.node_type == XML::Reader::TYPE_ELEMENT && xml.name == tag_name)
 end
 
-require 'pp'
-
 # returns false when at end of file
 def seek_to_tag(xml, tag_name)
   ret = true
@@ -111,6 +109,26 @@ def parse_int(str)
   str.nil? ? str : (str.valid_int? ? str.to_i : nil)
 end
 
+def tsv_format_node(node)
+  id = parse_int(node['id'])
+  version = parse_int(node['version'])
+  changeset = parse_int(node['changeset'])
+  timestamp = escape(node['timestamp'])
+  uid = parse_int(node['uid'])
+  username = escape(node['user'])
+  lat = parse_float(node['lat'])
+  lon = parse_float(node['lon'])
+  return "#{id}\t#{version}\t#{changeset}\t#{timestamp}\t#{uid}\t" +
+          "#{username}\t#{lat}\t#{lon}\n"
+end
+  
+
+def save_lines(lines, file)
+  lines.each do |line|
+    file.write(line)
+  end
+end
+
 # ========
 # = Main =
 # ========
@@ -138,37 +156,45 @@ tagfile = open_etl_file(ARGV[2])
 # seek_to_tag(xml, 'does_not_exist') or exit
 
 keep_scanning = true
+current_id = nil
+nodes = []
+has_tags = false
 while keep_scanning
   seek_to_tag(xml, 'node') or break
   node = get_attributes(xml)
   id = parse_int(node['id'])
   version = parse_int(node['version'])
+  
+  if current_id!=id 
+    # Process previous node first
+    if has_tags
+      # Capture node/version info too, now that we have tag data for it.
+      save_lines(nodes, nodefile)
+      has_tags = false
+    end
+    nodes.clear()
+    current_id = id
+  end
+  
+  nodes << tsv_format_node(node)
 
   # We're only capturing nodes with tags.
   seek_to_next_tag(xml) or keep_scanning=false
   if keep_scanning and is_a(xml, 'tag')
     # Get tags
-    has_tags = false
     while is_a(xml, 'tag')
       tag = get_attributes(xml)
       if tag['k']!='created_by'
         tagfile.write("#{id}\t#{version}\t#{escape(tag['k'])}\t#{escape(tag['v'])}\n")
         has_tags = true
       end
-      seek_to_next_tag(xml) # or puts "done"
-    end
-    # Capture node info too, now that we have tag data for it.
-    if has_tags
-      changeset = parse_int(node['changeset'])
-      timestamp = escape(node['timestamp'])
-      uid = parse_int(node['uid'])
-      username = escape(node['user'])
-      lat = parse_float(node['lat'])
-      lon = parse_float(node['lon'])
-      nodefile.write("#{id}\t#{version}\t#{changeset}\t#{timestamp}\t#{uid}\t" +
-        "#{username}\t#{lat}\t#{lon}\n")
+      seek_to_next_tag(xml)
     end
   end
+end
+
+if has_tags
+  save_lines(nodes, nodefile)
 end
 
 nodefile.close
