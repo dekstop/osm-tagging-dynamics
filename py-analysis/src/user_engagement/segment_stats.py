@@ -2,6 +2,8 @@
 # Summary stats for the groups of a user segmentation scheme.
 #
 
+from __future__ import division # non-truncating division in Python 2.x
+
 import matplotlib
 matplotlib.use('Agg')
 
@@ -19,6 +21,10 @@ from app import *
 # =========
 # = Tools =
 # =========
+
+def normalized(numbers):
+  maxv = max(numbers)
+  return [(n if n==0 else n / maxv) for n in numbers]
 
 # summarisation of bands
 
@@ -43,7 +49,7 @@ def get_metric_for_group(values, groupids, group):
 # =========
 
 # data is a mapping of column -> row -> groupid -> value
-def group_volume_plot(data, columns, rows, outdir, filename_base, 
+def summary_volume_plot(data, columns, rows, outdir, filename_base, 
   colors=QUALITATIVE_MEDIUM, **kwargs):
   
   ncols = len(columns)
@@ -86,7 +92,7 @@ def group_volume_plot(data, columns, rows, outdir, filename_base,
 # data is a mapping of column -> row -> list of items (values)
 # item_groupids is a mapping of column -> list of groupids, one per item
 # kwargs is passed on to plt.scatter(...).
-def group_scatterplot(data, anchor_row, item_groupids, columns, rows, outdir, 
+def items_scatterplot(data, anchor_row, item_groupids, columns, rows, outdir, 
   filename_base, colors=QUALITATIVE_DARK, **kwargs):
   
   ncols = len(columns)
@@ -137,7 +143,7 @@ def group_scatterplot(data, anchor_row, item_groupids, columns, rows, outdir,
 
 # data is a mapping of column -> row -> group -> list of values
 # kwargs is passed on to plt.boxplot(...).
-def group_boxplot(data, columns, rows, outdir, filename_base, plot_means=False **kwargs):
+def items_boxplot(data, columns, rows, outdir, filename_base, plot_means=False, **kwargs):
   ncols = len(columns)
   nrows = len(rows)
 
@@ -180,10 +186,9 @@ def group_boxplot(data, columns, rows, outdir, filename_base, plot_means=False *
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
 
-
 # data is a mapping of column -> row -> group -> value
 # kwargs is passed on to plt.bar(...).
-def group_scores_plot(data, columns, rows, outdir, filename_base, colors=QUALITATIVE_MEDIUM, **kwargs):
+def summary_scores_plot(data, columns, rows, outdir, filename_base, colors=QUALITATIVE_MEDIUM, **kwargs):
   ncols = len(columns)
   nrows = len(rows)
 
@@ -220,6 +225,118 @@ def group_scores_plot(data, columns, rows, outdir, filename_base, colors=QUALITA
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
 
+# data is a mapping of column -> row -> group -> list of values
+# kwargs is passed on to plt.plot(...).
+def items_ranked_step_plot(data, columns, rows, outdir, filename_base, 
+  colors=QUALITATIVE_DARK, x_gap=0.2, **kwargs):
+  
+  ncols = len(columns)
+  nrows = len(rows)
+  
+  fig = plt.figure(figsize=(3*ncols, 3*nrows))
+  plt.subplots_adjust(hspace=.2, wspace=0.2)
+  fig.patch.set_facecolor('white')
+
+  n = 1
+  for row in rows:
+    for column in columns:
+
+      if n <= ncols: # first row
+        ax1 = plt.subplot(nrows, ncols, n, title=column)
+      else:
+        ax1 = plt.subplot(nrows, ncols, n)
+      
+      if (n % ncols == 1): # first column
+        plt.ylabel(row)
+      
+      # horizontal spacing
+      num_items = sum([len(data[column][row][groupid]) for groupid in data[column][row].keys()])
+      num_groups = len(data[column][row].keys())
+      x_spacing = int(num_items * x_gap / (num_groups-1)) # Python2 round(...) returns a float
+
+      xoffset = 0
+      colidx = 0
+      for groupid in sorted(data[column][row].keys()):
+        values = sorted(data[column][row][groupid])
+        values = numpy.log([max(float(v), 0.000001) for v in values])
+
+        # Scaling
+        # minv = min(values)
+        # values = [v - minv for v in values] 
+        # values = normalized(values)
+
+        ax1.step(range(xoffset, xoffset+len(values)), values, 
+          color=colors[colidx], linewidth=2, **kwargs)
+        xoffset += len(values) + x_spacing
+        colidx = (colidx+1) % len(colors)
+
+      # ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+      # ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+      # ax1.tick_params(axis='y', which='major', labelsize='x-small')
+      # ax1.tick_params(axis='y', which='minor', labelsize='xx-small')
+      ax1.get_xaxis().set_visible(False)
+      # ax1.get_yaxis().set_visible(False)
+      ax1.get_yaxis().set_ticks([])
+      ax1.margins(0.1, 0.1)
+
+      n += 1
+  
+  plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
+  plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+
+# data is a mapping of column -> row -> group -> list of values
+# kwargs is passed on to plt.plot(...).
+def items_histogram(data, columns, rows, outdir, filename_base, 
+  colors=QUALITATIVE_DARK, x_gap=0.2, **kwargs):
+  
+  ncols = len(columns)
+  nrows = len(rows)
+  
+  fig = plt.figure(figsize=(3*ncols, 3*nrows))
+  plt.subplots_adjust(hspace=.2, wspace=0.2)
+  fig.patch.set_facecolor('white')
+
+  n = 1
+  for row in rows:
+    for column in columns:
+
+      if n <= ncols: # first row
+        ax1 = plt.subplot(nrows, ncols, n, title=column)
+      else:
+        ax1 = plt.subplot(nrows, ncols, n)
+      
+      if (n % ncols == 1): # first column
+        plt.ylabel(row)
+      
+      # horizontal spacing
+      num_items = sum([len(data[column][row][groupid]) for groupid in data[column][row].keys()])
+      num_groups = len(data[column][row].keys())
+      x_spacing = int(num_items * x_gap / (num_groups-1)) # Python2 round(...) returns a float
+
+      xoffset = 0
+      colidx = 0
+      for groupid in sorted(data[column][row].keys()):
+        values = data[column][row][groupid]
+        values = [v + xoffset for v in values] # Cheating, to arrange multiple histograms horizontally
+
+        ax1.hist(values, color=colors[colidx], linewidth=2, **kwargs)
+        xoffset += len(values) + x_spacing
+        colidx = (colidx+1) % len(colors)
+
+      # ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+      # ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+      # ax1.tick_params(axis='y', which='major', labelsize='x-small')
+      # ax1.tick_params(axis='y', which='minor', labelsize='xx-small')
+      ax1.get_xaxis().set_visible(False)
+      # ax1.get_yaxis().set_visible(False)
+      ax1.get_yaxis().set_ticks([])
+      ax1.margins(0.1, 0.1)
+
+      n += 1
+  
+  plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
+  plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+
 # ========
 # = Main =
 # ========
@@ -249,12 +366,13 @@ if __name__ == "__main__":
   user_groups = defaultdict(list)     # region -> list of user groups
   
   # User scores. region -> group -> list of values
+  edits_per_user = defaultdict(lambda: defaultdict(list)) 
   poi_edit_score = defaultdict(lambda: defaultdict(list)) 
   tag_edit_score = defaultdict(lambda: defaultdict(list))
   tag_removal_score = defaultdict(lambda: defaultdict(list))
   edit_pace = defaultdict(lambda: defaultdict(list))
 
-  # Group scores. region -> group -> value
+  # Group volume scores. region -> group -> value
   group_num_users = defaultdict(lambda: defaultdict(int)) 
   group_num_edits = defaultdict(lambda: defaultdict(int))
 
@@ -284,6 +402,7 @@ if __name__ == "__main__":
     region_num_edits[region] += row['num_edits']
     user_groups[region].append(groupid)
 
+    edits_per_user[region][groupid].append(row['num_edits'])
     poi_edit_score[region][groupid].append(row['poi_edit_score'])
     tag_edit_score[region][groupid].append(row['tag_edit_score'])
     tag_removal_score[region][groupid].append(row['tag_removal_score'])
@@ -307,7 +426,7 @@ if __name__ == "__main__":
   #
 
   # region -> group -> aggregate score
-  edits_per_user = defaultdict(dict)
+  group_edits_per_user = defaultdict(dict)
   group_poi_edit_score = defaultdict(dict)
   group_tag_edit_score = defaultdict(dict)
   group_tag_removal_score = defaultdict(dict)
@@ -317,14 +436,53 @@ if __name__ == "__main__":
     for groupid in groups[region]:
       num_users = group_num_users[region][groupid]
       num_edits = group_num_edits[region][groupid]
-      # edits_per_user[region][groupid] = decimal.Decimal(num_edits) / decimal.Decimal(num_users)
-      edits_per_user[region][groupid] = group_summary(get_metric_for_group(
-        data[region][metric], user_groups[region], groupid))
+      # group_edits_per_user[region][groupid] = decimal.Decimal(num_edits) / decimal.Decimal(num_users)
+      group_edits_per_user[region][groupid] = group_summary(edits_per_user[region][groupid])
       group_poi_edit_score[region][groupid] = group_summary(poi_edit_score[region][groupid])
       group_tag_edit_score[region][groupid] = group_summary(tag_edit_score[region][groupid])
       group_tag_removal_score[region][groupid] = group_summary(tag_removal_score[region][groupid])
       group_edit_pace[region][groupid] = group_summary(edit_pace[region][groupid])
 
+  # 
+  # Projections for plotting
+  #
+  
+  volume_data = dict()
+  for region in regions:
+    volume_data[region] = dict()
+    volume_data[region]['num_users'] = group_num_users[region]
+    volume_data[region]['num_edits'] = group_num_edits[region]
+
+  # Raw metrics for individual group members
+  member_metrics_data = dict()
+  for region in regions:
+    member_metrics_data[region] = dict()
+    for metric in metrics:
+      member_metrics_data[region][metric] = dict()
+      for groupid in groups[region]:
+        member_metrics_data[region][metric][groupid] = \
+          get_metric_for_group(data[region][metric], user_groups[region], groupid)
+  
+  # Derived scores for individual group members
+  member_score_data = dict()
+  for region in regions:
+    member_score_data[region] = dict()
+    member_score_data[region]['edits_per_user'] = edits_per_user[region]
+    member_score_data[region]['poi_edit_score'] = poi_edit_score[region]
+    member_score_data[region]['tag_edit_score'] = tag_edit_score[region]
+    member_score_data[region]['tag_removal_score'] = tag_removal_score[region]
+    member_score_data[region]['edit_pace'] = edit_pace[region]
+  
+  # Aggregated summary scores per group
+  group_score_data = dict()
+  for region in regions:
+    group_score_data[region] = dict()
+    group_score_data[region]['group_edits_per_user'] = group_edits_per_user[region]
+    group_score_data[region]['group_poi_edit_score'] = group_poi_edit_score[region]
+    group_score_data[region]['group_tag_edit_score'] = group_tag_edit_score[region]
+    group_score_data[region]['group_tag_removal_score'] = group_tag_removal_score[region]
+    group_score_data[region]['group_edit_pace'] = group_edit_pace[region]
+  
   #
   # Report
   #
@@ -350,7 +508,7 @@ if __name__ == "__main__":
         region, args.scheme_name, groupid,
         num_users, 100 * decimal.Decimal(num_users) / len(region_users[region]),
         num_edits, 100 * decimal.Decimal(num_edits) / region_num_edits[region],
-        edits_per_user[region][groupid],
+        group_edits_per_user[region][groupid],
         group_poi_edit_score[region][groupid],
         group_tag_edit_score[region][groupid],
         group_tag_removal_score[region][groupid],
@@ -360,61 +518,83 @@ if __name__ == "__main__":
   # Volume plot
   # 
   
-  volume_data = dict()
-  for region in regions:
-    volume_data[region] = dict()
-    volume_data[region]['num_users'] = group_num_users[region]
-    volume_data[region]['num_edits'] = group_num_edits[region]
-  
-  group_volume_plot(volume_data, regions, ['num_users', 'num_edits'], 
+  summary_volume_plot(volume_data, regions, ['num_users', 'num_edits'], 
     args.outdir, 'volume_%s' % (args.scheme_name))
 
   #
-  # Scatter plot
+  # Scatter plot of raw metrics
   #
   
-  group_scatterplot(data, 'num_edits', user_groups, regions, metrics, 
-    args.outdir, 'scatter_num_edits_%s' % (args.scheme_name))
-  
-  group_scatterplot(data, 'days_active', user_groups, regions, metrics, 
-    args.outdir, 'scatter_days_active_%s' % (args.scheme_name))
+  # items_scatterplot(data, 'num_edits', user_groups, regions, metrics, 
+  #   args.outdir, 'scatter_num_edits_%s' % (args.scheme_name))
+  # 
+  # items_scatterplot(data, 'days_active', user_groups, regions, metrics, 
+  #   args.outdir, 'scatter_days_active_%s' % (args.scheme_name))
   
   #
-  # Scores boxlot
+  # Member scores boxlot
   #
   
-  group_data = dict()
-  for region in regions:
-    group_data[region] = dict()
-    group_data[region]['edits_per_user'] = edits_per_user[region]
-    group_data[region]['poi_edit_score'] = poi_edit_score[region]
-    group_data[region]['tag_edit_score'] = tag_edit_score[region]
-    group_data[region]['tag_removal_score'] = tag_removal_score[region]
-    group_data[region]['edit_pace'] = edit_pace[region]
-  
-  group_boxplot(group_data, regions, ['poi_edit_score', 'tag_edit_score', 
+  items_boxplot(member_score_data, regions, ['poi_edit_score', 'tag_edit_score', 
     'tag_removal_score', 'edit_pace'], 
     args.outdir, 'boxplot_%s' % (args.scheme_name))
-
-  group_boxplot(group_data, regions, ['poi_edit_score', 'tag_edit_score', 
+  
+  items_boxplot(member_score_data, regions, ['poi_edit_score', 'tag_edit_score', 
     'tag_removal_score', 'edit_pace'], 
     args.outdir, 'boxplot_no-fliers_%s' % (args.scheme_name), sym='')
-    
   
   #
-  # Scores plot
+  # Group scores plot
   # 
 
-  scores_data = dict()
-  for region in regions:
-    scores_data[region] = dict()
-    scores_data[region]['edits_per_user'] = edits_per_user[region]
-    scores_data[region]['group_poi_edit_score'] = group_poi_edit_score[region]
-    scores_data[region]['group_tag_edit_score'] = group_tag_edit_score[region]
-    scores_data[region]['group_tag_removal_score'] = group_tag_removal_score[region]
-    scores_data[region]['group_edit_pace'] = group_edit_pace[region]
-  
-  group_scores_plot(scores_data, regions, 
-    ['edits_per_user', 'group_poi_edit_score', 'group_tag_edit_score', 
+  summary_scores_plot(group_score_data, regions, 
+    ['group_edits_per_user', 'group_poi_edit_score', 'group_tag_edit_score', 
     'group_tag_removal_score', 'group_edit_pace'], 
     args.outdir, 'scores_%s' % (args.scheme_name))
+
+  #
+  # Ranked member metrics plot
+  #
+  
+  items_ranked_step_plot(member_metrics_data, regions, metrics, 
+    args.outdir, 'ranked_metrics_%s' % (args.scheme_name))
+
+  #
+  # Ranked member scores plot
+  #
+  
+  items_ranked_step_plot(member_score_data, regions, 
+    ['edits_per_user', 'poi_edit_score', 'tag_edit_score', 
+    'tag_removal_score', 'edit_pace'], 
+    args.outdir, 'ranked_scores_%s' % (args.scheme_name))
+
+  #
+  # Member metrics histogram
+  #
+
+  # TODO
+  
+  # items_histogram(member_metrics_data, regions, metrics, 
+  #   args.outdir, 'hist_metrics_%s' % (args.scheme_name))
+
+  #
+  # Member scores histogram
+  #
+  
+  # TODO
+  
+  # items_histogram(member_score_data, regions, 
+  #   ['edits_per_user', 'poi_edit_score', 'tag_edit_score', 
+  #   'tag_removal_score', 'edit_pace'], 
+  #   args.outdir, 'hist_scores_%s' % (args.scheme_name))
+
+  #
+  # Member score variance plot
+  #
+
+  # TODO
+  
+  # items_variance_plot(member_score_data, regions, 
+  #   ['edits_per_user', 'poi_edit_score', 'tag_edit_score', 
+  #   'tag_removal_score', 'edit_pace'], 
+  #   args.outdir, 'variance_%s' % (args.scheme_name))
