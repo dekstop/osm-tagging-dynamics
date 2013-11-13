@@ -16,17 +16,21 @@ SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
 node = LOAD '$input_node' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
 
 clean_node = FILTER node BY (
-    changeset IS NOT NULL AND 
-    timestamp IS NOT NULL AND 
+    id IS NOT NULL AND
+    version IS NOT NULL AND
+    changeset IS NOT NULL AND
+    timestamp IS NOT NULL AND timestamp!='' AND
     uid IS NOT NULL AND
-    username IS NOT NULL AND
-    latitude IS NOT NULL AND 
+    username IS NOT NULL AND username!='' AND
+    latitude IS NOT NULL AND
     longitude IS NOT NULL);
 
 node_tag = LOAD '$input_node_tag' AS (id:long, version:int, key:chararray, value:chararray);
 
 clean_node_tag = FILTER node_tag BY (
-    key IS NOT NULL AND 
+    id IS NOT NULL AND
+    version IS NOT NULL AND
+    key IS NOT NULL AND key!='' AND
     key!='created_by');
 
 -- IDs for all POI (nodes with tags)
