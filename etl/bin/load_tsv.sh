@@ -41,17 +41,22 @@ function loadTableData() {
   shift
   for file in $@
   do
-    ls $file || return 1
-    if [ ${file: -4} == ".lzo" ]
+    if [ ${file: -6} == ".index" ]
     then
-      $TIME pv "${file}" | lzop -d | $PSQL $DATABASE -c "COPY $tablename FROM STDIN NULL AS ''" || return 1
-    elif [ ${file: -4} == ".gz" ]
-    then
-      $TIME pv "${file}" | gunzip | $PSQL $DATABASE -c "COPY $tablename FROM STDIN NULL AS ''" || return 1
+      echo "Skipping: ${file}"
     else
-      $TIME $PSQL $DATABASE -c "\\copy $tablename FROM '${file}' NULL AS ''" || return 1
+      ls $file || return 1
+      if [ ${file: -4} == ".lzo" ]
+      then
+        $TIME pv "${file}" | lzop -d | $PSQL $DATABASE -c "COPY $tablename FROM STDIN NULL AS ''" || return 1
+      elif [ ${file: -4} == ".gz" ]
+      then
+        $TIME pv "${file}" | gunzip | $PSQL $DATABASE -c "COPY $tablename FROM STDIN NULL AS ''" || return 1
+      else
+        $TIME $PSQL $DATABASE -c "\\copy $tablename FROM '${file}' NULL AS ''" || return 1
+      fi
+      $PSQL $DATABASE -c "VACUUM ANALYZE $tablename" || return 1
     fi
-    $PSQL $DATABASE -c "VACUUM ANALYZE $tablename" || return 1
   done
 }
 
