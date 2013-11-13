@@ -23,7 +23,7 @@ DROP TYPE IF EXISTS action CASCADE;
 -- ========
 
 CREATE TABLE node (
-  id          INTEGER NOT NULL,
+  id          BIGINT NOT NULL,
   version     INTEGER NOT NULL,
   changeset   INTEGER NOT NULL,
   timestamp   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE node (
 -- =======
 
 CREATE TABLE poi (
-  id          INTEGER NOT NULL,
+  id          BIGINT NOT NULL,
   version     INTEGER NOT NULL,
   changeset   INTEGER NOT NULL,
   timestamp   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
@@ -61,7 +61,7 @@ CREATE VIEW view_poi_sequence AS
   FROM poi p;
 
 CREATE TABLE poi_sequence (
-  poi_id        INTEGER NOT NULL,
+  poi_id        BIGINT NOT NULL,
   version       INTEGER NOT NULL,
   prev_version  INTEGER,
   next_version  INTEGER
@@ -74,7 +74,7 @@ CREATE UNIQUE INDEX poi_sequence_poi_id_version ON poi_sequence(poi_id, version)
 -- ===========
 
 CREATE TABLE poi_tag (
-  poi_id      INTEGER NOT NULL,
+  poi_id      BIGINT NOT NULL,
   version     INTEGER NOT NULL,
   key         TEXT,
   value       TEXT
@@ -133,7 +133,7 @@ CREATE VIEW view_poi_tag_edit_action AS
   SELECT *, 'update'::action FROM view_poi_tag_update;
 
 CREATE TABLE poi_tag_edit_action (
-  poi_id      INTEGER NOT NULL,
+  poi_id      BIGINT NOT NULL,
   version     INTEGER NOT NULL,
   key         TEXT,
   value       TEXT,
