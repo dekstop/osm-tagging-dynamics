@@ -14,9 +14,9 @@ function createSchema() {
 function truncate() {
   $PSQL $DATABASE -c "truncate poi" || return 1
   $PSQL $DATABASE -c "truncate poi_tag" || return 1
-  $PSQL $DATABASE -c "truncate poi_sequence" || return 1
-  $PSQL $DATABASE -c "truncate poi_tag_edit_action" || return 1
-  $PSQL $DATABASE -c "truncate changeset" || return 1
+  # $PSQL $DATABASE -c "truncate poi_sequence" || return 1
+  # $PSQL $DATABASE -c "truncate poi_tag_edit_action" || return 1
+  # $PSQL $DATABASE -c "truncate changeset" || return 1
 }
 
 # ===========
@@ -26,15 +26,15 @@ function truncate() {
 function dropIndex() {
   $PSQL $DATABASE -c "DROP INDEX IF EXISTS idx_poi_tag_key_value" || return 1
   $PSQL $DATABASE -c "DROP INDEX IF EXISTS idx_poi_tag_poi_id_version" || return 1
-  $PSQL $DATABASE -c "DROP INDEX IF EXISTS poi_sequence_poi_id_version" || return 1
-  $PSQL $DATABASE -c "DROP INDEX IF EXISTS poi_tag_edit_action_poi_id_version_key" || return 1
+  # $PSQL $DATABASE -c "DROP INDEX IF EXISTS poi_sequence_poi_id_version" || return 1
+  # $PSQL $DATABASE -c "DROP INDEX IF EXISTS poi_tag_edit_action_poi_id_version_key" || return 1
 }
 
 function createIndex() {
   $TIME $PSQL $DATABASE -c "CREATE INDEX idx_poi_tag_poi_id_version ON poi_tag(poi_id, version)" || return 1
   $TIME $PSQL $DATABASE -c "CREATE INDEX idx_poi_tag_key_value ON poi_tag(key, value)" || return 1
-  $TIME $PSQL $DATABASE -c "CREATE UNIQUE INDEX poi_sequence_poi_id_version ON poi_sequence(poi_id, version)" || return 1
-  $TIME $PSQL $DATABASE -c "CREATE UNIQUE INDEX poi_tag_edit_action_poi_id_version_key ON poi_tag_edit_action(poi_id, version, key)" || return 1
+  # $TIME $PSQL $DATABASE -c "CREATE UNIQUE INDEX poi_sequence_poi_id_version ON poi_sequence(poi_id, version)" || return 1
+  # $TIME $PSQL $DATABASE -c "CREATE UNIQUE INDEX poi_tag_edit_action_poi_id_version_key ON poi_tag_edit_action(poi_id, version, key)" || return 1
 }
 
 # ========
@@ -204,18 +204,18 @@ else
   echo
 fi
 
-# Special case: has subdirs
-loadTableData poi_sequence ${datadir}/poi_sequence/poi_sequence/* || exit 1
-
-for tablename in poi_tag_edit_action changeset $tablenames
-do
-  if [ -e ${datadir}/${tablename} ]
-  then
-    echo "Loading table data: ${tablename}"
-    loadTableData $tablename ${datadir}/${tablename}/* || exit 1
-    echo
-  fi
-done
+# # Special case: has subdirs
+# loadTableData poi_sequence ${datadir}/poi_sequence/poi_sequence/* || exit 1
+# 
+# for tablename in poi_tag_edit_action changeset $tablenames
+# do
+#   if [ -e ${datadir}/${tablename} ]
+#   then
+#     echo "Loading table data: ${tablename}"
+#     loadTableData $tablename ${datadir}/${tablename}/* || exit 1
+#     echo
+#   fi
+# done
 
 if [ $materialise_views ]
 then
