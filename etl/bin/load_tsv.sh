@@ -51,6 +51,7 @@ function loadTableData() {
     else
       $TIME $PSQL $DATABASE -c "\\copy $tablename FROM '${file}' NULL AS ''" || return 1
     fi
+    $PSQL $DATABASE -c "VACUUM ANALYZE $tablename" || return 1
   done
 }
 
@@ -98,27 +99,6 @@ function materialisePoiTagEditActionView() {
   $TIME $PSQL $DATABASE -c "INSERT INTO poi_tag_edit_action SELECT * FROM view_poi_tag_edit_action" || return 1
 }
 
-# =====================
-# = Derivative tables =
-# =====================
-
-function loadUserEditsSchema() {
-  echo "user_edits schema: creators, editors, and their edit actions."
-  $TIME $PSQL $DATABASE -c "CREATE SCHEMA user_edits;" || return 1
-  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_all_edits AS SELECT p.uid, p.id as poi_id, p.version FROM poi p JOIN poi_tag_edit_action a ON (p.id=a.poi_id AND p.version=a.version) GROUP BY p.uid, p.id, p.version;" || return 1
-  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_all_edits;" || return 1
-  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_edits_creators AS SELECT uid, poi_id, 1 as version FROM user_edits.poi_all_edits e WHERE version=1 GROUP BY uid, poi_id;" || return 1
-  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_edits_creators;" || return 1
-  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_edits_editors AS SELECT uid, poi_id, version FROM user_edits.poi_all_edits e WHERE version>1 GROUP BY uid, poi_id, version;" || return 1
-  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_edits_editors;" || return 1
-  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_edits_only_creators AS SELECT c.uid, c.poi_id, 1 as version FROM user_edits.poi_edits_creators c LEFT OUTER JOIN (SELECT distinct uid FROM user_edits.poi_edits_editors) e ON (c.uid=e.uid) WHERE e.uid IS NULL GROUP BY c.uid, c.poi_id;" || return 1
-  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_edits_only_creators;" || return 1
-  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_edits_creators_and_editors AS SELECT a.uid, a.poi_id, a.version FROM user_edits.poi_all_edits a JOIN (SELECT c.uid FROM (SELECT DISTINCT uid FROM user_edits.poi_edits_creators) c JOIN (SELECT DISTINCT uid FROM user_edits.poi_edits_editors) e ON c.uid=e.uid) t ON (a.uid=t.uid);" || return 1
-  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_edits_creators_and_editors;" || return 1
-  $TIME $PSQL $DATABASE -c "CREATE TABLE user_edits.poi_edits_only_editors AS SELECT e.uid, e.poi_id, e.version FROM user_edits.poi_edits_editors e LEFT OUTER JOIN (SELECT distinct uid FROM user_edits.poi_edits_creators) c ON (c.uid=e.uid) WHERE c.uid IS NULL GROUP BY e.uid, e.poi_id, e.version;" || return 1
-  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE user_edits.poi_edits_only_editors;" || return 1
-}
-
 # ========
 # = Main =
 # ========
@@ -128,11 +108,13 @@ do_truncate=
 create_schema=
 drop_index=
 as_raw_node_data=
+materialise_views=
 
 if [[ $# -lt 1 ]]
 then
-  echo "Usage : $0 <data_dir> [--database <db_name>] [--schema] [--truncate] [--drop-index] [--as-raw-node-data]"
+  echo "Usage : $0 <data_dir> [--database <db_name>] [--schema] [--truncate] [--drop-index] [--as-raw-node-data] [--views]"
   echo "data_dir needs to have two subdirectories: \"poi\", and \"poi_tag\"."
+  echo "The following optional subdirs will also be loaded: \"poi_sequence\", \"poi_tag_edit_action\", \"changeset\""
   exit 1
 fi
 
@@ -149,6 +131,7 @@ do
     --truncate) echo "Will truncate tables before loading."; do_truncate=t ;;
     --drop-index) echo "Will drop indices before loading."; drop_index=t ;;
     --as-raw-node-data) echo "Will load as raw node data, this involves some basic data cleaning operations."; as_raw_node_data=t ;;
+    --views) echo "Will materialise select views."; materialise_views=t ;;
     *) 
       echo "Loading data from: ${1}"
       datadir=$1 
@@ -209,10 +192,23 @@ else
   echo
 fi
 
-echo "Materialised views..."
-materialisePoiSequenceTableView || exit 1
-materialisePoiTagEditActionView || exit 1
-echo
+for tablename in poi_sequence poi_tag_edit_action changeset
+do
+  if [ -e ${datadir}/${tablename} ]
+  then
+    echo "Loading table data: ${tablename}"
+    loadTableData $tablename ${datadir}/${tablename} || exit 1
+    echo
+  fi
+done
+
+if [ $materialise_views ]
+then
+  echo "Materialised views..."
+  materialisePoiSequenceTableView || exit 1
+  materialisePoiTagEditActionView || exit 1
+  echo
+fi
 
 if [ $drop_index ]
 then
@@ -220,10 +216,6 @@ then
   createIndex || exit 1
   echo
 fi
-
-echo "Preparing schemas..."
-loadUserEditsSchema || exit 1
-echo
 
 echo "Next Steps:"
 echo "- populate the region table"
