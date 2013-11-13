@@ -2,11 +2,26 @@ import ConfigParser
 import csv
 import os, errno
 
+import psycopg2.extensions
+
 from sqlalchemy import *
 from sqlalchemy.orm import *
 
 from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
+
+# ============
+# = Psycopg2 =
+# ============
+
+# Load all decimal numbers as float from the DB.
+# This avoids lots of tedious type conversions necessiated for numpy.
+# Any potential loss in precision isn't a big concern for our kind of work.
+DEC2FLOAT = psycopg2.extensions.new_type(
+  psycopg2.extensions.DECIMAL.values,
+  'DEC2FLOAT',
+  lambda value, curs: float(value) if value is not None else None)
+psycopg2.extensions.register_type(DEC2FLOAT)
 
 # ==============
 # = DB Session =
