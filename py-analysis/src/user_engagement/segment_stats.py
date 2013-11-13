@@ -484,7 +484,7 @@ if __name__ == "__main__":
     group_score_data[region]['group_edit_pace'] = group_edit_pace[region]
   
   #
-  # Report
+  # Report: group scores
   #
   
   mkdir_p(args.outdir)
@@ -515,6 +515,37 @@ if __name__ == "__main__":
         group_edit_pace[region][groupid]])
 
   #
+  # Report: group variances
+  #
+  
+  mkdir_p(args.outdir)
+  
+  filename = "%s/segments_%s_variances.txt" % (args.outdir, args.scheme_name)
+  outfile = open(filename, 'wb')
+  outcsv = csv.writer(outfile, dialect='excel-tab')
+  outcsv.writerow(['region', 'scheme', 'groupid', 
+    'num_users', 'perc_users', 
+    'num_edits', 'perc_edits',
+    'var_edits_per_user', 
+    'var_poi_edit_score', 'var_tag_edit_score', 'var_tag_removal_score', 
+    'var_edit_pace'])
+  
+  for region in regions:
+    for groupid in groups[region]:
+      num_users = group_num_users[region][groupid]
+      num_edits = group_num_edits[region][groupid]
+  
+      outcsv.writerow([
+        region, args.scheme_name, groupid,
+        num_users, 100 * decimal.Decimal(num_users) / len(region_users[region]),
+        num_edits, 100 * decimal.Decimal(num_edits) / region_num_edits[region],
+        numpy.var(edits_per_user[region][groupid]),
+        numpy.var(poi_edit_score[region][groupid]),
+        numpy.var(tag_edit_score[region][groupid]),
+        numpy.var(tag_removal_score[region][groupid]),
+        numpy.var(edit_pace[region][groupid])])
+
+  #
   # Volume plot
   # 
   
@@ -525,11 +556,11 @@ if __name__ == "__main__":
   # Scatter plot of raw metrics
   #
   
-  # items_scatterplot(data, 'num_edits', user_groups, regions, metrics, 
-  #   args.outdir, 'scatter_num_edits_%s' % (args.scheme_name))
-  # 
-  # items_scatterplot(data, 'days_active', user_groups, regions, metrics, 
-  #   args.outdir, 'scatter_days_active_%s' % (args.scheme_name))
+  items_scatterplot(data, 'num_edits', user_groups, regions, metrics, 
+    args.outdir, 'scatter_num_edits_%s' % (args.scheme_name))
+  
+  items_scatterplot(data, 'days_active', user_groups, regions, metrics, 
+    args.outdir, 'scatter_days_active_%s' % (args.scheme_name))
   
   #
   # Member scores boxlot
