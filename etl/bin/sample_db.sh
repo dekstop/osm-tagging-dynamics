@@ -13,7 +13,7 @@ function createSchema() {
 }
 
 function selectSample() {
-  echo "Selecting a POI sample of: ${sample}"
+  echo "Selecting POI based on a user sample of: ${sample}"
   $TIME $PSQL $DATABASE -c "CREATE TABLE ${schema}.poi_sample AS SELECT distinct p.id AS poi_id FROM poi p JOIN (SELECT * FROM (SELECT distinct uid FROM poi) t WHERE random() <= ${sample}) u ON p.uid=u.uid" || return 1
   $TIME $PSQL $DATABASE -c "VACUUM ANALYZE ${schema}.poi_sample" || return 1
 }
