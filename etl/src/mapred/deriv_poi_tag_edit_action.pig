@@ -13,10 +13,10 @@ SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
 
 poi_tag = LOAD '$input_poi_tag' AS (id:long, version:int, key:chararray, value:chararray);
 poi_sequence = LOAD '$input_poi_sequence' AS (id:long, version:int, prev_version:int, next_version:int);
+poi_ts_join = JOIN poi_tag BY (id, version), poi_sequence BY (id, version);
 
 -- POI versions that introduced new tags (a new tag key in the set of annotations for this poi)
-pt_add_t1 = JOIN poi_tag BY (id, version), poi_sequence BY (id, version);
-pt_add_t2 = FOREACH pt_add_t1 GENERATE 
+pt_add_t2 = FOREACH poi_ts_join GENERATE 
   poi_tag::id as id, 
   poi_tag::version as version, 
   poi_sequence::prev_version as prev_version, 
@@ -34,8 +34,7 @@ pt_add = FOREACH pt_add_t4 GENERATE
   'add' as action:chararray;
 
 -- POI versions that removed particular tags (an existing key in the set of poi annotations)
-pt_rem_t1 = JOIN poi_tag BY (id, version), poi_sequence BY (id, version);
-pt_rem_t2 = FOREACH pt_rem_t1 GENERATE 
+pt_rem_t2 = FOREACH poi_ts_join GENERATE 
   poi_tag::id as id, 
   poi_tag::version as version, 
   poi_sequence::next_version as next_version, 
@@ -53,8 +52,7 @@ pt_rem = FOREACH pt_rem_t4 GENERATE
   'remove' as action:chararray;
 
 -- POI versions that updated existing tags (same key, new value)
-pt_up_t1 = JOIN poi_tag BY (id, version), poi_sequence BY (id, version);
-pt_up_t2 = FOREACH pt_up_t1 GENERATE 
+pt_up_t2 = FOREACH poi_ts_join GENERATE 
   poi_tag::id as id, 
   poi_tag::version as version, 
   poi_sequence::next_version as next_version, 
