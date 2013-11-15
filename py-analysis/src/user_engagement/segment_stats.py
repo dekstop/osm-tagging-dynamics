@@ -258,7 +258,7 @@ def items_ranked_step_plot(data, columns, rows, outdir, filename_base,
       colidx = 0
       for groupid in sorted(data[column][row].keys()):
         values = sorted(data[column][row][groupid])
-        values = numpy.log([max(float(v), 0.000001) for v in values])
+        # values = numpy.log([max(float(v), 0.000001) for v in values])
 
         # Scaling
         # minv = min(values)

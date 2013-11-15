@@ -10,11 +10,19 @@ from collections import defaultdict
 import decimal
 import sys
 
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy
 import scipy.stats.stats as stats
 
 from app import *
+
+# =========
+# = tools =
+# =========
+
+def float_f(f):
+  return format(f, 'f').rstrip('0')
 
 # =========
 # = Plots =
@@ -62,11 +70,8 @@ def qqplot(data, metrics, outdir, filename_base, **kwargs):
 
 
 # data: list of dict(metric -> value)
-def corr_plot_report(data, metrics, outdir, filename_base, **kwargs):
-
-  outfile = open("%s/%s.txt" % (args.outdir, filename_base), 'wb')
-  outcsv = csv.writer(outfile, dialect='excel-tab')
-  outcsv.writerow(['metric_a', 'metric_b', 'pcc', 'p_pcccc', 'scc', 'p_scc'])
+# corr: metric1 -> metric2 -> measure -> value
+def scatterplot(data, metrics, corr, outdir, filename_base, **kwargs):
 
   ncols = len(metrics)
   nrows = len(metrics)
@@ -98,18 +103,50 @@ def corr_plot_report(data, metrics, outdir, filename_base, **kwargs):
       ax1.tick_params(axis='both', which='minor', labelsize='xx-small')
       
       # Correlation coefficients
-      (pcc, p_pcc) = stats.pearsonr(data_a, data_b)
-      (scc, p_scc) = stats.spearmanr(data_a, data_b)
+      scores = corr[metrics[a]][metrics[b]]
 
-      plt.text(0.05, 0.95, "PCC=%.3f\np=%.3f" % (pcc, p_pcc),
+      plt.text(0.05, 0.95, "PCC=%.3f\np=%.3f" % (scores['pcc'], scores['p_pcc']),
         transform=ax1.transAxes, color='b', ha='left', va='top', size='small')
-      plt.text(0.95, 0.05, "\nSCC=%.3f\np=%.3f" % (scc, p_scc), 
+      plt.text(0.95, 0.05, "\nSCC=%.3f\np=%.3f" % (scores['scc'], scores['p_scc']), 
         transform=ax1.transAxes, color='r', ha='right', va='bottom', size='small')
+  
+  plt.savefig("%s/%s.pdf" % (args.outdir, filename_base), bbox_inches='tight')
+  plt.savefig("%s/%s.png" % (args.outdir, filename_base), bbox_inches='tight')
+
+
+# corr: metric1 -> metric2 -> measure -> value
+def corrmatrix(metrics, corr, measure, outdir, filename_base, cmap=cm.gray, **kwargs):
+
+  # TODO: OR: plt.matshow, plt.pcolor, ...
+
+  ncols = len(metrics)
+  nrows = len(metrics)
+
+  fig = plt.figure(figsize=(1*ncols, 0.75*nrows))
+  plt.subplots_adjust(hspace=0, wspace=0)
+  fig.patch.set_facecolor('white')
+
+  for a in range(len(metrics)):
+    for b in range(a):
+
+      scores = corr[metrics[a]][metrics[b]]
+      val = scores[measure]
+
+      # Plot
+      n = a * len(metrics) + b + 1
+      ax1 = plt.subplot(nrows, ncols, n)
       
-      outcsv.writerow([metrics[a], metrics[b], pcc, p_pcc, scc, p_scc])
+      if a == len(metrics)-1: # last row
+        plt.xlabel(metrics[b], rotation=90)
 
-  outfile.close()
+      if (b == 0): # first column
+        plt.ylabel(metrics[a], rotation=0)
+      
+      ax1.bar(0, 1, 1, 0, color=cmap(val), **kwargs)
 
+      ax1.get_xaxis().set_ticks([])
+      ax1.get_yaxis().set_ticks([])
+  
   plt.savefig("%s/%s.pdf" % (args.outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (args.outdir, filename_base), bbox_inches='tight')
 
@@ -143,29 +180,35 @@ if __name__ == "__main__":
   
   # getDb().echo = True    
   session = getSession()
-  query = """SELECT r.name AS region, %s
+
+  query = """SELECT r.name AS region, ues.uid, %s
     FROM %s.user_edit_stats ues
     JOIN region r ON ues.region_id=r.id """ % (', '.join(metrics), args.schema)
   conditions = []
+
   if args.scheme_name!=None:
     print "Loading segmented data scheme: '%s'" % (args.scheme_name)
-    query += "JOIN sample_1pc.region_user_segment seg ON (seg.region_id=ues.region_id AND seg.uid=ues.uid)"
+    query += "JOIN %s.region_user_segment seg ON \
+      (seg.region_id=ues.region_id AND seg.uid=ues.uid)" % (args.schema)
     conditions.append("seg.scheme='%s'" % (args.scheme_name))
+
   if args.regions!=None:
     str_regions = "', '".join(args.regions)
     print "Limiting to regions: '%s'" % (str_regions)
     conditions.append("r.name IN ('%s')" % (str_regions))
+
   if len(conditions)>0:
     query += " WHERE " + " AND ".join(conditions)
+
   result = session.execute(query)
   # print result.keys()
 
   num_records = 0
   for row in result:
     region = row['region']
-    data[region].append(row)
+    data[region].append(dict(row.items()))
     # for metric in metrics:
-    #   data[region][metric].append(row[metric])
+      # data[region][metric].append(row[metric])
     
     num_records += 1
 
@@ -175,11 +218,67 @@ if __name__ == "__main__":
 
   # Prep
   mkdir_p(args.outdir)
-
+  
+  #
+  # Log transform
+  #
+  
+  # for idx in range(len(data[region])):
+  #   for metric in metrics:
+  #     if data[region][idx][metric]==0:
+  #       print "zero for metric: %s uid: %d metric: %s" % (region, data[region][idx]['uid'], metric)
+  #       data[region][idx][metric] = None
+  #     else:
+  #       data[region][idx][metric] = numpy.log(data[region][idx][metric])
+  
+  
   #
   # Correlation
   #
+
+  # region -> metric1 -> metric2 -> measure -> value
+  corr = dict()
   
   for region in regions:
-    qqplot(data[region], metrics, args.outdir, "qq-plot_%s" % (region))
-    corr_plot_report(data[region], metrics, args.outdir, "corr_%s" % (region))
+    corr[region] = defaultdict(dict)
+
+    outfile = open("%s/%s_corr.txt" % (args.outdir, region), 'wb')
+    outcsv = csv.writer(outfile, dialect='excel-tab')
+    outcsv.writerow(['metric_a', 'metric_b', 'pcc', 'p_pcc', 'scc', 'p_scc'])
+
+    for a in range(len(metrics)):
+      for b in range(a):
+      
+        data_a = [record[metrics[a]] for record in data[region]]
+        data_b = [record[metrics[b]] for record in data[region]]
+
+        # Correlation coefficients
+        (pcc, p_pcc) = stats.pearsonr(data_a, data_b)
+        (scc, p_scc) = stats.spearmanr(data_a, data_b)
+
+        scores = dict()
+        scores['pcc'] = pcc
+        scores['p_pcc'] = p_pcc
+        scores['scc'] = scc
+        scores['p_scc'] = p_scc
+      
+        corr[region][metrics[a]][metrics[b]] = scores
+        corr[region][metrics[b]][metrics[a]] = scores # Symmetry
+  
+        outcsv.writerow([metrics[a], metrics[b], 
+          float_f(scores['pcc']), 
+          float_f(scores['p_pcc']), 
+          float_f(scores['scc']), 
+          float_f(scores['p_scc'])])
+
+    outfile.close()
+
+  #
+  # Plots 
+  #
+  
+  for region in regions:
+    qqplot(data[region], metrics, args.outdir, "%s_qq-plot" % (region))
+    scatterplot(data[region], metrics, corr[region], args.outdir, "%s_scatter" % (region))
+    corrmatrix(metrics, corr[region], 'pcc', args.outdir, "%s_corr_pcc" % (region), cmap=cm.Blues)
+    corrmatrix(metrics, corr[region], 'scc', args.outdir, "%s_corr_scc" % (region), cmap=cm.Blues)
