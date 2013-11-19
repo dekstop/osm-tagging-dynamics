@@ -169,12 +169,20 @@ if __name__ == "__main__":
   parser.add_argument('--overwrite', dest='overwrite', default=False, 
     action='store_true', help='overwrite existing data if the scheme already exists')
 
-  parser.add_argument('--filter-lower', dest='filter_lower', type=float, default=None, 
-      action='store', help='filter the metric using a lower percentile threshold (inclusive)')
-  parser.add_argument('--filter-upper', dest='filter_upper', type=float, default=None, 
-      action='store', help='filter the metric using am upper percentile threshold (inclusive)')
+  parser.add_argument('--filter-below', dest='filter_below', type=int, default=None, 
+      action='store', help='remove records where the metric falls under a lower threshold (exclusive)')
+  parser.add_argument('--filter-above', dest='filter_above', type=int, default=None, 
+      action='store', help='remove records where the metric falls above an upper threshold (exclusive)')
+  parser.add_argument('--filter-below-perc', dest='filter_below_perc', type=float, default=None, 
+      action='store', help='remove records where the metric falls under a lower percentile threshold (exclusive)')
+  parser.add_argument('--filter-above-perc', dest='filter_above_perc', type=float, default=None, 
+      action='store', help='remove records where the metric falls above an upper percentile threshold (exclusive)')
 
   subparsers = parser.add_subparsers(dest='segmentation_type')
+
+  subparser1 = subparsers.add_parser('thresholds')
+  subparser1.add_argument('thresholds', type=int, nargs='+', default=[0,10,100,1000,10000,100000,1000000], 
+      action='store', help='fixed bands, a space-separated list of numbers. Default: powers of ten, 0-1M')
 
   subparser1 = subparsers.add_parser('percentiles')
   subparser1.add_argument('percentiles', type=float, nargs='+', default=[0,25,50,75,100], 
@@ -251,25 +259,43 @@ if __name__ == "__main__":
   # Filtering
   #
 
-  # region -> threshold
+  # region -> absolute threshold
   filter_min = dict()
   filter_max = dict()
   
-  if args.filter_lower:
-    print "Filtering: %s >= %.3f%%" % (args.metric, args.filter_lower)
+  # determine thresholds
+  if args.filter_below_perc:
     for region in regions:
-      values = data[region]
-      filter_min[region] = percentile(values, [args.filter_lower])[0]
-      data[region] = [val for val in data[region] if val>=filter_min[region]]
-      print "  region '%s': %s >= %d" % (region, args.metric, filter_min[region])
+      filter_min[region] = percentile(data[region], [args.filter_below_perc])[0]
 
-  if args.filter_upper:
-    print "Filtering: %s <= %.3f" % (args.metric, args.filter_upper)
+  if args.filter_below:
     for region in regions:
-      values = data[region]
-      filter_max[region] = percentile(values, [args.filter_upper])[0]
+      if region in filter_min:
+        filter_min[region] = max(args.filter_below, filter_min[region])
+      else:
+        filter_min[region] = args.filter_below
+
+  if args.filter_above_perc:
+    for region in regions:
+      filter_max[region] = percentile(data[region], [args.filter_above_perc])[0]
+  
+  if args.filter_above:
+    for region in regions:
+      if region in filter_max:
+        filter_max[region] = min(args.filter_above, filter_max[region])
+      else:
+        filter_max[region] = args.filter_above
+  
+  # Apply filters
+  if len(filter_min) > 0:
+    for region in regions:
+      print "Filtering region '%s': %s >= %d" % (region, args.metric, filter_min[region])
+      data[region] = [val for val in data[region] if val>=filter_min[region]]
+
+  if len(filter_max) > 0:
+    for region in regions:
+      print "Filtering region '%s': %s <= %d" % (region, args.metric, filter_max[region])
       data[region] = [val for val in data[region] if val<=filter_max[region]]
-      print "  region '%s': %s <= %d" % (region, args.metric, filter_max[region])
   
   #
   # Get bands per region
@@ -284,6 +310,8 @@ if __name__ == "__main__":
     values = data[region]
 
     # calculate thresholds
+    if args.segmentation_type=='thresholds':
+      thresholds = sorted(args.thresholds)
     if args.segmentation_type=='percentiles':
       if args.cumsum:
         # percentiles of the cumulative sum
