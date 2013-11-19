@@ -47,11 +47,11 @@ def report_scores(data, volume_data, scores, outdir, filename_base):
     'num_users', 'perc_users', 
     'num_poi_edits', 'perc_poi_edits'] + scores)
   
-  for region in data.keys():
+  for region in sorted(data.keys()):
     region_num_users = sum([volume_data[region][groupid]['num_users'] for groupid in volume_data[region].keys()])
     region_num_poi_edits = sum([volume_data[region][groupid]['num_poi_edits'] for groupid in volume_data[region].keys()])
 
-    for groupid in data[region].keys():
+    for groupid in sorted(data[region].keys()):
       num_users = volume_data[region][groupid]['num_users']
       num_poi_edits = volume_data[region][groupid]['num_poi_edits']
   
@@ -60,6 +60,37 @@ def report_scores(data, volume_data, scores, outdir, filename_base):
         num_users, 100 * decimal.Decimal(num_users) / region_num_users,
         num_poi_edits, 100 * decimal.Decimal(num_poi_edits) / region_num_poi_edits] +
         [data[region][groupid][score] for score in scores])
+  
+  outfile.close()
+
+# region -> group -> list of records, each a dict of scores
+# volume_data: region -> groupid -> dict of {num_users, num_poi_edits}
+# scores: list of score names
+def report_variances(data, volume_data, scores, outdir, filename_base):
+  filename = "%s/%s.txt" % (outdir, filename_base)
+  outfile = open(filename, 'wb')
+  outcsv = csv.writer(outfile, dialect='excel-tab')
+  outcsv.writerow([
+    'region', 'groupid', 
+    'num_users', 'perc_users', 
+    'num_poi_edits', 'perc_poi_edits'] + ['var_'+score for score in scores])
+  
+  for region in sorted(data.keys()):
+    region_num_users = sum([volume_data[region][groupid]['num_users'] for groupid in volume_data[region].keys()])
+    region_num_poi_edits = sum([volume_data[region][groupid]['num_poi_edits'] for groupid in volume_data[region].keys()])
+
+    for groupid in sorted(data[region].keys()):
+      num_users = volume_data[region][groupid]['num_users']
+      num_poi_edits = volume_data[region][groupid]['num_poi_edits']
+  
+      outcsv.writerow([
+        region, groupid,
+        num_users, 100 * decimal.Decimal(num_users) / region_num_users,
+        num_poi_edits, 100 * decimal.Decimal(num_poi_edits) / region_num_poi_edits] +
+        [numpy.var(
+          [data[region][groupid][idx][score] 
+            for idx in range(len(data[region][groupid]))]) 
+          for score in scores])
   
   outfile.close()
 
@@ -132,7 +163,6 @@ def group_volume_plot(data, columns, rows, outdir, filename_base,
       ax1.barh(0, val, 1, left=left, color=next(colgen), **kwargs)
       left += val
 
-    # ax1.get_xaxis().set_visible(False)
     ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(to_even_percent))
     ax1.get_yaxis().set_ticks([])
   
@@ -151,11 +181,10 @@ def group_scores_plot(data, columns, rows, outdir, filename_base,
 
     ax1.bar(range(1, len(celldata)+1), celldata, color=colors, **kwargs)
 
-    ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+    ax1.get_xaxis().set_visible(False)
     ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
     ax1.tick_params(axis='y', which='major', labelsize='x-small')
     ax1.tick_params(axis='y', which='minor', labelsize='xx-small')
-    ax1.get_xaxis().set_visible(False)
   
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
@@ -170,11 +199,11 @@ def item_scores_boxplot(data, columns, rows, outdir, filename_base, **kwargs):
       celldata.append([data[column][segment][idx][row] for idx in range(nrecs)])
     ax1.boxplot(celldata, **kwargs)
 
-    ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+    ax1.margins(0.1, 0.1)
+    ax1.get_xaxis().set_visible(False)
     ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
     ax1.tick_params(axis='y', which='major', labelsize='x-small')
     ax1.tick_params(axis='y', which='minor', labelsize='xx-small')
-    ax1.get_xaxis().set_visible(False)
   
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
@@ -200,11 +229,11 @@ def item_rank_plot(data, columns, rows, outdir, filename_base,
         color=next(colgen), linewidth=2, **kwargs)
       xoffset += len(values) + x_spacing
 
+    ax1.margins(0.1, 0.1)
+    ax1.get_xaxis().set_visible(False)
     ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
     ax1.tick_params(axis='y', which='major', labelsize='x-small')
     ax1.tick_params(axis='y', which='minor', labelsize='xx-small')
-    ax1.get_xaxis().set_visible(False)
-    ax1.margins(0.1, 0.1)
   
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
@@ -218,7 +247,7 @@ def items_scatterplot(data, anchor_row, columns, rows, outdir,
     seg_x = defaultdict(list)
     seg_y = defaultdict(list)
 
-    for segment in data[column].keys():
+    for segment in sorted(data[column].keys()):
       for rec in data[column][segment]:
         x = rec[anchor_row]
         y = rec[row]
@@ -302,13 +331,16 @@ if __name__ == "__main__":
 
   print "Loaded %d records." % (num_records)
 
+  # matrix columns
+  regions = sorted(data.keys())
+
   #
   # Aggregated group scores
   #
-
+  
   # region -> group -> dict of aggregate scores
   group_scores = defaultdict(lambda: defaultdict(dict))
-  for region in data.keys():
+  for region in regions:
     for groupid in data[region].keys():
       for score in scores:
         values = [rec[score] for rec in data[region][groupid]]
@@ -320,7 +352,7 @@ if __name__ == "__main__":
   
   # region -> groupid -> dict of {num_users, num_poi_edits}
   volume_data = defaultdict(lambda: defaultdict(dict))
-  for region in data.keys():
+  for region in regions:
     for groupid in data[region].keys():
       users = [rec['uid'] for rec in data[region][groupid]]
       volume_data[region][groupid]['num_users'] = len(set(users))
@@ -341,32 +373,35 @@ if __name__ == "__main__":
   report_scores(group_scores, volume_data, scores, 
     args.outdir, "report_%s" % (args.scheme_name))
 
+  report_variances(data, volume_data, scores, 
+    args.outdir, "report_%s_variances" % (args.scheme_name))
+
   #
   # Plots: aggregated group data
   # 
   
-  group_volume_plot(volume_data, volume_data.keys(), ['num_users', 'num_poi_edits'], 
+  group_volume_plot(volume_data, regions, ['num_users', 'num_poi_edits'], 
     args.outdir, 'volume_%s' % (args.scheme_name))
 
-  group_scores_plot(group_scores, data.keys(), scores, 
+  group_scores_plot(group_scores, regions, scores, 
     args.outdir, 'scores_%s' % (args.scheme_name))
 
   #
   # Plots: individual user data
   # 
   
-  item_scores_boxplot(data, data.keys(), scores, 
+  item_scores_boxplot(data, regions, scores, 
     args.outdir, 'scores_boxplot_%s' % (args.scheme_name),
     sym='') # don't show fliers
 
-  item_rank_plot(data, data.keys(), scores,
+  item_rank_plot(data, regions, scores,
     args.outdir, 'scores_rank_%s' % (args.scheme_name))
 
-  item_rank_plot(data, data.keys(), metrics, 
+  item_rank_plot(data, regions, metrics, 
     args.outdir, 'metrics_rank_%s' % (args.scheme_name))
 
-  items_scatterplot(data, 'num_poi_edits', data.keys(), metrics, 
+  items_scatterplot(data, 'num_poi_edits', regions, metrics, 
     args.outdir, 'metrics_scatter_num_edits_%s' % (args.scheme_name))
   
-  items_scatterplot(data, 'days_active', data.keys(), metrics, 
+  items_scatterplot(data, 'days_active', regions, metrics, 
     args.outdir, 'metrics_scatter_days_active_%s' % (args.scheme_name))
