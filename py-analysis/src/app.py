@@ -10,6 +10,8 @@ from sqlalchemy.orm import *
 from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
+import matplotlib.pyplot as plt
+
 # ============
 # = Psycopg2 =
 # ============
@@ -127,3 +129,51 @@ def simplified_SI_format(x, p):
     return "%s%.2f%s" % (sign, x, suffix)
   else:
     return "%s%d%s" % (sign, int(x), suffix)
+
+def to_percent(x, position):
+  p = str(100 * x)
+  return p + '%'  
+
+def to_even_percent(x, position):
+  p = str(int(100 * x))
+  return p + '%'
+
+# Returns an infinite sequence of the provided list (wrapped around)
+# This is used to produce color palettes of infinite length.
+def looping_generator(list):
+  idx = 0
+  while True:
+    yield(list[idx])
+    idx = (idx+1) % len(list)
+
+# A generator that prepares a matrix layout of subplots and yields a tuple for each cell.
+# This iterates over rows first -- i.e., the fist tuples returned are for the top row of cells.
+# Expected parameters:
+# - columns: list of column names for this matrix
+# - rows: list of row names
+# The tuple yielded per cell contains the values:
+# - col: the column name for this cell
+# - row: the row name
+# - ax1: a matplotlib subplot handle
+def plot_matrix(columns, rows, cellwidth=3, cellheight=3):
+  ncols = len(columns)
+  nrows = len(rows)
+
+  fig = plt.figure(figsize=(cellwidth*ncols, cellheight*nrows))
+  plt.subplots_adjust(hspace=0.2, wspace=0.2)
+  fig.patch.set_facecolor('white')
+
+  n = 1
+  for row in rows:
+    for column in columns:
+
+      if n <= ncols: # first row
+        ax1 = plt.subplot(nrows, ncols, n, title=column)
+      else:
+        ax1 = plt.subplot(nrows, ncols, n)
+      
+      if (n % ncols == 1): # first column
+        plt.ylabel(row)
+      
+      yield (column, row, ax1)
+      n += 1
