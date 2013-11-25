@@ -34,6 +34,11 @@ function loadTables() {
   $TIME $PSQL $DATABASE -c "VACUUM ANALYZE ${schema}.poi_sequence" || return 1
   echo
 
+  echo "Table: ${schema}.poi_multiple_editors"
+  $TIME $PSQL $DATABASE -c "CREATE TABLE ${schema}.poi_multiple_editors AS SELECT p.* FROM poi_multiple_editors p JOIN ${schema}.poi_sample ps ON p.poi_id=ps.poi_id" || return 1
+  $TIME $PSQL $DATABASE -c "VACUUM ANALYZE ${schema}.poi_multiple_editors" || return 1
+  echo
+
   echo "Table: ${schema}.poi_tag_edit_action"
   $TIME $PSQL $DATABASE -c "CREATE TABLE ${schema}.poi_tag_edit_action AS SELECT p.* FROM poi_tag_edit_action p JOIN ${schema}.poi_sample ps ON p.poi_id=ps.poi_id" || return 1
   $TIME $PSQL $DATABASE -c "VACUUM ANALYZE ${schema}.poi_tag_edit_action" || return 1

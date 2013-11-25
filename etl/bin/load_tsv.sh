@@ -12,11 +12,20 @@ function createSchema() {
 }
 
 function truncate() {
-  $PSQL $DATABASE -c "truncate poi" || return 1
-  $PSQL $DATABASE -c "truncate poi_tag" || return 1
-  # $PSQL $DATABASE -c "truncate poi_sequence" || return 1
-  # $PSQL $DATABASE -c "truncate poi_tag_edit_action" || return 1
-  # $PSQL $DATABASE -c "truncate changeset" || return 1
+  for table in $@
+  do
+    $PSQL $DATABASE -c "TRUNCATE ${tablename}" || return 1
+  done
+}
+
+function truncateAllTables() {
+  truncate node || return 1
+  truncate poi || return 1
+  truncate poi_tag || return 1
+  truncate poi_sequence || return 1
+  truncate poi_multiple_editors || return 1
+  truncate poi_tag_edit_action || return 1
+  truncate changeset || return 1
 }
 
 # ===========
@@ -26,15 +35,17 @@ function truncate() {
 function dropIndex() {
   $PSQL $DATABASE -c "DROP INDEX IF EXISTS idx_poi_tag_key_value" || return 1
   $PSQL $DATABASE -c "DROP INDEX IF EXISTS idx_poi_tag_poi_id_version" || return 1
-  # $PSQL $DATABASE -c "DROP INDEX IF EXISTS poi_sequence_poi_id_version" || return 1
-  # $PSQL $DATABASE -c "DROP INDEX IF EXISTS poi_tag_edit_action_poi_id_version_key" || return 1
+  $PSQL $DATABASE -c "DROP INDEX IF EXISTS idx_poi_sequence_poi_id_version" || return 1
+  $PSQL $DATABASE -c "DROP INDEX IF EXISTS idx_poi_multiple_editors_poi_id"
+  $PSQL $DATABASE -c "DROP INDEX IF EXISTS idx_poi_tag_edit_action_poi_id_version_key" || return 1
 }
 
 function createIndex() {
   $TIME $PSQL $DATABASE -c "CREATE INDEX idx_poi_tag_poi_id_version ON poi_tag(poi_id, version)" || return 1
   $TIME $PSQL $DATABASE -c "CREATE INDEX idx_poi_tag_key_value ON poi_tag(key, value)" || return 1
-  # $TIME $PSQL $DATABASE -c "CREATE UNIQUE INDEX poi_sequence_poi_id_version ON poi_sequence(poi_id, version)" || return 1
-  # $TIME $PSQL $DATABASE -c "CREATE UNIQUE INDEX poi_tag_edit_action_poi_id_version_key ON poi_tag_edit_action(poi_id, version, key)" || return 1
+  $TIME $PSQL $DATABASE -c "CREATE UNIQUE INDEX idx_poi_sequence_poi_id_version ON poi_sequence(poi_id, version)" || return 1
+  $TIME $PSQL $DATABASE -c "CREATE UNIQUE INDEX idx_poi_multiple_editors_poi_id ON poi_multiple_editors(poi_id)" || return 1
+  $TIME $PSQL $DATABASE -c "CREATE UNIQUE INDEX idx_poi_tag_edit_action_poi_id_version_key ON poi_tag_edit_action(poi_id, version, key)" || return 1
 }
 
 # ========
@@ -66,28 +77,9 @@ function loadTableData() {
   $PSQL $DATABASE -c "VACUUM ANALYZE $tablename" || return 1
 }
 
-# args: poi TSV files
-function loadPoiData() {
-  loadTableData poi $@ || return 1
-}
-
-# args: poi_tag TSV files
-function loadPoiTagData() {
-  loadTableData poi_tag $@ || return 1
-}
-
 # ======================
 # = Load raw node data =
 # ======================
-
-function truncateNode() {
-  $PSQL $DATABASE -c "truncate node" || return 1
-}
-
-# args: node TSV files
-function loadNodeData() {
-  loadTableData node $@ || return 1
-}
 
 function migrateNodeDataToPoiTables() {
   echo "poi_tag: delete created_by tags"
@@ -100,7 +92,7 @@ function migrateNodeDataToPoiTables() {
 # = Materialised views =
 # ======================
 
-function materialisePoiSequenceTableView() {
+function materialisePoiSequenceView() {
   echo "poi_sequence: poi edit sequence without redactions"
   $TIME $PSQL $DATABASE -c "INSERT INTO poi_sequence SELECT * FROM view_poi_sequence" || return 1
 }
@@ -108,6 +100,11 @@ function materialisePoiSequenceTableView() {
 function materialisePoiTagEditActionView() {
   echo "poi_tag_edit_action: tag versions that introduce changes"
   $TIME $PSQL $DATABASE -c "INSERT INTO poi_tag_edit_action SELECT * FROM view_poi_tag_edit_action" || return 1
+}
+
+function materialisePoiMultipleEditorsView() {
+  echo "poi_multiple_editors: POI wil multiple editors"
+  $TIME $PSQL $DATABASE -c "INSERT INTO poi_multiple_editors SELECT * FROM view_poi_multiple_editors" || return 1
 }
 
 # ========
@@ -119,8 +116,7 @@ do_truncate=
 create_schema=
 drop_index=
 as_raw_node_data=
-materialise_views=
-tablenames=
+tablenames=changeset
 
 if [[ $# -lt 1 ]]
 then
@@ -143,7 +139,6 @@ do
     --truncate) echo "Will truncate tables before loading."; do_truncate=t ;;
     --drop-index) echo "Will drop indices before loading."; drop_index=t ;;
     --as-raw-node-data) echo "Will load as raw node data, this involves some basic data cleaning operations."; as_raw_node_data=t ;;
-    --views) echo "Will materialise select views."; materialise_views=t ;;
     *) 
       echo "Loading data from: ${1}"
       datadir=$1 
@@ -169,7 +164,7 @@ fi
 if [ $do_truncate ]
 then
   echo "Truncating tables..."
-  truncate || exit 1
+  truncateAllTables || exit 1
   echo
 fi
 
@@ -183,47 +178,64 @@ fi
 if [ $as_raw_node_data ]
 then
   echo "Loading node data..."
-  truncateNode || exit 1
-  loadNodeData "${datadir}/node/"* || exit 1
+  loadTableData node "${datadir}/node/"* || exit 1
   echo
 
-  echo "Loading POI tag data..."
-  loadPoiTagData "${datadir}/node_tag/"* || exit 1
+  echo "Loading node_tag data..."
+  loadTableData poi_tag "${datadir}/node_tag/"* || exit 1
   echo
 
   echo "Cleaning node data and migrating to POI table."
   migrateNodeDataToPoiTables || exit 1
   echo
 else
-  echo "Loading POI data..."
-  loadPoiData "${datadir}/poi/"* || exit 1
+  echo "Loading poi data..."
+  loadTableData poi "${datadir}/poi/"* || exit 1
   echo
 
-  echo "Loading POI tag data..."
-  loadPoiTagData "${datadir}/poi_tag/"* || exit 1
+  echo "Loading poi_tag data..."
+  loadTableData poi_tag "${datadir}/poi_tag/"* || exit 1
   echo
 fi
 
-# # Special case: has subdirs
-# loadTableData poi_sequence ${datadir}/poi_sequence/poi_sequence/* || exit 1
-# 
-# for tablename in poi_tag_edit_action changeset $tablenames
-# do
-#   if [ -e ${datadir}/${tablename} ]
-#   then
-#     echo "Loading table data: ${tablename}"
-#     loadTableData $tablename ${datadir}/${tablename}/* || exit 1
-#     echo
-#   fi
-# done
+# Derivative tables
 
-if [ $materialise_views ]
+if [ -e ${datadir}/poi_sequence/poi_sequence/ ]
 then
-  echo "Materialised views..."
-  materialisePoiSequenceTableView || exit 1
-  materialisePoiTagEditActionView || exit 1
-  echo
+  echo "Loading poi_sequence data..."
+  loadTableData poi_sequence ${datadir}/poi_sequence/poi_sequence/* || exit 1
+else
+  echo "Materialising poi_sequence view..."
+  materialisePoiSequenceView || exit 1
 fi
+
+if [ -e ${datadir}/poi_multiple_editors/ ]
+then
+  echo "Loading poi_multiple_editors data..."
+  loadTableData poi_multiple_editors ${datadir}/poi_multiple_editors/* || exit 1
+else
+  echo "Materialising poi_multiple_editors view..."
+  materialisePoiMultipleEditorsView || exit 1
+fi
+
+if [ -e ${datadir}/poi_tag_edit_action/ ]
+then
+  echo "Loading poi_tag_edit_action data..."
+  loadTableData poi_tag_edit_action ${datadir}/poi_tag_edit_action/* || exit 1
+else
+  echo "Materialising poi_tag_edit_action view..."
+  materialisePoiTagEditActionView || exit 1
+fi
+
+for tablename in $tablenames
+do
+  if [ -e ${datadir}/${tablename} ]
+  then
+    echo "Loading table data: ${tablename}"
+    loadTableData $tablename ${datadir}/${tablename}/* || exit 1
+    echo
+  fi
+done
 
 if [ $drop_index ]
 then

@@ -9,12 +9,12 @@ DROP VIEW IF EXISTS view_region_poi_latest;
 
 DROP TABLE IF EXISTS node;
 DROP TABLE IF EXISTS poi;
-DROP TABLE IF EXISTS poi_tag;
 DROP TABLE IF EXISTS poi_sequence;
+DROP TABLE IF EXISTS poi_multiple_editors;
+DROP TABLE IF EXISTS poi_tag;
 DROP TABLE IF EXISTS poi_tag_edit_action;
 DROP TABLE IF EXISTS region;
 DROP TABLE IF EXISTS changeset;
-DROP TABLE IF EXISTS changeset_size;
 
 DROP TYPE IF EXISTS action CASCADE;
 
@@ -67,7 +67,27 @@ CREATE TABLE poi_sequence (
   next_version  INTEGER
 );
 
-CREATE UNIQUE INDEX poi_sequence_poi_id_version ON poi_sequence(poi_id, version);
+CREATE UNIQUE INDEX idx_poi_sequence_poi_id_version ON poi_sequence(poi_id, version);
+
+-- POI that are "shared" between editors (that have more than one editor)
+-- POI in this list are considered as "shared"
+CREATE VIEW view_poi_multiple_editors AS
+  SELECT p1.id as poi_id, p1.uid as creator, MIN(p2.version) as first_shared_version
+  FROM (
+    SELECT id, uid from sample_1pc.poi 
+    WHERE version=1 AND uid IS NOT NULL) p1
+  JOIN (
+    SELECT id, uid, version FROM sample_1pc.poi
+    WHERE version>1) p2 ON (p1.id=p2.id AND p1.uid!=p2.uid)
+  GROUP BY p1.id, p1.uid;
+
+CREATE TABLE poi_multiple_editors (
+  poi_id                INTEGER NOT NULL,
+  creator               INTEGER NOT NULL,
+  first_shared_version  INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_poi_multiple_editors_poi_id ON poi_multiple_editors(poi_id);
 
 -- ===========
 -- = POI Tag =
@@ -140,8 +160,7 @@ CREATE TABLE poi_tag_edit_action (
   action      action NOT NULL
 );
 
-CREATE UNIQUE INDEX poi_tag_edit_action_poi_id_version_key ON poi_tag_edit_action(poi_id, version, key);
-
+CREATE UNIQUE INDEX idx_poi_tag_edit_action_poi_id_version_key ON poi_tag_edit_action(poi_id, version, key);
 
 -- ==========
 -- = Region =
@@ -188,13 +207,5 @@ CREATE TABLE changeset (
   maxlon      NUMERIC
 );
 
-CREATE UNIQUE INDEX changeset_id ON changeset(id);
-CREATE INDEX changeset_num_nodes ON changeset(num_nodes);
-
-CREATE TABLE changeset_size (
-  num_nodes   INTEGER NOT NULL,
-  count       INTEGER NOT NULL
-);
-
-CREATE UNIQUE INDEX changeset_size_num_nodes ON changeset_size(num_nodes);
-CREATE INDEX changeset_size_count ON changeset_size(count);
+CREATE UNIQUE INDEX idx_changeset_id ON changeset(id);
+CREATE INDEX idx_changeset_num_nodes ON changeset(num_nodes);
