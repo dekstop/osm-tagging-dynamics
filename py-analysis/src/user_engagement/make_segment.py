@@ -180,9 +180,13 @@ if __name__ == "__main__":
 
   subparsers = parser.add_subparsers(dest='segmentation_type')
 
+  subparser1 = subparsers.add_parser('threshold')
+  subparser1.add_argument('threshold', type=int, default=100, 
+      action='store', help='splits into two groups along a threshold: < threshold, and >= threshold')
+
   subparser1 = subparsers.add_parser('thresholds')
   subparser1.add_argument('thresholds', type=int, nargs='+', default=[0,10,100,1000,10000,100000,1000000], 
-      action='store', help='fixed bands, a space-separated list of numbers. Default: powers of ten, 0-1M')
+      action='store', help='splits into fixed bands, a space-separated list of numbers. Default: powers of ten, 0-1M')
 
   subparser1 = subparsers.add_parser('percentiles')
   subparser1.add_argument('percentiles', type=float, nargs='+', default=[0,25,50,75,100], 
@@ -235,7 +239,8 @@ if __name__ == "__main__":
   # Load data
   #
   
-  query = """SELECT r.name AS region, %s FROM %s.user_edit_stats s 
+  query = """SELECT r.name AS region, %s 
+    FROM %s.user_edit_stats s 
     JOIN region r ON s.region_id=r.id""" % (args.metric, args.schema)
   if args.regions!=None:
     str_regions = "', '".join(args.regions)
@@ -310,6 +315,8 @@ if __name__ == "__main__":
     values = data[region]
 
     # calculate thresholds
+    if args.segmentation_type=='threshold':
+      thresholds = [None, args.threshold, max(values)]
     if args.segmentation_type=='thresholds':
       thresholds = sorted(args.thresholds)
     if args.segmentation_type=='percentiles':
@@ -367,7 +374,7 @@ if __name__ == "__main__":
       print "Filtering the bottom band for region '%s': %s > %f" % (region, args.metric, min_threshold)
       query += " AND %s > %f" % (args.metric, min_threshold)
 
-    if max_threshold<max(values):
+    if max_threshold and max_threshold<max(values):
       print "Filtering the top band for region '%s': %s <= %f" % (region, args.metric, max_threshold)
       query += " AND %s <= %f" % (args.metric, max_threshold)
     

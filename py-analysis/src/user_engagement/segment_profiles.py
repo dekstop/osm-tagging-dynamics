@@ -1,5 +1,6 @@
 #
 # Profiles of regional editing behaviour.
+# (This is now mostly obsolete... we changed focus.)
 #
 
 from __future__ import division # non-truncating division in Python 2.x
