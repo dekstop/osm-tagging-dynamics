@@ -6,8 +6,8 @@
 -- $output          output directory
 
 SET default_parallel 10;
-SET output.compression.enabled true; 
-SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
+-- SET output.compression.enabled true; 
+-- SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
 
 poi = LOAD '$input_poi' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
 
@@ -41,46 +41,55 @@ poi_3 = FOREACH clean_poi GENERATE
 
 -- aggregate
 poi_join = JOIN poi_3 BY (id, version), clean_poi_tag BY (id, version);
-group_month = GROUP poi_join BY (month);
-group_month_geo = GROUP poi_join BY (month, latitude, longitude);
-group_geo = GROUP poi_join BY (latitude, longitude);
 
-timeline_global = FOREACH group_month {
-    group_ = $0;
-    entries = $1;
-    poi_ids = DISTINCT entries.poi_3::id;
-    edits = DISTINCT entries.id_version;
-    users = DISTINCT entries.uid;
-    changesets = DISTINCT entries.changeset;
-    tag_keys = DISTINCT entries.key;
-   GENERATE flatten(group_) as (month), COUNT(poi_ids), COUNT(edits), COUNT(users), COUNT(changesets), COUNT(tag_keys);
-};
+-- monthly global stats
+month_id = FOREACH poi_join GENERATE month, poi_3::id;
+month_id = DISTINCT month_id;
+month_id_count = GROUP month_id BY month;
+month_id_count = FOREACH month_id_count GENERATE FLATTEN(group) as month, COUNT(month_id) as num_ids;
 
-store timeline_global into '$output/timeline-global';
+month_edits = FOREACH poi_join GENERATE month, id_version;
+month_edits = DISTINCT month_edits;
+month_edits_count = GROUP month_edits BY month;
+month_edits_count = FOREACH month_edits_count GENERATE FLATTEN(group) as month, COUNT(month_edits) as num_edits;
 
-timeline_stratified = FOREACH group_month_geo {
-    group_ = $0;
-    entries = $1;
-    poi_ids = DISTINCT entries.poi_3::id;
-    edits = DISTINCT entries.id_version;
-    users = DISTINCT entries.uid;
-    changesets = DISTINCT entries.changeset;
-    tag_keys = DISTINCT entries.key;
-   GENERATE flatten(group_) as (month, latitude, longitude), COUNT(poi_ids), COUNT(edits), COUNT(users), COUNT(changesets), COUNT(tag_keys);
-};
+month_uids = FOREACH poi_join GENERATE month, uid;
+month_uids = DISTINCT month_uids;
+month_uids_count = GROUP month_uids BY month;
+month_uids_count = FOREACH month_uids_count GENERATE FLATTEN(group) as month, COUNT(month_uids) as num_uids;
 
-store timeline_stratified into '$output/timeline-stratified';
+month_changesets = FOREACH poi_join GENERATE month, changeset;
+month_changesets = DISTINCT month_changesets;
+month_changesets_count = GROUP month_changesets BY month;
+month_changesets_count = FOREACH month_changesets_count GENERATE FLATTEN(group) as month, COUNT(month_changesets) as num_changesets;
 
-stratified = FOREACH group_geo {
-    group_ = $0;
-    entries = $1;
-    poi_ids = DISTINCT entries.poi_3::id;
-    edits = DISTINCT entries.id_version;
-    users = DISTINCT entries.uid;
-    changesets = DISTINCT entries.changeset;
-    tag_keys = DISTINCT entries.key;
-   GENERATE flatten(group_) as (latitude, longitude), COUNT(poi_ids), COUNT(edits), COUNT(users), COUNT(changesets), COUNT(tag_keys);
-};
+month_stats_join = JOIN month_id_count BY month, month_edits_count BY month, month_uids_count BY month, month_changesets_count BY month;
+month_stats = FOREACH month_stats_join GENERATE month_id_count::month, month_id_count::num_ids, month_edits_count::num_edits, month_uids_count::num_uids, month_changesets_count::num_changesets;
+store month_stats into '$output/monthly-global';
 
-store stratified into '$output/stratified';
+
+-- overall stratified grid stats
+geo_id = FOREACH poi_join GENERATE latitude, longitude, poi_3::id;
+geo_id = DISTINCT geo_id;
+geo_id_count = GROUP geo_id BY (latitude, longitude);
+geo_id_count = FOREACH geo_id_count GENERATE FLATTEN(group) as (latitude, longitude), COUNT(geo_id) as num_ids;
+
+geo_edits = FOREACH poi_join GENERATE latitude, longitude, id_version;
+geo_edits = DISTINCT geo_edits;
+geo_edits_count = GROUP geo_edits BY (latitude, longitude);
+geo_edits_count = FOREACH geo_edits_count GENERATE FLATTEN(group) as (latitude, longitude), COUNT(geo_edits) as num_edits;
+
+geo_uids = FOREACH poi_join GENERATE latitude, longitude, uid;
+geo_uids = DISTINCT geo_uids;
+geo_uids_count = GROUP geo_uids BY (latitude, longitude);
+geo_uids_count = FOREACH geo_uids_count GENERATE FLATTEN(group) as (latitude, longitude), COUNT(geo_uids) as num_uids;
+
+geo_changesets = FOREACH poi_join GENERATE latitude, longitude, changeset;
+geo_changesets = DISTINCT geo_changesets;
+geo_changesets_count = GROUP geo_changesets BY (latitude, longitude);
+geo_changesets_count = FOREACH geo_changesets_count GENERATE FLATTEN(group) as (latitude, longitude), COUNT(geo_changesets) as num_changesets;
+
+geo_stats_join = JOIN geo_id_count BY (latitude, longitude), geo_edits_count BY (latitude, longitude), geo_uids_count BY (latitude, longitude), geo_changesets_count BY (latitude, longitude);
+geo_stats = FOREACH geo_stats_join GENERATE geo_id_count::latitude, geo_id_count::longitude, geo_id_count::num_ids, geo_edits_count::num_edits, geo_uids_count::num_uids, geo_changesets_count::num_changesets;
+store geo_stats into '$output/geo';
 
