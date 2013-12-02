@@ -17,8 +17,6 @@ poi_tag = LOAD '$input_poi_tag' AS (id:long, version:int, key:chararray, value:c
 uids = FOREACH poi GENERATE uid;
 uids = DISTINCT uids;
 uids = SAMPLE uids $sample;
-dump uids;
-explain uids;
 
 -- filter
 poi_sample = JOIN poi BY uid, uids BY uid;
