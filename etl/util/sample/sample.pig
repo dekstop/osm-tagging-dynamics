@@ -7,8 +7,8 @@
 -- $output          output root directory
 
 SET default_parallel 15;
--- SET output.compression.enabled true; 
--- SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
+SET output.compression.enabled true; 
+SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
 
 poi = LOAD '$input_poi' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
 poi_tag = LOAD '$input_poi_tag' AS (id:long, version:int, key:chararray, value:chararray);
