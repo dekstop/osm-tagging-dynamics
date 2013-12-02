@@ -74,10 +74,10 @@ CREATE UNIQUE INDEX idx_poi_sequence_poi_id_version ON poi_sequence(poi_id, vers
 CREATE VIEW view_poi_multiple_editors AS
   SELECT p1.id as poi_id, p1.uid as creator, MIN(p2.version) as first_shared_version
   FROM (
-    SELECT id, uid from sample_1pc.poi 
+    SELECT id, uid from poi 
     WHERE version=1 AND uid IS NOT NULL) p1
   JOIN (
-    SELECT id, uid, version FROM sample_1pc.poi
+    SELECT id, uid, version FROM poi
     WHERE version>1) p2 ON (p1.id=p2.id AND p1.uid!=p2.uid)
   GROUP BY p1.id, p1.uid;
 
