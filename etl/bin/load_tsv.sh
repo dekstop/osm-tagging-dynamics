@@ -12,7 +12,7 @@ function createSchema() {
 }
 
 function truncate() {
-  for table in $@
+  for tablename in $@
   do
     $PSQL $DATABASE -c "TRUNCATE ${tablename}" || return 1
   done
