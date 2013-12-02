@@ -5,7 +5,7 @@
 -- $input_poi_tag   directory of poi_tag data
 -- $output          output directory
 
-SET default_parallel 10;
+SET default_parallel 15;
 SET output.compression.enabled true; 
 SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
 
