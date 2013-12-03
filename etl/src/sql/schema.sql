@@ -3,6 +3,7 @@ DROP VIEW IF EXISTS view_poi_tag_edit_action;
 DROP VIEW IF EXISTS view_poi_tag_addition;
 DROP VIEW IF EXISTS view_poi_tag_removal;
 DROP VIEW IF EXISTS view_poi_tag_update;
+DROP VIEW IF EXISTS view_poi_multiple_editors;
 DROP VIEW IF EXISTS view_poi_sequence;
 DROP VIEW IF EXISTS view_region_poi_any;
 DROP VIEW IF EXISTS view_region_poi_latest;
@@ -82,7 +83,7 @@ CREATE VIEW view_poi_multiple_editors AS
   GROUP BY p1.id, p1.uid;
 
 CREATE TABLE poi_multiple_editors (
-  poi_id                INTEGER NOT NULL,
+  poi_id                BIGINT NOT NULL,
   creator               INTEGER NOT NULL,
   first_shared_version  INTEGER NOT NULL
 );

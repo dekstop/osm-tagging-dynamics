@@ -103,7 +103,7 @@ function materialisePoiTagEditActionView() {
 }
 
 function materialisePoiMultipleEditorsView() {
-  echo "poi_multiple_editors: POI wil multiple editors"
+  echo "poi_multiple_editors: POI with multiple editors"
   $TIME $PSQL $DATABASE -c "INSERT INTO poi_multiple_editors SELECT * FROM view_poi_multiple_editors" || return 1
 }
 
@@ -209,14 +209,14 @@ else
   materialisePoiSequenceView || exit 1
 fi
 
-if [ -e ${datadir}/poi_multiple_editors/ ]
-then
-  echo "Loading poi_multiple_editors data..."
-  loadTableData poi_multiple_editors ${datadir}/poi_multiple_editors/* || exit 1
-else
-  echo "Materialising poi_multiple_editors view..."
-  materialisePoiMultipleEditorsView || exit 1
-fi
+#if [ -e ${datadir}/poi_multiple_editors/ ]
+#then
+#  echo "Loading poi_multiple_editors data..."
+#  loadTableData poi_multiple_editors ${datadir}/poi_multiple_editors/* || exit 1
+#else
+#  echo "Materialising poi_multiple_editors view..."
+#  materialisePoiMultipleEditorsView || exit 1
+#fi
 
 if [ -e ${datadir}/poi_tag_edit_action/ ]
 then
