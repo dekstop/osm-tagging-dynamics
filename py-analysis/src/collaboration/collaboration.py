@@ -18,19 +18,6 @@ import numpy
 
 from app import *
 
-# =========
-# = Tools =
-# =========
-
-def mean(numbers):
-  # return decimal.Decimal(sum(numbers)) / decimal.Decimal(len(numbers))
-  return numpy.mean([float(n) for n in numbers])
-
-def median(numbers):
-  return numpy.median([float(n) for n in numbers])
-
-group_summary = median
-
 # ===========
 # = Reports =
 # ===========
@@ -118,8 +105,8 @@ if __name__ == "__main__":
   # Get data
   #
 
-  edits_metrics = ['num_poi_edits', 'days_active', 'lifespan_days']
-  editors_metrics = ['num_col_edits', 'num_sol_edits', 'col_ratio', 'num_poi_edits']
+  edits_metrics = ['num_poi_edits', 'num_tag_add', 'num_tag_update', 'num_tag_remove']
+  editors_metrics = ['num_col_edits', 'num_sol_edits', 'col_ratio', 'num_poi_edits', 'num_tag_add', 'num_tag_update', 'num_tag_remove']
 
   country_join = ""
   if args.countries and len(args.countries)>0:
@@ -179,15 +166,20 @@ if __name__ == "__main__":
         WHEN num_col_edits=0 AND num_sol_edits>0 THEN 0::numeric
         WHEN num_col_edits>0 AND num_sol_edits=0 THEN 1::numeric
         ELSE round(num_col_edits::numeric / (num_col_edits+num_sol_edits), 4)
-      END as col_ratio
+      END as col_ratio,
+      num_tag_add, num_tag_update, num_tag_remove
     FROM (
       SELECT
         coalesce(sol.country_gid, col.country_gid) AS country_gid,
         coalesce(sol.uid, col.uid) AS uid,
         coalesce(sol.num_poi_edits, 0) as num_sol_edits,
-        coalesce(col.num_poi_edits, 0) as num_col_edits
+        coalesce(col.num_poi_edits, 0) as num_col_edits,
+        u.num_tag_add, u.num_tag_update, u.num_tag_remove
       FROM (
-        SELECT country_gid, uid 
+        SELECT country_gid, uid, 
+          sum(num_tag_add) as num_tag_add,
+          sum(num_tag_update) as num_tag_update,
+          sum(num_tag_remove) as num_tag_remove
         FROM user_edit_stats wp
         %s
         GROUP BY country_gid, uid) u
@@ -228,16 +220,19 @@ if __name__ == "__main__":
     for is_poweruser in [False, True]:
       cell = edits_data[region][is_poweruser]
       edits_summary[region][is_poweruser]['num_users'] = [ len(cell['num_poi_edits']) ]
-      edits_summary[region][is_poweruser]['num_poi_edits'] = [ sum(cell['num_poi_edits']) ]
+      for metric in edits_metrics:
+        edits_summary[region][is_poweruser][metric] = [ sum(cell[metric]) ]
   
       cell = editors_data[region][is_poweruser]
       editors_summary[region][is_poweruser]['num_users'] = [ len(cell['num_poi_edits']) ]
-      editors_summary[region][is_poweruser]['num_sol_edits'] = [ sum(cell['num_sol_edits']) ]
-      editors_summary[region][is_poweruser]['num_col_edits'] = [ sum(cell['num_col_edits']) ]
-      editors_summary[region][is_poweruser]['num_poi_edits'] = [ sum(cell['num_poi_edits']) ]
+      for metric in editors_metrics:
+        if metric == 'col_ratio':
+          editors_summary[region][is_poweruser][metric] = [ sum(cell[metric]) / len(cell[metric]) ]
+        else:
+          editors_summary[region][is_poweruser][metric] = [ sum(cell[metric]) ]
   
-  report(edits_summary, 'country', 'is_poweruser', ['num_users', 'num_poi_edits'], args.outdir, "collab_edits_summary")
-  report(editors_summary, 'country', 'is_poweruser', ['num_users', 'num_sol_edits', 'num_col_edits', 'num_poi_edits'], args.outdir, "editors_summary")
+  report(edits_summary, 'country', 'is_poweruser', ['num_users'] + edits_metrics, args.outdir, "collab_edits_summary")
+  report(editors_summary, 'country', 'is_poweruser', ['num_users'] + editors_metrics, args.outdir, "editors_summary")
 
   #
   # Box plots
