@@ -119,7 +119,7 @@ if __name__ == "__main__":
   #
 
   edits_metrics = ['num_poi_edits', 'days_active', 'lifespan_days']
-  editors_metrics = ['num_col_edits', 'num_sol_edits', 'col_ratio']
+  editors_metrics = ['num_col_edits', 'num_sol_edits', 'col_ratio', 'num_poi_edits']
 
   country_join = ""
   if args.countries and len(args.countries)>0:
@@ -138,7 +138,7 @@ if __name__ == "__main__":
       AND sum(num_poi_edits) < %d""" % (args.max_edits)
     user_filter_join += """) uf ON (u.country_gid=uf.country_gid AND u.uid=uf.uid)"""
 
-  getDb().echo = True    
+  #getDb().echo = True    
   session = getSession()
   
   # Edits
@@ -171,14 +171,15 @@ if __name__ == "__main__":
 
   # Editors
   editors_query = """SELECT w.name as country, u1.uid as uid,
+      CASE WHEN (num_sol_edits+num_col_edits)>=%d THEN TRUE ELSE FALSE END as is_poweruser,
       num_col_edits,
       num_sol_edits,
+      num_col_edits + num_sol_edits as num_poi_edits,
       CASE 
         WHEN num_col_edits=0 AND num_sol_edits>0 THEN 0::numeric
         WHEN num_col_edits>0 AND num_sol_edits=0 THEN 1::numeric
         ELSE round(num_col_edits::numeric / (num_col_edits+num_sol_edits), 4)
-      END as col_ratio,
-      CASE WHEN (num_sol_edits+num_col_edits)>=%d THEN TRUE ELSE FALSE END as is_poweruser
+      END as col_ratio
     FROM (
       SELECT
         coalesce(sol.country_gid, col.country_gid) AS country_gid,
@@ -211,22 +212,39 @@ if __name__ == "__main__":
   # Prep
   #
   
-  regions = sorted(edits_data.keys())
+  regions = sorted(set(edits_data.keys() + editors_data.keys()))
   mkdir_p(args.outdir)
 
   #
   # Reports
   #
+
+  report(edits_data, 'country', 'is_poweruser', edits_metrics, args.outdir, "collab_edits")
+  report(editors_data, 'country', 'is_poweruser', editors_metrics, args.outdir, "editors")
+
+  edits_summary = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+  editors_summary = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+  for region in regions:
+    for is_poweruser in [False, True]:
+      cell = edits_data[region][is_poweruser]
+      edits_summary[region][is_poweruser]['num_users'] = [ len(cell['num_poi_edits']) ]
+      edits_summary[region][is_poweruser]['num_poi_edits'] = [ sum(cell['num_poi_edits']) ]
   
-  report(edits_data, 'country', 'is_poweruser', edits_metrics, args.outdir, "report_edits")
-  report(editors_data, 'country', 'is_poweruser', editors_metrics, args.outdir, "report_editors")
+      cell = editors_data[region][is_poweruser]
+      editors_summary[region][is_poweruser]['num_users'] = [ len(cell['num_poi_edits']) ]
+      editors_summary[region][is_poweruser]['num_sol_edits'] = [ sum(cell['num_sol_edits']) ]
+      editors_summary[region][is_poweruser]['num_col_edits'] = [ sum(cell['num_col_edits']) ]
+      editors_summary[region][is_poweruser]['num_poi_edits'] = [ sum(cell['num_poi_edits']) ]
+  
+  report(edits_summary, 'country', 'is_poweruser', ['num_users', 'num_poi_edits'], args.outdir, "collab_edits_summary")
+  report(editors_summary, 'country', 'is_poweruser', ['num_users', 'num_sol_edits', 'num_col_edits', 'num_poi_edits'], args.outdir, "editors_summary")
 
   #
   # Box plots
   #
   
   items_boxplot(edits_data, regions, edits_metrics, 
-    args.outdir, 'edits_boxplot',
+    args.outdir, 'collab_edits_boxplot',
     sym='') # don't show fliers
 
   items_boxplot(editors_data, regions, editors_metrics, 
