@@ -126,11 +126,23 @@ if __name__ == "__main__":
     country_join = """JOIN world_borders w1 ON wp.country_gid=w1.gid
       WHERE w1.name IN ('%s')""" % ("', '".join(args.countries))
 
-  # getDb().echo = True    
+  user_filter_join = ""
+  if args.min_edits or args.max_edits:
+    user_filter_join = """JOIN (
+      SELECT country_gid, uid 
+      FROM user_edit_stats
+      GROUP BY country_gid, uid
+      HAVING sum(num_poi_edits) >= %d""" % (args.min_edits or 0)
+    if args.max_edits:
+      user_filter_join += """
+      AND sum(num_poi_edits) < %d""" % (args.max_edits)
+    user_filter_join += """) uf ON (u.country_gid=uf.country_gid AND u.uid=uf.uid)"""
+
+  getDb().echo = True    
   session = getSession()
   
   # Edits
-  edits_query = """SELECT w.name as country, wu.uid as uid,
+  edits_query = """SELECT w.name as country, u.uid as uid,
       CASE
         WHEN ue.num_poi_edits>=%d THEN TRUE
         ELSE FALSE
@@ -141,10 +153,11 @@ if __name__ == "__main__":
       JOIN poi_multiple_editors m ON (p.id=m.poi_id AND p.version>=m.first_shared_version)
       JOIN world_borders_poi_latest wp ON (p.id=wp.poi_id)
       %s
-      GROUP BY country_gid, uid) wu
-    JOIN user_edit_stats ue ON (wu.country_gid=ue.country_gid AND wu.uid=ue.uid AND ue.is_collab_work=true)
-    JOIN world_borders w ON (wu.country_gid=w.gid)
-    """ % (args.min_poweruser_edits, ", ".join(edits_metrics), country_join)
+      GROUP BY country_gid, uid) u
+      %s
+    JOIN user_edit_stats ue ON (u.country_gid=ue.country_gid AND u.uid=ue.uid AND ue.is_collab_work=true)
+    JOIN world_borders w ON (u.country_gid=w.gid)
+    """ % (args.min_poweruser_edits, ", ".join(edits_metrics), country_join, user_filter_join)
   
   # country -> is_poweruser -> metric -> list of values
   edits_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list))) 
@@ -157,7 +170,7 @@ if __name__ == "__main__":
   print "Loaded %d records." % (num_records)
 
   # Editors
-  editors_query = """SELECT w.name as country, u.uid as uid,
+  editors_query = """SELECT w.name as country, u1.uid as uid,
       num_col_edits,
       num_sol_edits,
       CASE 
@@ -176,12 +189,13 @@ if __name__ == "__main__":
         SELECT country_gid, uid 
         FROM user_edit_stats wp
         %s
-        GROUP BY country_gid, uid) u1
-      LEFT OUTER JOIN user_edit_stats sol ON (u1.uid=sol.uid AND u1.country_gid=sol.country_gid AND sol.is_collab_work=false)
-      LEFT OUTER JOIN user_edit_stats col ON (u1.uid=col.uid AND u1.country_gid=col.country_gid AND col.is_collab_work=true)
-    ) u
-    JOIN world_borders w ON (u.country_gid=w.gid)
-    """ % (args.min_poweruser_edits, country_join)
+        GROUP BY country_gid, uid) u
+      %s
+      LEFT OUTER JOIN user_edit_stats sol ON (u.uid=sol.uid AND u.country_gid=sol.country_gid AND sol.is_collab_work=false)
+      LEFT OUTER JOIN user_edit_stats col ON (u.uid=col.uid AND u.country_gid=col.country_gid AND col.is_collab_work=true)
+    ) u1
+    JOIN world_borders w ON (u1.country_gid=w.gid)
+    """ % (args.min_poweruser_edits, country_join, user_filter_join)
     
   # country -> is_poweruser -> metric -> list of values
   editors_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list))) 
