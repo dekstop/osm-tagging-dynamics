@@ -59,27 +59,27 @@ def items_boxplot(data, columns, rows, outdir, filename_base, **kwargs):
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
 
-# data: column -> segment -> list of records (each a dict or row values)
-# kwargs is passed on to plt.scatter(...).
-def items_scatterplot(data, anchor_row, columns, rows, outdir, 
-  filename_base, colors=QUALITATIVE_DARK, scale='log', **kwargs):
+# data: country -> is_poweruser -> metric -> list of values
+# kwargs is passed on to plt.boxplot(...).
+def items_scatterplot(data, anchor_row, columns, rows, outdir, filename_base, 
+  colors=QUALITATIVE_DARK, scale='log',**kwargs):
   
   for (column, row, ax1) in plot_matrix(columns, rows):
     seg_x = defaultdict(list)
     seg_y = defaultdict(list)
 
     for segment in sorted(data[column].keys()):
-      for rec in data[column][segment]:
-        x = rec[anchor_row]
-        y = rec[row]
-        if (x>0 and y>0): # we're using log scale...
-          seg_x[segment].append(x)
-          seg_y[segment].append(y)
+      seg_x[segment] = data[column][segment][anchor_row]
+      seg_y[segment] = data[column][segment][row]
+      #  if (x>0 and y>0): # we're using log scale...
+      #    seg_x[segment].append(x)
+      #    seg_y[segment].append(y)
 
     colgen = looping_generator(colors)
     for segment in sorted(seg_x.keys()):
       ax1.scatter(seg_x[segment], seg_y[segment], color=next(colgen), **kwargs)
 
+    ax1.margins(0.1, 0.1)
     ax1.set_xscale(scale)
     ax1.set_yscale(scale)
     ax1.tick_params(axis='both', which='major', labelsize='x-small')
@@ -239,12 +239,19 @@ if __name__ == "__main__":
   #
   
   items_boxplot(edits_data, regions, edits_metrics, 
+    args.outdir, 'collab_edits_boxplot_fliers')
+
+  items_boxplot(edits_data, regions, edits_metrics, 
     args.outdir, 'collab_edits_boxplot',
     sym='') # don't show fliers
 
   items_boxplot(editors_data, regions, editors_metrics, 
+    args.outdir, 'editors_boxplot_fliers')
+  
+  items_boxplot(editors_data, regions, editors_metrics, 
     args.outdir, 'editors_boxplot',
     sym='') # don't show fliers
   
-  #items_scatterplot(data, 'days_active', regions, metrics, 
-  #  args.outdir, 'metrics_scatter_days_active_%s' % (args.scheme_name))
+  items_scatterplot(editors_data, 'num_poi_edits', regions, editors_metrics, 
+    args.outdir, 'editors_scatter_num_poi_edits', alpha=0.2)
+
