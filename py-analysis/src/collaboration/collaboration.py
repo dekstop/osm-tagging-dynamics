@@ -106,7 +106,8 @@ if __name__ == "__main__":
   #
 
   edits_metrics = ['num_poi_edits', 'num_tag_add', 'num_tag_update', 'num_tag_remove']
-  editors_metrics = ['num_col_edits', 'num_sol_edits', 'col_ratio', 'num_poi_edits', 'num_tag_add', 'num_tag_update', 'num_tag_remove']
+  editors_metrics = ['num_poi_edits', 'num_sol_edits', 'num_col_edits', 'num_tag_add', 'num_tag_update', 'num_tag_remove']
+  editor_scores = ['col_rate', 'col_add_rate', 'col_update_rate', 'col_remove_rate']
 
   country_join = ""
   if args.countries and len(args.countries)>0:
@@ -159,15 +160,18 @@ if __name__ == "__main__":
   # Editors
   editors_query = """SELECT w.name as country, u1.uid as uid,
       CASE WHEN (num_sol_edits+num_col_edits)>=%d THEN TRUE ELSE FALSE END as is_poweruser,
+      num_col_edits + num_sol_edits as num_poi_edits,
       num_col_edits,
       num_sol_edits,
-      num_col_edits + num_sol_edits as num_poi_edits,
+      num_tag_add, num_tag_update, num_tag_remove,
       CASE 
         WHEN num_col_edits=0 AND num_sol_edits>0 THEN 0::numeric
         WHEN num_col_edits>0 AND num_sol_edits=0 THEN 1::numeric
         ELSE round(num_col_edits::numeric / (num_col_edits+num_sol_edits), 4)
-      END as col_ratio,
-      num_tag_add, num_tag_update, num_tag_remove
+      END as col_rate,
+      num_tag_add::numeric / (num_col_edits+num_sol_edits) as col_add_rate,
+      num_tag_update::numeric / (num_col_edits+num_sol_edits) as col_update_rate,
+      num_tag_remove::numeric / (num_col_edits+num_sol_edits) as col_remove_rate
     FROM (
       SELECT
         coalesce(sol.country_gid, col.country_gid) AS country_gid,
@@ -197,6 +201,8 @@ if __name__ == "__main__":
   for row in result:
     for metric in editors_metrics:
       editors_data[row['country']][row['is_poweruser']][metric].append(row[metric])
+    for metric in editor_scores:
+      editors_data[row['country']][row['is_poweruser']][metric].append(row[metric])
     num_records += 1
   print "Loaded %d records." % (num_records)
 
@@ -213,9 +219,11 @@ if __name__ == "__main__":
 
   report(edits_data, 'country', 'is_poweruser', edits_metrics, args.outdir, "collab_edits")
   report(editors_data, 'country', 'is_poweruser', editors_metrics, args.outdir, "editors")
+  report(editors_data, 'country', 'is_poweruser', editor_scores, args.outdir, "editor_scores")
 
   edits_summary = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
   editors_summary = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+  editor_scores_summary = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
   for region in regions:
     for is_poweruser in [False, True]:
       cell = edits_data[region][is_poweruser]
@@ -225,14 +233,15 @@ if __name__ == "__main__":
   
       cell = editors_data[region][is_poweruser]
       editors_summary[region][is_poweruser]['num_users'] = [ len(cell['num_poi_edits']) ]
-      for metric in editors_metrics:
-        if metric == 'col_ratio':
-          editors_summary[region][is_poweruser][metric] = [ sum(cell[metric]) / len(cell[metric]) ]
-        else:
-          editors_summary[region][is_poweruser][metric] = [ sum(cell[metric]) ]
+      for metric in editors_metrics: # sum over users
+        editors_summary[region][is_poweruser][metric] = [ sum(cell[metric]) ]
+      editor_scores_summary[region][is_poweruser]['num_users'] = [ len(cell['num_poi_edits']) ]
+      for metric in editor_scores: # average over users
+        editor_scores_summary[region][is_poweruser][metric] = [ sum(cell[metric]) / len(cell[metric]) ]
   
   report(edits_summary, 'country', 'is_poweruser', ['num_users'] + edits_metrics, args.outdir, "collab_edits_summary")
   report(editors_summary, 'country', 'is_poweruser', ['num_users'] + editors_metrics, args.outdir, "editors_summary")
+  report(editor_scores_summary, 'country', 'is_poweruser', ['num_users'] + editor_scores, args.outdir, "editor_scores_summary")
 
   #
   # Box plots
@@ -253,5 +262,15 @@ if __name__ == "__main__":
     sym='') # don't show fliers
   
   items_scatterplot(editors_data, 'num_poi_edits', regions, editors_metrics, 
-    args.outdir, 'editors_scatter_num_poi_edits', alpha=0.2)
+    args.outdir, 'editors_scatter_num_poi_edits', alpha=0.3)
+
+  items_boxplot(editors_data, regions, editor_scores, 
+    args.outdir, 'editor_scores_boxplot_fliers')
+  
+  items_boxplot(editors_data, regions, editor_scores, 
+    args.outdir, 'editor_scores_boxplot',
+    sym='') # don't show fliers
+  
+  items_scatterplot(editors_data, 'num_poi_edits', regions, editor_scores, 
+    args.outdir, 'editor_scores_scatter_num_poi_edits', alpha=0.3)
 
