@@ -10,6 +10,7 @@ matplotlib.use('Agg')
 import argparse
 from collections import defaultdict
 import decimal
+import gc
 import sys
 
 import matplotlib.pyplot as plt
@@ -17,6 +18,18 @@ from matplotlib import ticker
 import numpy
 
 from app import *
+
+# =========
+# = Tools =
+# =========
+
+# Only sum non-Null values
+def sum_values(values):
+  return sum([v for v in values if v!=None])
+
+# Only count non-Null values
+def len_values(values):
+  return len([v for v in values if v!=None])
 
 # ===========
 # = Reports =
@@ -47,7 +60,7 @@ def items_boxplot(data, columns, rows, outdir, filename_base, **kwargs):
   for (column, row, ax1) in plot_matrix(columns, rows):
     celldata = []
     for segment in sorted(data[column].keys()):
-      celldata.append(data[column][segment][row])
+      celldata.append([v for v in data[column][segment][row] if v!=None])
     ax1.boxplot(celldata, **kwargs)
 
     ax1.margins(0.1, 0.1)
@@ -58,6 +71,10 @@ def items_boxplot(data, columns, rows, outdir, filename_base, **kwargs):
   
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+  
+  # free memory
+  plt.close() # closes current figure
+  gc.collect()
 
 # data: country -> is_poweruser -> metric -> list of values
 # kwargs is passed on to plt.boxplot(...).
@@ -69,8 +86,12 @@ def items_scatterplot(data, anchor_row, columns, rows, outdir, filename_base,
     seg_y = defaultdict(list)
 
     for segment in sorted(data[column].keys()):
-      seg_x[segment] = data[column][segment][anchor_row]
-      seg_y[segment] = data[column][segment][row]
+      for idx in range(len(data[column][segment][anchor_row])):
+        x = data[column][segment][anchor_row][idx]
+        y = data[column][segment][row][idx]
+        if x!=None and y!=None:
+          seg_x[segment].append(x)
+          seg_y[segment].append(y)
       #  if (x>0 and y>0): # we're using log scale...
       #    seg_x[segment].append(x)
       #    seg_y[segment].append(y)
@@ -87,6 +108,10 @@ def items_scatterplot(data, anchor_row, columns, rows, outdir, filename_base,
   
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+  
+  # free memory
+  plt.close() # closes current figure
+  gc.collect()
 
 # ========
 # = Main =
@@ -106,8 +131,11 @@ if __name__ == "__main__":
   #
 
   edits_metrics = ['num_poi_edits', 'num_tag_add', 'num_tag_update', 'num_tag_remove']
-  editors_metrics = ['num_poi_edits', 'num_sol_edits', 'num_col_edits', 'num_tag_add', 'num_tag_update', 'num_tag_remove']
-  editor_scores = ['col_rate', 'col_add_rate', 'col_update_rate', 'col_remove_rate']
+  editors_metrics = ['num_poi_edits', 'num_sol_edits', 'num_col_edits', 
+    'num_sol_tag_edits', 'num_sol_tag_add', 'num_sol_tag_update', 'num_sol_tag_remove',
+    'num_col_tag_edits', 'num_col_tag_add', 'num_col_tag_update', 'num_col_tag_remove']
+  editor_scores = ['sol_rate', 'sol_add_rate', 'sol_update_rate', 'sol_remove_rate', 'sol_tag_edit_rate',
+    'col_rate', 'col_add_rate', 'col_update_rate', 'col_remove_rate', 'col_tag_edit_rate']
 
   country_join = ""
   if args.countries and len(args.countries)>0:
@@ -161,29 +189,36 @@ if __name__ == "__main__":
   editors_query = """SELECT w.name as country, u1.uid as uid,
       CASE WHEN (num_sol_edits+num_col_edits)>=%d THEN TRUE ELSE FALSE END as is_poweruser,
       num_col_edits + num_sol_edits as num_poi_edits,
-      num_col_edits,
       num_sol_edits,
-      num_tag_add, num_tag_update, num_tag_remove,
-      CASE 
-        WHEN num_col_edits=0 AND num_sol_edits>0 THEN 0::numeric
-        WHEN num_col_edits>0 AND num_sol_edits=0 THEN 1::numeric
-        ELSE round(num_col_edits::numeric / (num_col_edits+num_sol_edits), 4)
-      END as col_rate,
-      num_tag_add::numeric / (num_col_edits+num_sol_edits) as col_add_rate,
-      num_tag_update::numeric / (num_col_edits+num_sol_edits) as col_update_rate,
-      num_tag_remove::numeric / (num_col_edits+num_sol_edits) as col_remove_rate
+      num_sol_tag_edits, num_sol_tag_add, num_sol_tag_update, num_sol_tag_remove,
+      num_col_edits,
+      num_col_tag_edits, num_col_tag_add, num_col_tag_update, num_col_tag_remove,
+      num_sol_edits::numeric / (num_sol_edits+num_col_edits) as sol_rate,
+      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_sol_tag_add::numeric / (num_sol_tag_edits+num_col_tag_edits) END as sol_add_rate,
+      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_sol_tag_update::numeric / (num_sol_tag_edits+num_col_tag_edits) END as sol_update_rate,
+      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_sol_tag_remove::numeric / (num_sol_tag_edits+num_col_tag_edits) END as sol_remove_rate,
+      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_sol_tag_edits::numeric / (num_col_edits+num_col_edits) END as sol_tag_edit_rate,
+      num_col_edits::numeric / (num_sol_edits+num_col_edits) as col_rate,
+      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_col_tag_add::numeric / (num_sol_tag_edits+num_col_tag_edits) END as col_add_rate,
+      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_col_tag_update::numeric / (num_sol_tag_edits+num_col_tag_edits) END as col_update_rate,
+      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_col_tag_remove::numeric / (num_sol_tag_edits+num_col_tag_edits) END as col_remove_rate,
+      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_col_tag_edits::numeric / (num_sol_edits+num_col_edits) END as col_tag_edit_rate
     FROM (
       SELECT
         coalesce(sol.country_gid, col.country_gid) AS country_gid,
         coalesce(sol.uid, col.uid) AS uid,
         coalesce(sol.num_poi_edits, 0) as num_sol_edits,
         coalesce(col.num_poi_edits, 0) as num_col_edits,
-        u.num_tag_add, u.num_tag_update, u.num_tag_remove
+        sol.num_tag_edits as num_sol_tag_edits, 
+        sol.num_tag_add as num_sol_tag_add, 
+        sol.num_tag_update as num_sol_tag_update, 
+        sol.num_tag_remove as num_sol_tag_remove,
+        col.num_tag_edits as num_col_tag_edits, 
+        col.num_tag_add as num_col_tag_add, 
+        col.num_tag_update as num_col_tag_update, 
+        col.num_tag_remove as num_col_tag_remove
       FROM (
-        SELECT country_gid, uid, 
-          sum(num_tag_add) as num_tag_add,
-          sum(num_tag_update) as num_tag_update,
-          sum(num_tag_remove) as num_tag_remove
+        SELECT country_gid, uid
         FROM user_edit_stats wp
         %s
         GROUP BY country_gid, uid) u
@@ -196,13 +231,19 @@ if __name__ == "__main__":
     
   # country -> is_poweruser -> metric -> list of values
   editors_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list))) 
+  collab_editors_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list))) 
   result = session.execute(editors_query)
   num_records = 0
   for row in result:
     for metric in editors_metrics:
       editors_data[row['country']][row['is_poweruser']][metric].append(row[metric])
+      if row['num_col_edits'] > 0:
+        collab_editors_data[row['country']][row['is_poweruser']][metric].append(row[metric])
     for metric in editor_scores:
+      #if row[metric] != None:
       editors_data[row['country']][row['is_poweruser']][metric].append(row[metric])
+      if row['num_col_edits'] > 0:
+        collab_editors_data[row['country']][row['is_poweruser']][metric].append(row[metric])
     num_records += 1
   print "Loaded %d records." % (num_records)
 
@@ -224,29 +265,52 @@ if __name__ == "__main__":
   edits_summary = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
   editors_summary = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
   editor_scores_summary = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+  collab_editors_summary = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+  collab_editor_scores_summary = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+
   for region in regions:
     for is_poweruser in [False, True]:
       cell = edits_data[region][is_poweruser]
       edits_summary[region][is_poweruser]['num_users'] = [ len(cell['num_poi_edits']) ]
       for metric in edits_metrics:
-        edits_summary[region][is_poweruser][metric] = [ sum(cell[metric]) ]
+        edits_summary[region][is_poweruser][metric] = [ sum_values(cell[metric]) ]
   
       cell = editors_data[region][is_poweruser]
       editors_summary[region][is_poweruser]['num_users'] = [ len(cell['num_poi_edits']) ]
       for metric in editors_metrics: # sum over users
-        editors_summary[region][is_poweruser][metric] = [ sum(cell[metric]) ]
+        editors_summary[region][is_poweruser][metric] = [ sum_values(cell[metric]) ]
       editor_scores_summary[region][is_poweruser]['num_users'] = [ len(cell['num_poi_edits']) ]
       for metric in editor_scores: # average over users
-        editor_scores_summary[region][is_poweruser][metric] = [ sum(cell[metric]) / len(cell[metric]) ]
+        num_values = len_values(cell[metric])
+        if num_values>0:
+          editor_scores_summary[region][is_poweruser][metric] = [ sum_values(cell[metric]) / num_values ]
+        else:
+          editor_scores_summary[region][is_poweruser][metric] = '-'
+      
+      # same process for collab_editors... TODO: DRY
+      cell = collab_editors_data[region][is_poweruser]
+      collab_editors_summary[region][is_poweruser]['num_users'] = [ len(cell['num_poi_edits']) ]
+      for metric in editors_metrics: # sum over users
+        collab_editors_summary[region][is_poweruser][metric] = [ sum_values(cell[metric]) ]
+      collab_editor_scores_summary[region][is_poweruser]['num_users'] = [ len(cell['num_poi_edits']) ]
+      for metric in editor_scores: # average over users
+        num_values = len_values(cell[metric])
+        if num_values>0:
+          collab_editor_scores_summary[region][is_poweruser][metric] = [ sum_values(cell[metric]) / num_values ]
+        else:
+          collab_editor_scores_summary[region][is_poweruser][metric] = '-'
   
   report(edits_summary, 'country', 'is_poweruser', ['num_users'] + edits_metrics, args.outdir, "collab_edits_summary")
   report(editors_summary, 'country', 'is_poweruser', ['num_users'] + editors_metrics, args.outdir, "editors_summary")
   report(editor_scores_summary, 'country', 'is_poweruser', ['num_users'] + editor_scores, args.outdir, "editor_scores_summary")
+  report(collab_editors_summary, 'country', 'is_poweruser', ['num_users'] + editors_metrics, args.outdir, "collab_editors_summary")
+  report(collab_editor_scores_summary, 'country', 'is_poweruser', ['num_users'] + editor_scores, args.outdir, "collab_editor_scores_summary")
 
   #
   # Box plots
   #
   
+  # edits
   items_boxplot(edits_data, regions, edits_metrics, 
     args.outdir, 'collab_edits_boxplot_fliers')
 
@@ -254,6 +318,7 @@ if __name__ == "__main__":
     args.outdir, 'collab_edits_boxplot',
     sym='') # don't show fliers
 
+  # all editors
   items_boxplot(editors_data, regions, editors_metrics, 
     args.outdir, 'editors_boxplot_fliers')
   
@@ -261,9 +326,6 @@ if __name__ == "__main__":
     args.outdir, 'editors_boxplot',
     sym='') # don't show fliers
   
-  items_scatterplot(editors_data, 'num_poi_edits', regions, editors_metrics, 
-    args.outdir, 'editors_scatter_num_poi_edits', alpha=0.3)
-
   items_boxplot(editors_data, regions, editor_scores, 
     args.outdir, 'editor_scores_boxplot_fliers')
   
@@ -271,6 +333,36 @@ if __name__ == "__main__":
     args.outdir, 'editor_scores_boxplot',
     sym='') # don't show fliers
   
+  # only collaborating editors
+  items_boxplot(collab_editors_data, regions, editors_metrics, 
+    args.outdir, 'collab_editors_boxplot_fliers')
+  
+  items_boxplot(collab_editors_data, regions, editors_metrics, 
+    args.outdir, 'collab_editors_boxplot',
+    sym='') # don't show fliers
+  
+  items_boxplot(collab_editors_data, regions, editor_scores, 
+    args.outdir, 'collab_editor_scores_boxplot_fliers')
+  
+  items_boxplot(collab_editors_data, regions, editor_scores, 
+    args.outdir, 'collab_editor_scores_boxplot',
+    sym='') # don't show fliers
+  
+  #
+  # scatter plots... these are slow and memory-hungry.
+  #
+
+  # all editors
+  items_scatterplot(editors_data, 'num_poi_edits', regions, editors_metrics, 
+    args.outdir, 'editors_scatter_num_poi_edits', alpha=0.8)
+
   items_scatterplot(editors_data, 'num_poi_edits', regions, editor_scores, 
-    args.outdir, 'editor_scores_scatter_num_poi_edits', alpha=0.3)
+    args.outdir, 'editor_scores_scatter_num_poi_edits', alpha=0.8)
+
+  # only collaborating editors
+  items_scatterplot(collab_editors_data, 'num_poi_edits', regions, editors_metrics, 
+    args.outdir, 'collab_editors_scatter_num_poi_edits', alpha=0.8)
+
+  items_scatterplot(collab_editors_data, 'num_poi_edits', regions, editor_scores, 
+    args.outdir, 'collab_editor_scores_scatter_num_poi_edits', alpha=0.8)
 
