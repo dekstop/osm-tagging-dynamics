@@ -21,10 +21,12 @@ uids = SAMPLE uids $sample;
 -- filter
 poi_sample = JOIN poi BY uid, uids BY uid;
 poi_sample = FOREACH poi_sample GENERATE poi::id, poi::version, poi::changeset, poi::timestamp, poi::uid, poi::username, poi::latitude, poi::longitude;
+poi_sample = DISTINCT poi_sample;
 store poi_sample into '$output/poi';
 
 poi_id_version = FOREACH poi_sample GENERATE id, version;
 poi_tag_sample = JOIN poi_tag BY (id, version), poi_id_version BY (id, version);
 poi_tag_sample = FOREACH poi_tag_sample GENERATE poi_tag::id, poi_tag::version, poi_tag::key, poi_tag::value;
+poi_tag_sample = DISTINCT poi_tag_sample;
 store poi_tag_sample into '$output/poi_tag';
 
