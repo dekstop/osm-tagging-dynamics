@@ -56,13 +56,26 @@ def report(data, col1name, col2name, metrics, outdir, filename_base):
 
 # data: country -> is_poweruser -> metric -> list of values
 # kwargs is passed on to plt.boxplot(...).
-def items_boxplot(data, columns, rows, outdir, filename_base, **kwargs):
+def items_boxplot(data, columns, rows, outdir, filename_base, show_minmax=False, **kwargs):
   for (column, row, ax1) in plot_matrix(columns, rows):
     celldata = []
+    minv = []
+    maxv = []
     for segment in sorted(data[column].keys()):
-      celldata.append([v for v in data[column][segment][row] if v!=None])
-    ax1.boxplot(celldata, **kwargs)
+      values = [v for v in data[column][segment][row] if v!=None]
+      celldata.append(values)
+      if len(values) > 0:
+        minv.append(min(values))
+        maxv.append(max(values))
+    
+    ax1.boxplot(celldata, positions=range(len(data[column].keys())), **kwargs)
 
+    if show_minmax and len(minv)>0 and len(maxv)>0:
+      for idx in range(len(minv)):
+        w = 0.1
+        ax1.plot([idx-w, idx+w], [minv[idx]]*2, 'k-')
+        ax1.plot([idx-w, idx+w], [maxv[idx]]*2, 'k-')
+    
     ax1.margins(0.1, 0.1)
     ax1.get_xaxis().set_visible(False)
     ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
@@ -77,7 +90,7 @@ def items_boxplot(data, columns, rows, outdir, filename_base, **kwargs):
   gc.collect()
 
 # data: country -> is_poweruser -> metric -> list of values
-# kwargs is passed on to plt.boxplot(...).
+# kwargs is passed on to plt.scatter(...).
 def items_scatterplot(data, anchor_row, columns, rows, outdir, filename_base, 
   colors=QUALITATIVE_DARK, scale='log',**kwargs):
   
@@ -311,7 +324,7 @@ if __name__ == "__main__":
   #
   
   # edits
-  items_boxplot(edits_data, regions, edits_metrics, 
+  items_boxplot(edits_data, regions, edits_metrics, show_minmax=True,
     args.outdir, 'collab_edits_boxplot_fliers')
 
   items_boxplot(edits_data, regions, edits_metrics, 
@@ -319,14 +332,14 @@ if __name__ == "__main__":
     sym='') # don't show fliers
 
   # all editors
-  items_boxplot(editors_data, regions, editors_metrics, 
+  items_boxplot(editors_data, regions, editors_metrics, show_minmax=True,
     args.outdir, 'editors_boxplot_fliers')
   
   items_boxplot(editors_data, regions, editors_metrics, 
     args.outdir, 'editors_boxplot',
     sym='') # don't show fliers
   
-  items_boxplot(editors_data, regions, editor_scores, 
+  items_boxplot(editors_data, regions, editor_scores, show_minmax=True,
     args.outdir, 'editor_scores_boxplot_fliers')
   
   items_boxplot(editors_data, regions, editor_scores, 
@@ -334,14 +347,14 @@ if __name__ == "__main__":
     sym='') # don't show fliers
   
   # only collaborating editors
-  items_boxplot(collab_editors_data, regions, editors_metrics, 
+  items_boxplot(collab_editors_data, regions, editors_metrics, show_minmax=True,
     args.outdir, 'collab_editors_boxplot_fliers')
   
   items_boxplot(collab_editors_data, regions, editors_metrics, 
     args.outdir, 'collab_editors_boxplot',
     sym='') # don't show fliers
   
-  items_boxplot(collab_editors_data, regions, editor_scores, 
+  items_boxplot(collab_editors_data, regions, editor_scores, show_minmax=True,
     args.outdir, 'collab_editor_scores_boxplot_fliers')
   
   items_boxplot(collab_editors_data, regions, editor_scores, 
