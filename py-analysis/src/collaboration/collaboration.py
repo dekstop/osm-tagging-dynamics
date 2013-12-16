@@ -57,7 +57,7 @@ def report(data, col1name, col2name, metrics, outdir, filename_base):
 # data: country -> is_poweruser -> metric -> list of values
 # kwargs is passed on to plt.boxplot(...).
 def items_boxplot(data, columns, rows, outdir, filename_base, show_minmax=False, **kwargs):
-  for (column, row, ax1) in plot_matrix(columns, rows):
+  for (column, row, ax1) in plot_matrix(columns, rows, shared_yscale=True):
     celldata = []
     minv = []
     maxv = []
@@ -147,8 +147,8 @@ if __name__ == "__main__":
   editors_metrics = ['num_poi_edits', 'num_sol_edits', 'num_col_edits', 
     'num_sol_tag_edits', 'num_sol_tag_add', 'num_sol_tag_update', 'num_sol_tag_remove',
     'num_col_tag_edits', 'num_col_tag_add', 'num_col_tag_update', 'num_col_tag_remove']
-  editor_scores = ['sol_rate', 'sol_add_rate', 'sol_update_rate', 'sol_remove_rate', 'sol_tag_edit_rate',
-    'col_rate', 'col_add_rate', 'col_update_rate', 'col_remove_rate', 'col_tag_edit_rate']
+  editor_scores = ['sol_rate', 'sol_add_rate', 'sol_update_rate', 'sol_remove_rate', 'sol_tags_per_edit',
+    'col_rate', 'col_add_rate', 'col_update_rate', 'col_remove_rate', 'col_tags_per_edit']
 
   country_join = ""
   if args.countries and len(args.countries)>0:
@@ -207,15 +207,15 @@ if __name__ == "__main__":
       num_col_edits,
       num_col_tag_edits, num_col_tag_add, num_col_tag_update, num_col_tag_remove,
       num_sol_edits::numeric / (num_sol_edits+num_col_edits) as sol_rate,
-      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_sol_tag_add::numeric / (num_sol_tag_edits+num_col_tag_edits) END as sol_add_rate,
-      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_sol_tag_update::numeric / (num_sol_tag_edits+num_col_tag_edits) END as sol_update_rate,
-      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_sol_tag_remove::numeric / (num_sol_tag_edits+num_col_tag_edits) END as sol_remove_rate,
-      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_sol_tag_edits::numeric / (num_col_edits+num_col_edits) END as sol_tag_edit_rate,
+      CASE WHEN num_sol_tag_edits=0 THEN NULL ELSE num_sol_tag_add::numeric / num_sol_tag_edits END as sol_add_rate,
+      CASE WHEN num_sol_tag_edits=0 THEN NULL ELSE num_sol_tag_update::numeric / num_sol_tag_edits END as sol_update_rate,
+      CASE WHEN num_sol_tag_edits=0 THEN NULL ELSE num_sol_tag_remove::numeric / num_sol_tag_edits END as sol_remove_rate,
+      CASE WHEN num_sol_tag_edits=0 THEN NULL ELSE num_sol_tag_edits::numeric / num_sol_edits END as sol_tags_per_edit,
       num_col_edits::numeric / (num_sol_edits+num_col_edits) as col_rate,
-      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_col_tag_add::numeric / (num_sol_tag_edits+num_col_tag_edits) END as col_add_rate,
-      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_col_tag_update::numeric / (num_sol_tag_edits+num_col_tag_edits) END as col_update_rate,
-      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_col_tag_remove::numeric / (num_sol_tag_edits+num_col_tag_edits) END as col_remove_rate,
-      CASE WHEN (num_col_edits+num_col_edits)=0 THEN NULL ELSE num_col_tag_edits::numeric / (num_sol_edits+num_col_edits) END as col_tag_edit_rate
+      CASE WHEN num_col_tag_edits=0 THEN NULL ELSE num_col_tag_add::numeric / num_col_tag_edits END as col_add_rate,
+      CASE WHEN num_col_tag_edits=0 THEN NULL ELSE num_col_tag_update::numeric / num_col_tag_edits END as col_update_rate,
+      CASE WHEN num_col_tag_edits=0 THEN NULL ELSE num_col_tag_remove::numeric / num_col_tag_edits END as col_remove_rate,
+      CASE WHEN num_col_tag_edits=0 THEN NULL ELSE num_col_tag_edits::numeric / num_col_edits END as col_tags_per_edit
     FROM (
       SELECT
         coalesce(sol.country_gid, col.country_gid) AS country_gid,
@@ -324,38 +324,38 @@ if __name__ == "__main__":
   #
   
   # edits
-  items_boxplot(edits_data, regions, edits_metrics, show_minmax=True,
-    args.outdir, 'collab_edits_boxplot_fliers')
+  items_boxplot(edits_data, regions, edits_metrics,
+    args.outdir, 'collab_edits_boxplot_fliers', show_minmax=True,)
 
   items_boxplot(edits_data, regions, edits_metrics, 
     args.outdir, 'collab_edits_boxplot',
     sym='') # don't show fliers
 
   # all editors
-  items_boxplot(editors_data, regions, editors_metrics, show_minmax=True,
-    args.outdir, 'editors_boxplot_fliers')
+  items_boxplot(editors_data, regions, editors_metrics,
+    args.outdir, 'editors_boxplot_fliers', show_minmax=True,)
   
   items_boxplot(editors_data, regions, editors_metrics, 
     args.outdir, 'editors_boxplot',
     sym='') # don't show fliers
   
-  items_boxplot(editors_data, regions, editor_scores, show_minmax=True,
-    args.outdir, 'editor_scores_boxplot_fliers')
+  items_boxplot(editors_data, regions, editor_scores,
+    args.outdir, 'editor_scores_boxplot_fliers', show_minmax=True,)
   
   items_boxplot(editors_data, regions, editor_scores, 
     args.outdir, 'editor_scores_boxplot',
     sym='') # don't show fliers
   
   # only collaborating editors
-  items_boxplot(collab_editors_data, regions, editors_metrics, show_minmax=True,
-    args.outdir, 'collab_editors_boxplot_fliers')
+  items_boxplot(collab_editors_data, regions, editors_metrics,
+    args.outdir, 'collab_editors_boxplot_fliers', show_minmax=True,)
   
   items_boxplot(collab_editors_data, regions, editors_metrics, 
     args.outdir, 'collab_editors_boxplot',
     sym='') # don't show fliers
   
-  items_boxplot(collab_editors_data, regions, editor_scores, show_minmax=True,
-    args.outdir, 'collab_editor_scores_boxplot_fliers')
+  items_boxplot(collab_editors_data, regions, editor_scores,
+    args.outdir, 'collab_editor_scores_boxplot_fliers', show_minmax=True,)
   
   items_boxplot(collab_editors_data, regions, editor_scores, 
     args.outdir, 'collab_editor_scores_boxplot',
