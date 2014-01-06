@@ -155,7 +155,7 @@ def looping_generator(list):
 # - col: the column name for this cell
 # - row: the row name
 # - ax1: a matplotlib subplot handle
-def plot_matrix(columns, rows, cellwidth=3, cellheight=3):
+def plot_matrix(columns, rows, cellwidth=3, cellheight=3, shared_yscale=False):
   ncols = len(columns)
   nrows = len(rows)
 
@@ -165,15 +165,24 @@ def plot_matrix(columns, rows, cellwidth=3, cellheight=3):
 
   n = 1
   for row in rows:
+    axes = []
     for column in columns:
 
       if n <= ncols: # first row
         ax1 = plt.subplot(nrows, ncols, n, title=column)
       else:
         ax1 = plt.subplot(nrows, ncols, n)
+      axes.append(ax1)
       
       if (n % ncols == 1): # first column
         plt.ylabel(row)
       
       yield (column, row, ax1)
       n += 1
+
+    if shared_yscale: # for every row: shared scale across columns?
+      limits = [ax1.get_ylim() for ax1 in axes]
+      bottom = min([v[0] for v in limits])
+      top = max([v[1] for v in limits])
+      for ax1 in axes:
+        ax1.set_ylim(bottom, top)
