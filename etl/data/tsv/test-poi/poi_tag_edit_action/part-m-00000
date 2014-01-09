@@ -1,0 +1,145 @@
+2	1	name	Naurod	add
+2	1	is_in	Wiesbaden,Darmstadt,Hessen,Bundesrepublik Deutschland,Europe	add
+2	1	place	suburb	add
+2	1	wikipedia	de:Wiesbaden-Naurod	add
+4	5	highway	traffic_signals	add
+4	2	highway	traffic_signals	add
+11	4	is_in	Maldives	add
+11	1	name	Embudu	add
+11	1	place	village	add
+13	2	name	Bleichplatz	add
+13	2	highway	bus_stop	add
+13	2	shelter	yes	add
+13	2	uic_ref	713807	add
+19	2	ref	SG4 90	add
+19	2	amenity	post_box	add
+19	2	box_type	lamp_box	add
+19	2	last_collection_mf	1630	add
+19	2	last_collection_sat	0945	add
+22	3	box_type	pillar_box	add
+22	3	collection_times	Mo-Fr 17:30; Sa 12:00	add
+22	4	cypher	EIIR	add
+22	5	royal_cypher	EIIR	add
+22	2	ref	SG4 24	add
+22	2	fixme	Needs road Blackhorse Lane adding	add
+22	2	amenity	post_box	add
+22	2	last_collection_mf	1730	add
+22	2	last_collection_sat	1200	add
+26	2	ref	SG4 118	add
+26	2	amenity	post_box	add
+26	2	box_type	lamp_box	add
+33	2	note	33 2008-11-30T12:21:51+0200_2008-11-30T10:21:25Z_60.684170500_23.840186500.wav	add
+36	3	collection_times	Mo-Fr 16:45; Sa 07:15	add
+36	2	ref	SG4 67	add
+36	2	amenity	post_box	add
+36	2	box_type	lamp_box	add
+38	2	ref	SG2 324	add
+38	2	fixme	Need to add Three St[yi]les and Town Lane thoroughfares. PB is onright of 3S as you go into it from TL	add
+38	2	cypher	EIIR	add
+38	2	amenity	post_box	add
+38	2	box_type	lamp_box	add
+38	2	last_collection_mf	1640	add
+38	2	last_collection_sat	0745	add
+41	2	ref	SG2 255	add
+41	2	amenity	post_box	add
+41	2	box_type	lamp_box	add
+41	2	last_collection_mf	1645	add
+41	2	last_collection_sat	0800	add
+59	2	name	Ajuruteua beach	add
+59	2	highway	track	add
+61	3	name	Ajuruteua beach	add
+61	3	highway	track	add
+62	3	name	Ajuruteua beach	add
+62	3	highway	track	add
+62	7	history	retrieved using undelete JOSM plugin	add
+63	3	name	Ajuruteua beach	add
+63	3	highway	track	add
+63	6	ref	SG4 62	add
+63	6	amenity	post_box	add
+63	6	box_type	lamp_box	add
+63	6	last_collection_mf	1700	add
+63	6	last_collection_sat	0845	add
+65	3	name	Ajuruteua beach	add
+65	3	highway	track	add
+66	3	name	Ajuruteua beach	add
+66	3	highway	track	add
+67	2	name	Ajuruteua beach	add
+67	2	highway	track	add
+68	2	name	Ajuruteua beach	add
+68	2	highway	track	add
+70	2	name	Ajuruteua beach	add
+70	2	highway	track	add
+71	2	name	Ajuruteua beach	add
+71	2	highway	track	add
+72	2	name	Ajuruteua beach	add
+72	2	highway	track	add
+74	2	name	Ajuruteua beach	add
+74	2	highway	track	add
+75	2	name	Ajuruteua beach	add
+75	2	highway	track	add
+76	2	name	Ajuruteua beach	add
+76	2	highway	track	add
+77	2	name	Ajuruteua beach	add
+77	2	highway	track	add
+78	2	name	Ajuruteua beach	add
+78	2	highway	track	add
+79	2	name	Ajuruteua beach	add
+79	2	highway	track	add
+80	2	name	Ajuruteua beach	add
+80	2	highway	track	add
+82	2	name	Style Park	add
+82	2	place	suburb	add
+89	2	name	Ajuruteua beach	add
+89	2	highway	track	add
+90	2	name	Ajuruteua beach	add
+90	2	highway	track	add
+91	2	name	Ajuruteua beach	add
+91	2	highway	track	add
+93	2	name	Ajuruteua beach	add
+93	2	highway	track	add
+94	2	name	Ajuruteua beach	add
+94	2	highway	track	add
+96	2	name	Ajuruteua beach	add
+96	2	highway	track	add
+100	3	highway	track	add
+100	4	source	knowledge	add
+100	4	amenity	place_of_worship	add
+100	4	religion	christian	add
+100	4	source_ref	http://pl.wikipedia.org/wiki/Ko%C5%9Bci%C3%B3%C5%82_%C5%9Bw._Karola_Boromeusza_w_Warszawie_%28Pow%C4%85zki%29	add
+100	4	denomination	catholic	add
+100	2	name	Św. Karola Boromeusza	add
+100	2	source	knowledge	add
+100	2	amenity	place_of_worship	add
+100	2	religion	christian	add
+100	2	source_ref	http://pl.wikipedia.org/wiki/Ko%C5%9Bci%C3%B3%C5%82_%C5%9Bw._Karola_Boromeusza_w_Warszawie_%28Pow%C4%85zki%29	add
+100	2	denomination	catholic	add
+101	2	name	Ajuruteua beach	add
+101	2	highway	track	add
+102	2	name	Ajuruteua beach	add
+102	2	highway	track	add
+103	2	name	Ajuruteua beach	add
+103	2	highway	track	add
+104	2	name	Ajuruteua beach	add
+104	2	highway	track	add
+105	4	name	The Green Man	add
+105	4	amenity	pub	add
+105	2	name	Ajuruteua beach	add
+105	2	highway	track	add
+106	2	name	Ajuruteua beach	add
+106	2	highway	track	add
+107	2	name	Ajuruteua beach	add
+107	2	highway	track	add
+108	2	name	Ajuruteua beach	add
+108	2	highway	track	add
+109	2	name	Ajuruteua beach	add
+109	2	highway	track	add
+110	2	name	Ajuruteua beach	add
+110	2	highway	track	add
+111	2	name	Ajuruteua beach	add
+111	2	highway	track	add
+112	2	name	Ajuruteua beach	add
+112	2	highway	track	add
+112	4	barrier	block	add
+666	1	name	first name	add
+1	9	Test	Test	add
+1	9	Prova	Prova	add
