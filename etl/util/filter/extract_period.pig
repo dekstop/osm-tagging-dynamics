@@ -20,6 +20,7 @@ poi_tag_edit_action = LOAD '$input_poi_tag_edit_action' AS (id:long, version:int
 
 -- poi
 poi_subset = FILTER poi BY (
+    timestamp IS NOT NULL AND
     ToDate(timestamp) >= ToDate('$fromdate') AND
     ToDate(timestamp) < ToDate('$todate'));
 store poi_subset into '$output/poi';
