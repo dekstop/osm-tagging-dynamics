@@ -1,9 +1,9 @@
 1	9	Prova	Prova
 1	9	Test	Test
-2	13	is_in	Wiesbaden,Darmstadt,Hessen,Bundesrepublik Deutschland,Europe
-2	13	name	Naurod
-2	13	place	suburb
-2	13	wikipedia	de:Wiesbaden-Naurod
+2	1	is_in	Wiesbaden,Darmstadt,Hessen,Bundesrepublik Deutschland,Europe
+2	1	name	Naurod
+2	1	place	suburb
+2	1	wikipedia	de:Wiesbaden-Naurod
 4	2	highway	traffic_signals
 4	5	highway	traffic_signals
 4	6	highway	traffic_signals

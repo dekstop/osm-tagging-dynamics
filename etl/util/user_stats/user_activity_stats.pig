@@ -6,9 +6,9 @@
 -- $output
 
 
-/*SET default_parallel 10;*/
-/*SET output.compression.enabled true; */
-/*SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;*/
+SET default_parallel 10;
+SET output.compression.enabled true; 
+SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
 
 poi = LOAD '$input_poi' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
 clean_poi = FILTER poi BY (id IS NOT NULL AND version IS NOT NULL AND changeset IS NOT NULL AND timestamp IS NOT NULL AND uid IS NOT NULL AND latitude IS NOT NULL AND longitude IS NOT NULL);
