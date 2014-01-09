@@ -8,9 +8,9 @@
 -- $todate          YYYY-MM-DDThh:mm:ssZ
 -- $output          output root directory
 
-SET default_parallel 10;
-SET output.compression.enabled true; 
-SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;
+/*SET default_parallel 10;*/
+/*SET output.compression.enabled true; */
+/*SET output.compression.codec com.hadoop.compression.lzo.LzopCodec;*/
 
 poi = LOAD '$input_poi' AS (id:long, version:int, changeset:long, timestamp:chararray, uid:long, username:chararray, latitude:double, longitude:double);
 
@@ -21,6 +21,7 @@ poi_tag_edit_action = LOAD '$input_poi_tag_edit_action' AS (id:long, version:int
 -- poi
 poi_subset = FILTER poi BY (
     timestamp IS NOT NULL AND
+    timestamp matches '\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*' AND
     ToDate(timestamp) >= ToDate('$fromdate') AND
     ToDate(timestamp) < ToDate('$todate'));
 store poi_subset into '$output/poi';
