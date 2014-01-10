@@ -3,7 +3,7 @@ DROP VIEW IF EXISTS view_poi_tag_edit_action;
 DROP VIEW IF EXISTS view_poi_tag_addition;
 DROP VIEW IF EXISTS view_poi_tag_removal;
 DROP VIEW IF EXISTS view_poi_tag_update;
-DROP VIEW IF EXISTS view_poi_multiple_editors;
+DROP VIEW IF EXISTS view_shared_poi;
 DROP VIEW IF EXISTS view_poi_sequence;
 DROP VIEW IF EXISTS view_region_poi_any;
 DROP VIEW IF EXISTS view_region_poi_latest;
@@ -11,7 +11,7 @@ DROP VIEW IF EXISTS view_region_poi_latest;
 DROP TABLE IF EXISTS node;
 DROP TABLE IF EXISTS poi;
 DROP TABLE IF EXISTS poi_sequence;
-DROP TABLE IF EXISTS poi_multiple_editors;
+DROP TABLE IF EXISTS shared_poi;
 DROP TABLE IF EXISTS poi_tag;
 DROP TABLE IF EXISTS poi_tag_edit_action;
 DROP TABLE IF EXISTS region;
@@ -72,7 +72,7 @@ CREATE UNIQUE INDEX idx_poi_sequence_poi_id_version ON poi_sequence(poi_id, vers
 
 -- POI that are "shared" between editors (that have more than one editor)
 -- POI in this list are considered as "shared"
-CREATE VIEW view_poi_multiple_editors AS
+CREATE VIEW view_shared_poi AS
   SELECT p1.id as poi_id, p1.uid as creator, MIN(p2.version) as first_shared_version
   FROM (
     SELECT id, uid from poi 
@@ -82,13 +82,13 @@ CREATE VIEW view_poi_multiple_editors AS
     WHERE version>1) p2 ON (p1.id=p2.id AND p1.uid!=p2.uid)
   GROUP BY p1.id, p1.uid;
 
-CREATE TABLE poi_multiple_editors (
+CREATE TABLE shared_poi (
   poi_id                BIGINT NOT NULL,
   creator               INTEGER NOT NULL,
   first_shared_version  INTEGER NOT NULL
 );
 
-CREATE UNIQUE INDEX idx_poi_multiple_editors_poi_id ON poi_multiple_editors(poi_id);
+CREATE UNIQUE INDEX idx_shared_poi_poi_id ON shared_poi(poi_id);
 
 -- ===========
 -- = POI Tag =
