@@ -20,6 +20,7 @@ clean_node = FILTER node BY (
     version IS NOT NULL AND
     changeset IS NOT NULL AND
     timestamp IS NOT NULL AND timestamp!='' AND
+    timestamp matches '\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*' AND
     uid IS NOT NULL AND
     username IS NOT NULL AND username!='' AND
     latitude IS NOT NULL AND
