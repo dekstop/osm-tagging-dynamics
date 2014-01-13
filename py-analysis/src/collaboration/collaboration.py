@@ -179,7 +179,7 @@ if __name__ == "__main__":
       %s
     FROM (SELECT wp.country_gid, uid 
       FROM poi p
-      JOIN poi_multiple_editors m ON (p.id=m.poi_id AND p.version>=m.first_shared_version)
+      JOIN shared_poi m ON (p.id=m.poi_id AND p.version>=m.first_shared_version)
       JOIN world_borders_poi_latest wp ON (p.id=wp.poi_id)
       %s
       GROUP BY country_gid, uid) u
@@ -365,17 +365,17 @@ if __name__ == "__main__":
   # scatter plots... these are slow and memory-hungry.
   #
 
-  # all editors
-  items_scatterplot(editors_data, 'num_poi_edits', regions, editors_metrics, 
-    args.outdir, 'editors_scatter_num_poi_edits', alpha=0.8)
-
-  items_scatterplot(editors_data, 'num_poi_edits', regions, editor_scores, 
-    args.outdir, 'editor_scores_scatter_num_poi_edits', alpha=0.8)
-
-  # only collaborating editors
-  items_scatterplot(collab_editors_data, 'num_poi_edits', regions, editors_metrics, 
-    args.outdir, 'collab_editors_scatter_num_poi_edits', alpha=0.8)
-
-  items_scatterplot(collab_editors_data, 'num_poi_edits', regions, editor_scores, 
-    args.outdir, 'collab_editor_scores_scatter_num_poi_edits', alpha=0.8)
-
+  # # all editors
+  # items_scatterplot(editors_data, 'num_poi_edits', regions, editors_metrics, 
+  #   args.outdir, 'editors_scatter_num_poi_edits', alpha=0.8)
+  # 
+  # items_scatterplot(editors_data, 'num_poi_edits', regions, editor_scores, 
+  #   args.outdir, 'editor_scores_scatter_num_poi_edits', alpha=0.8)
+  # 
+  # # only collaborating editors
+  # items_scatterplot(collab_editors_data, 'num_poi_edits', regions, editors_metrics, 
+  #   args.outdir, 'collab_editors_scatter_num_poi_edits', alpha=0.8)
+  # 
+  # items_scatterplot(collab_editors_data, 'num_poi_edits', regions, editor_scores, 
+  #   args.outdir, 'collab_editor_scores_scatter_num_poi_edits', alpha=0.8)
+  # 
