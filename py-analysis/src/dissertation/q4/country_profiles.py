@@ -161,7 +161,7 @@ if __name__ == "__main__":
   # Country aggregations
   #
   
-  topuser_percentile = 0.8
+  topuser_percentile = decimal.Decimal("0.8")
   tag_action_threshold = 50
   
   countrydata = dict()
@@ -182,7 +182,7 @@ if __name__ == "__main__":
     rec['num_users'] = num_users
 
     # percentage of users who account for 80% of edits
-    num_top_users = count_cumsum_percentile(edits, 0.8)
+    num_top_users = count_cumsum_percentile(edits, topuser_percentile)
     rec['p_top_editors'] = decimal.Decimal(num_top_users) / num_users
     
     # percentage of edits that are collaborative
@@ -192,19 +192,19 @@ if __name__ == "__main__":
     rec['p_coll_removes'] = decimal.Decimal(sum(coll_tag_removes)) / sum(edits)
 
     # percentage of users who account for 80% of collab edits
-    num_top_coll_users = count_cumsum_percentile(coll_edits, 0.8)
+    num_top_coll_users = count_cumsum_percentile(coll_edits, topuser_percentile)
     rec['p_top_coll_editors'] = decimal.Decimal(num_top_coll_users) / num_users
     
     # percentage of users who account for 80% of all adds
-    num_top_add_users = count_cumsum_percentile(tag_adds, 0.8)
+    num_top_add_users = count_cumsum_percentile(tag_adds, topuser_percentile)
     rec['p_top_add_editors'] = decimal.Decimal(num_top_add_users) / num_users
 
     # percentage of users who account for 80% of all updates
-    num_top_update_users = count_cumsum_percentile(tag_updates, 0.8)
+    num_top_update_users = count_cumsum_percentile(tag_updates, topuser_percentile)
     rec['p_top_update_editors'] = decimal.Decimal(num_top_update_users) / num_users
 
     # percentage of users who account for 80% of all removes
-    num_top_remove_users = count_cumsum_percentile(tag_removes, 0.8)
+    num_top_remove_users = count_cumsum_percentile(tag_removes, topuser_percentile)
     rec['p_top_remove_editors'] = decimal.Decimal(num_top_remove_users) / num_users
 
     # done.
