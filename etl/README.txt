@@ -5,7 +5,7 @@
  =================
 
 Prerequisites for ETL tools:
-- Postgres 9+
+- Postgres 9+ with PostGIS
 - Ruby with libxml-ruby gem (and optionally: bzip2-ruby)
 - osmconvert
 - ...?
