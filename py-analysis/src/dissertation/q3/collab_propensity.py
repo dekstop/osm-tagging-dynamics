@@ -41,7 +41,7 @@ def report(data, colnames, outdir, filename_base):
 # kwargs is passed on to plt.scatter(...).
 def scatterplot(x, y, outdir, filename_base, scale='linear', **kwargs):
   
-  fig = plt.figure()
+  fig = plt.figure(figsize=(4, 3))
   fig.patch.set_facecolor('white')
   plt.scatter(x, y, edgecolors='none', **kwargs)
   plt.margins(0.1, 0.1)
@@ -60,7 +60,7 @@ def scatterplot(x, y, outdir, filename_base, scale='linear', **kwargs):
 # kwargs is passed on to plt.scatter(...).
 def hist2dplot(x, y, outdir, filename_base, scale='linear', **kwargs):
   
-  fig = plt.figure()
+  fig = plt.figure(figsize=(4, 3))
   fig.patch.set_facecolor('white')
   plt.hist2d(x, y, **kwargs)
   plt.margins(0.1, 0.1)
@@ -80,7 +80,7 @@ def hist2dplot(x, y, outdir, filename_base, scale='linear', **kwargs):
 # kwargs is passed on to plt.boxplot(...).
 def boxplot(data, segments, outdir, filename_base, show_minmax=False, **kwargs):
   
-  fig = plt.figure()
+  fig = plt.figure(figsize=(2.5, 3))
   fig.patch.set_facecolor('white')
   celldata = []
   minv = []
@@ -148,7 +148,6 @@ if __name__ == "__main__":
     SELECT uid, count(*) as num_edits
     FROM poi p 
     JOIN poi_tag_edit_action pt ON (p.id=pt.poi_id AND p.version=pt.version)
-    %s
     GROUP BY uid
   ) t1
   LEFT OUTER JOIN (
@@ -159,7 +158,7 @@ if __name__ == "__main__":
     %s
     GROUP BY uid
   ) t2 ON (t1.uid=t2.uid)
-  ORDER BY num_edits ASC""" % (action_filter, action_filter))
+  ORDER BY num_edits ASC""" % (action_filter))
 
   data = []
   num_records = 0
