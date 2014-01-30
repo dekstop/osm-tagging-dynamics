@@ -1,0 +1,132 @@
+#
+# Sample user accounts for an evaluation of automated bulk import detection.
+# 
+# Sampling method: Aslam et al (2007), "A Practical Sampling Strategy 
+# for Efficient Retrieval Evaluation".
+#
+
+from __future__ import division # non-truncating division in Python 2.x
+
+import argparse
+from collections import defaultdict
+import random
+
+from app import *
+
+# ===========
+# = Reports =
+# ===========
+
+def encode(obj):
+  if isinstance(obj, basestring):
+    return obj.encode('utf-8')
+  return obj
+
+# data: a list of dictionaries
+def save_csv(data, colnames, filename):
+  outfile = open(filename, 'wb')
+  outcsv = csv.writer(outfile)
+  outcsv.writerow(colnames)
+  for row in data:
+    outcsv.writerow([encode(row[colname]) for colname in colnames])
+  outfile.close()
+
+# =========
+# = Tools =
+# =========
+
+# ranked_items: in descending order of sampling weight.
+# count: number of items to sample.
+# note: sample order will follow input order roughly, but not exactly.
+def aslamSample(ranked_items, count):
+  # list of segments: [[x,x,x], [x,x,x], ...]
+  buckets = [ranked_items[x:x+count] for x in range(0,len(ranked_items),count)]
+  # list of buckets to sample from: [0, 1, 0, ...]
+  sampled_buckets = [random.randrange(len(buckets)) for n in range(count)]
+  # number of samples per bucket: {bucketIdx -> count}
+  bucket_sample_count = dict((n, sampled_buckets.count(n)) for n in set(sampled_buckets))
+  # final list of samples, by bucket
+  samples = [random.sample(buckets[b], bucket_sample_count[b]) 
+    for b in sorted(bucket_sample_count.keys())]
+  # flatten this nested list and return
+  return [item for sublist in samples for item in sublist]
+  
+
+# ========
+# = Main =
+# ========
+
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser(
+    description='Sample user accounts for an evaluation of automated bulk import detection.')
+  parser.add_argument('num_samples', help='The number of users to select', type=int)
+  parser.add_argument('csvfile', help='A filename to store the list of samples')
+  parser.add_argument('--min-edits', help='Minimum number of edits', dest='min_edits', 
+    action='store', type=int, default=0)
+  parser.add_argument('--country', help='Optional country name', dest='country', 
+    action='store', type=str, default=None)
+  args = parser.parse_args()
+
+  #
+  # Get data
+  #
+  
+  metrics = ['num_poi', 'num_edits', 'num_coll_edits', 
+    'num_tag_add', 'num_tag_update', 'num_tag_remove']
+  fields = ['uid', 'username'] + metrics
+  
+  #getDb().echo = True    
+  session = getSession()
+  
+  metrics_select = []
+  for metric in metrics:
+    metrics_select.append("sum(%s)::int as %s" % (metric, metric))
+  
+  country_join = ''
+  country_filter = ''
+  if args.country:
+    country_join = 'JOIN world_borders w ON (w.gid=ue.country_gid)'
+    country_filter = 'w.name=%s' % (args.country)
+  
+  edits_filter = ''
+  if args.min_edits:
+    edits_filter = 'HAVING sum(num_edits)>=%d' % (args.min_edits)
+  
+  result = session.execute("""SELECT uid, MAX(username) as username, %s
+    FROM user_edit_stats ue %s
+    WHERE TRUE %s
+    GROUP BY uid
+    %s
+    ORDER BY num_edits DESC""" % (', '.join(metrics_select), country_join, 
+      country_filter, edits_filter))
+
+  # uid -> {map: uid, username, num_edits, ...}
+  items = dict()
+  # ranked list of uids
+  ranked_ids = []
+  
+  num_records = 0
+  for row in result:
+    uid = row['uid']
+    record = defaultdict(str)
+    for field in fields:
+      record[field] = row[field]
+    if uid in items.keys():
+      print "already an entry for %d" % uid
+    items[uid] = record
+    ranked_ids.append(uid)
+    num_records += 1
+  print "Loaded %d records." % (num_records)
+
+  #
+  # Sample
+  #
+  
+  sampled_ids = aslamSample(ranked_ids, args.num_samples)
+  sample = [items[s] for s in sampled_ids]
+
+  mkdir_p(os.path.dirname(args.csvfile))
+  save_csv(sample, fields, args.csvfile)
+
+  for item in sample[:10]:
+    print "%d: %s (%d edits)" % (item['uid'], item['username'], item['num_edits'])

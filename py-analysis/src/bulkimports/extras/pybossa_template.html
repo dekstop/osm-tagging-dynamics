@@ -1,0 +1,156 @@
+<!-- A template for a PyBossa Task Presenter. -->
+<!-- This is used to classify a sample of OSM user accounts. -->
+
+<div class="row">
+    <!-- Success and Error Messages for the user --> 
+    <div class="span6 offset2" style="height:50px">
+        <div id="success" class="alert alert-success" style="display:none;">
+            <a class="close">×</a>
+            <strong>Well done!</strong> Your answer has been saved
+        </div>
+        <div id="loading" class="alert alert-info" style="display:none;">
+            <a class="close">×</a>
+            Loading next task...
+        </div>
+        <div id="taskcompleted" class="alert alert-info" style="display:none;">
+            <strong>The task has been completed!</strong> Thanks a lot!
+        </div>
+        <div id="finish" class="alert alert-success" style="display:none;">
+            <strong>Congratulations!</strong> You have participated in all available tasks!
+            <br/>
+            <div class="alert-actions">
+                <a class="btn small" href="/">Go back</a>
+                <a class="btn small" href="/app">or, Check other applications</a>
+            </div>
+        </div>
+        <div id="error" class="alert alert-error" style="display:none;">
+            <a class="close">×</a>
+            <strong>Error!</strong> Something went wrong, please contact the site administrators
+        </div>
+    </div> <!-- End Success and Error Messages for the user -->
+</div> <!-- End of Row -->
+
+<!--
+    Task DOM 
+    It uses the class="skeleton" to identify the elements that belong to the
+    task.
+-->
+<div class="row skeleton"> <!-- Start Skeleton Row-->
+    <div class="span6 "><!-- Start of Question and Submission DIV (column) -->
+        <h1 id="question">Is <strong><span id="username">this user</span></strong> a bulk importer?</h1> <!-- The question will be loaded here -->
+        <ul>
+          <li>OSM user page: <a id="user-link" href="#">Username</a></li>
+          <li>OSM edit history: <a id="userchanges-link" href="#">Username</a></li>
+          <li>How did you contribute: <a id="hdyc-link" href="#">Username</a></li>
+          <li>Wiki user page: <a id="wikiuser-link" href="#">Username</a></li>
+          <li>Wiki username search: <a id="wikisearch-link" href="#">Username</a></li>
+        </ul>
+        <div id="answer"> <!-- Start DIV for the submission buttons -->
+            <!-- If the user clicks this button, the saved answer will be value="yes"-->
+            <button class="btn btn-success btn-answer" value='Yes'><i class="icon icon-white icon-thumbs-up"></i> Yes</button>
+            <!-- If the user clicks this button, the saved answer will be value="no"-->
+            <button class="btn btn-danger btn-answer" value='No'><i class="icon icon-white icon-thumbs-down"></i> No</button>
+            <!-- If the user clicks this button, the saved answer will be value="NotKnown"-->
+            <button class="btn btn-answer" value='NotKnown'><i class="icon icon-white icon-question-sign"></i> I don't know</button>
+        </div><!-- End of DIV for the submission buttons -->
+        <!-- Feedback items for the user -->
+        <hr/>
+        <div class="progress progress-striped">
+            <div id="progress" rel="tooltip" title="#" class="bar" style="width: 0%;"></div>
+        </div>
+        <p>You have completed <span id="done"></span> tasks from <span id="total"></span></p>
+        <!-- <p>You are working now on task: <span id="task-id">#</span></p> -->
+    </div><!-- End of Question and Submission DIV (column) -->
+    <div class="span6"><!-- Start of item DIV (column) -->
+      <table border="1" cellspacing="5" cellpadding="5">
+        <tr><th>Metric</th><th>Count</th></tr>
+        <tr><td>num_edits</td><td><span id="num_edits">#</span></td></tr>
+        <tr><td>num_poi</td><td><span id="num_poi">#</span></td></tr>
+        <tr><td>num_coll_edits</td><td><span id="num_coll_edits">#</span></td></tr>
+        <tr><td>num_tag_add</td><td><span id="num_tag_add">#</span></td></tr>
+        <tr><td>num_tag_update</td><td><span id="num_tag_update">#</span></td></tr>
+        <tr><td>num_tag_remove</td><td><span id="num_tag_remove">#</span></td></tr>
+      </table>
+    </div><!-- End of item DIV (columnt) -->
+</div><!-- End of Skeleton Row -->
+
+<script>
+function loadUserProgress() {
+    pybossa.userProgress('osm-bulkimports').done(function(data){
+        var pct = Math.round((data.done*100)/data.total);
+        $("#progress").css("width", pct.toString() +"%");
+        $("#progress").attr("title", pct.toString() + "% completed!");
+        $("#progress").tooltip({'placement': 'left'}); 
+        $("#total").text(data.total);
+        $("#done").text(data.done);
+    });
+}
+
+pybossa.taskLoaded(function(task, deferred) {
+    if ( !$.isEmptyObject(task) ) {
+        // Skipping: we're not loading any external resources for this task.
+        deferred.resolve(task);
+    }
+    else {
+        deferred.resolve(task);
+    }
+});
+
+pybossa.presentTask(function(task, deferred) {
+    if ( !$.isEmptyObject(task) ) {
+      console.log(task);
+        loadUserProgress();
+        
+        $('#username').html('').append(task.info.username);
+        
+        $('#user-link').html('').append(task.info.username);
+        $("#user-link").attr("href", 'http://www.openstreetmap.org/user/' + task.info.username);
+
+        $('#userchanges-link').html('').append(task.info.username);
+        $("#userchanges-link").attr("href", 'http://www.openstreetmap.org/user/' + task.info.username + '/history');
+
+        $('#hdyc-link').html('').append(task.info.username);
+        $("#hdyc-link").attr("href", 'http://www.hdyc.neis-one.org/?' + task.info.username);
+
+        $('#wikiuser-link').html('').append(task.info.username);
+        $("#wikiuser-link").attr("href", 'http://wiki.openstreetmap.org/wiki/User:' + task.info.username);
+
+        $('#wikisearch-link').html('').append(task.info.username);
+        $("#wikisearch-link").attr("href", 'http://wiki.openstreetmap.org/w/index.php?search=' + task.info.username);
+        
+        var metrics = new Array(
+          'num_poi', 'num_edits', 'num_coll_edits', 
+          'num_tag_add', 'num_tag_update', 'num_tag_remove');
+        $.each(metrics, function(idx, metric) {
+          console.log(metric);
+          console.log($('#' + metric));
+          console.log(task.info[metric]);
+          $('#' + metric).html('').append(task.info[metric]);
+        });
+
+        $('#task-id').html(task.id);
+        // $('#task-id').html(task.uid);
+        $('.btn-answer').off('click').on('click', function(evt) {
+            var answer = $(evt.target).attr("value");
+            if (typeof answer != 'undefined') {
+                //console.log(answer);
+                pybossa.saveTask(task.id, answer).done(function() {
+                    deferred.resolve();
+                });
+                $("#loading").fadeIn(500);
+            }
+            else {
+                $("#error").show();
+            }
+        });
+        $("#loading").hide();
+    }
+    else {
+        $(".skeleton").hide();
+        $("#loading").hide();
+        $("#finish").fadeIn(500);
+    }
+});
+
+pybossa.run('osm-bulkimports');
+</script>
