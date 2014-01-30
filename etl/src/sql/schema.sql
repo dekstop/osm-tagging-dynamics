@@ -5,8 +5,6 @@ DROP VIEW IF EXISTS view_poi_tag_removal;
 DROP VIEW IF EXISTS view_poi_tag_update;
 DROP VIEW IF EXISTS view_shared_poi;
 DROP VIEW IF EXISTS view_poi_sequence;
-DROP VIEW IF EXISTS view_region_poi_any;
-DROP VIEW IF EXISTS view_region_poi_latest;
 
 DROP TABLE IF EXISTS node;
 DROP TABLE IF EXISTS poi;
@@ -14,7 +12,6 @@ DROP TABLE IF EXISTS poi_sequence;
 DROP TABLE IF EXISTS shared_poi;
 DROP TABLE IF EXISTS poi_tag;
 DROP TABLE IF EXISTS poi_tag_edit_action;
-DROP TABLE IF EXISTS region;
 DROP TABLE IF EXISTS changeset;
 
 DROP TYPE IF EXISTS action CASCADE;
@@ -162,36 +159,6 @@ CREATE TABLE poi_tag_edit_action (
 );
 
 CREATE UNIQUE INDEX idx_poi_tag_edit_action_poi_id_version_key ON poi_tag_edit_action(poi_id, version, key);
-
--- ==========
--- = Region =
--- ==========
-
-CREATE TABLE region (
-  id          SERIAL PRIMARY KEY,
-  name        TEXT NOT NULL,
-  minlat      NUMERIC NOT NULL,
-  minlon      NUMERIC NOT NULL,
-  maxlat      NUMERIC NOT NULL,
-  maxlon      NUMERIC NOT NULL
-);
-
--- Mapping region and poi IDs
-CREATE VIEW view_region_poi_any AS
-  SELECT r.id AS region_id, p.id AS poi_id
-  FROM poi p LEFT OUTER JOIN region r 
-  ON (p.latitude>=r.minlat AND p.latitude<=r.maxlat 
-    AND p.longitude>=r.minlon AND p.longitude<=r.maxlon)
-  GROUP BY r.id, p.id;
-
-CREATE VIEW view_region_poi_latest AS
-  SELECT r.id AS region_id, p.id AS poi_id
-  FROM (SELECT id, max(version) AS version FROM poi GROUP BY id) pl
-  JOIN poi p ON (pl.id=p.id AND pl.version=p.version) 
-  LEFT OUTER JOIN region r 
-  ON (p.latitude>=r.minlat AND p.latitude<=r.maxlat 
-    AND p.longitude>=r.minlon AND p.longitude<=r.maxlon)
-  GROUP BY r.id, p.id;
 
 -- ========================
 -- = Changeset Statistics =

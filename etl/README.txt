@@ -38,6 +38,8 @@ Recommended but optional:
 To load:
 $ ./bin/load_tsv.sh <tsv files>
 
+The SQL scripts in src/sql/* provide some further aggregations etc.
+
 Some key derivative data sets may be too expensive to compute in DB. 
 You can compute these in Hadoop instead, then load into your DB manually.
 - poi_sequence: src/mapred/deriv_poi_sequence.pig
