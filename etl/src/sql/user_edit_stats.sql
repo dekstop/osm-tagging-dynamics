@@ -2,37 +2,58 @@
 
 DROP TABLE IF EXISTS user_edit_stats;
 
-CREATE TABLE user_edit_stats AS 
-  SELECT country_gid, uid, 
-        CASE
-          WHEN pm.poi_id IS NOT NULL 
-          AND t.version>=pm.first_shared_version 
-          THEN TRUE
-          ELSE FALSE
-        END as is_collab_work,
-        count(distinct t.poi_id) as num_poi, 
-        count(distinct t.poi_id ||' '|| version) as num_poi_edits,
-        count(distinct poi_add) as num_poi_add, 
-        count(distinct poi_update) as num_poi_update, 
-        count(distinct changeset) as num_changesets, 
-        count(*) as num_tag_edits,
-        count(tag_add) as num_tag_add,
-        count(tag_update) as num_tag_update,
-        count(tag_remove) as num_tag_remove,
-        count(distinct(key)) as num_tag_keys,
-        count(distinct to_char(t.timestamp, 'YYYY-MM-DD')) as days_active,
-        extract(day from max(t.timestamp)-min(t.timestamp)) + 1 as lifespan_days
+CREATE TABLE user_edit_stats AS
+  SELECT alledits.country_gid, alledits.uid, alledits.username,
+    num_poi,
+    num_edits, num_tag_add, num_tag_update, num_tag_remove,
+    coalesce(num_coll_edits, 0) as num_coll_edits, 
+    coalesce(num_coll_tag_add, 0) as num_coll_tag_add, 
+    coalesce(num_coll_tag_update, 0) as num_coll_tag_update, 
+    coalesce(num_coll_tag_remove, 0) as num_coll_tag_remove,
+    coalesce(num_coll_edits, 0)::numeric / num_edits as p_coll_edit, 
+    coalesce(num_coll_tag_add, 0)::numeric / num_edits as p_coll_tag_add, 
+    coalesce(num_coll_tag_update, 0)::numeric / num_edits as p_coll_tag_update, 
+    coalesce(num_coll_tag_remove, 0)::numeric / num_edits as p_coll_tag_remove, 
+    num_tag_keys, days_active, activity_period_days
   FROM (
-    SELECT country_gid, p.id as poi_id, p.version, uid, changeset, timestamp, key,
-      CASE WHEN p.version=1 THEN id ELSE NULL END as poi_add,
-      CASE WHEN p.version>1 THEN id ELSE NULL END as poi_update,
-      CASE WHEN e.action='add' THEN 1 ELSE NULL END as tag_add,
-      CASE WHEN e.action='update' THEN 1 ELSE NULL END as tag_update,
-      CASE WHEN e.action='remove' THEN 1 ELSE NULL END as tag_remove
-    FROM poi p 
-    JOIN poi_tag_edit_action e ON (p.id=e.poi_id and p.version=e.version)
-    JOIN world_borders_poi_latest wp ON (p.id=wp.poi_id)) t
-  LEFT OUTER JOIN poi_multiple_editors pm ON (t.poi_id=pm.poi_id)
-  WHERE uid IS NOT NULL
-  GROUP BY country_gid, uid, is_collab_work;
+    SELECT country_gid, uid, MAX(username) as username,
+      count(distinct poi_id) as num_poi,
+      count(*) as num_edits,
+      sum(tag_add) as num_tag_add,
+      sum(tag_update) as num_tag_update,
+      sum(tag_remove) as num_tag_remove,
+      count(distinct key) as num_tag_keys,
+      count(distinct to_char(timestamp, 'YYYY-MM-DD')) as days_active,
+      extract(day from max(timestamp)-min(timestamp)) as activity_period_days
+    FROM (
+      SELECT country_gid, uid, username, timestamp, p.id as poi_id, key,
+        CASE WHEN action='add' THEN 1 ELSE 0 END as tag_add,
+        CASE WHEN action='update' THEN 1 ELSE 0 END as tag_update,
+        CASE WHEN action='remove' THEN 1 ELSE 0 END as tag_remove
+      FROM poi p
+      JOIN world_borders_poi_latest wp ON (p.id=wp.poi_id)
+      JOIN poi_tag_edit_action pt ON (p.id=pt.poi_id AND p.version=pt.version)
+      WHERE uid IS NOT NULL
+    ) t1
+    GROUP BY country_gid, uid
+  ) alledits
+  LEFT OUTER JOIN (
+    SELECT country_gid, uid,
+      count(*) as num_coll_edits,
+      sum(tag_add) as num_coll_tag_add,
+      sum(tag_update) as num_coll_tag_update,
+      sum(tag_remove) as num_coll_tag_remove
+    FROM (
+      SELECT country_gid, uid,
+        CASE WHEN action='add' THEN 1 ELSE 0 END as tag_add,
+        CASE WHEN action='update' THEN 1 ELSE 0 END as tag_update,
+        CASE WHEN action='remove' THEN 1 ELSE 0 END as tag_remove
+      FROM poi p
+      JOIN shared_poi sp ON (p.id=sp.poi_id AND p.version>=sp.first_shared_version)
+      JOIN world_borders_poi_latest wp ON (p.id=wp.poi_id)
+      JOIN poi_tag_edit_action pt ON (p.id=pt.poi_id AND p.version=pt.version)
+      WHERE uid IS NOT NULL
+    ) t2
+    GROUP BY country_gid, uid
+  ) ce ON (alledits.country_gid=ce.country_gid AND alledits.uid=ce.uid);
 VACUUM ANALYZE user_edit_stats;
