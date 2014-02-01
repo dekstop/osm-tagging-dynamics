@@ -10,6 +10,7 @@ from __future__ import division # non-truncating division in Python 2.x
 import argparse
 from collections import defaultdict
 import random
+import sys
 
 from app import *
 
@@ -23,12 +24,12 @@ def encode(obj):
   return obj
 
 # data: a list of dictionaries
-def save_csv(data, colnames, filename):
+def save_csv(group, data, colnames, filename):
   outfile = open(filename, 'wb')
   outcsv = csv.writer(outfile)
-  outcsv.writerow(colnames)
+  outcsv.writerow(['group'] + colnames)
   for row in data:
-    outcsv.writerow([encode(row[colname]) for colname in colnames])
+    outcsv.writerow([group] + [encode(row[colname]) for colname in colnames])
   outfile.close()
 
 # =========
@@ -46,8 +47,11 @@ def aslamSample(ranked_items, count):
   # number of samples per bucket: {bucketIdx -> count}
   bucket_sample_count = dict((n, sampled_buckets.count(n)) for n in set(sampled_buckets))
   # final list of samples, by bucket
-  samples = [random.sample(buckets[b], bucket_sample_count[b]) 
-    for b in sorted(bucket_sample_count.keys())]
+  samples = [
+    random.sample(
+      buckets[b], 
+      min([bucket_sample_count[b], len(buckets[b])])
+    ) for b in sorted(bucket_sample_count.keys())]
   # flatten this nested list and return
   return [item for sublist in samples for item in sublist]
   
@@ -59,11 +63,12 @@ def aslamSample(ranked_items, count):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(
     description='Sample user accounts for an evaluation of automated bulk import detection.')
+  parser.add_argument('group', help='A unique string identifier for this sample set')
   parser.add_argument('num_samples', help='The number of users to select', type=int)
-  parser.add_argument('csvfile', help='A filename to store the list of samples')
+  parser.add_argument('csvfile', help='A filename to store the samples')
   parser.add_argument('--min-edits', help='Minimum number of edits', dest='min_edits', 
     action='store', type=int, default=0)
-  parser.add_argument('--country', help='Optional country name', dest='country', 
+  parser.add_argument('--country', help='Optional country name, as ISO2 country code', dest='country', 
     action='store', type=str, default=None)
   args = parser.parse_args()
 
@@ -86,15 +91,14 @@ if __name__ == "__main__":
   country_filter = ''
   if args.country:
     country_join = 'JOIN world_borders w ON (w.gid=ue.country_gid)'
-    country_filter = 'w.name=%s' % (args.country)
+    country_filter = "WHERE w.iso2='%s'" % (args.country)
   
   edits_filter = ''
   if args.min_edits:
     edits_filter = 'HAVING sum(num_edits)>=%d' % (args.min_edits)
   
   result = session.execute("""SELECT uid, MAX(username) as username, %s
-    FROM user_edit_stats ue %s
-    WHERE TRUE %s
+    FROM user_edit_stats ue %s %s
     GROUP BY uid
     %s
     ORDER BY num_edits DESC""" % (', '.join(metrics_select), country_join, 
@@ -117,16 +121,20 @@ if __name__ == "__main__":
     ranked_ids.append(uid)
     num_records += 1
   print "Loaded %d records." % (num_records)
+  
+  if num_records==0:
+    print "No records to sample from!"
+    sys.exit(0)
 
   #
   # Sample
   #
   
   sampled_ids = aslamSample(ranked_ids, args.num_samples)
-  sample = [items[s] for s in sampled_ids]
+  samples = [items[s] for s in sampled_ids]
 
   mkdir_p(os.path.dirname(args.csvfile))
-  save_csv(sample, fields, args.csvfile)
+  save_csv(args.group, samples, fields, args.csvfile)
 
-  for item in sample[:10]:
+  for item in samples[:10]:
     print "%d: %s (%d edits)" % (item['uid'], item['username'], item['num_edits'])

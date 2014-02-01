@@ -38,11 +38,17 @@
 <div class="row skeleton"> <!-- Start Skeleton Row-->
     <div class="span6 "><!-- Start of Question and Submission DIV (column) -->
         <h1 id="question">Is <strong><span id="username">this user</span></strong> a bulk importer?</h1> <!-- The question will be loaded here -->
+        <p>Primary indicator pages:</p>
         <ul>
           <li>OSM user page: <a id="user-link" href="#">Username</a></li>
-          <li>OSM edit history: <a id="userchanges-link" href="#">Username</a></li>
-          <li>How did you contribute: <a id="hdyc-link" href="#">Username</a></li>
+          <li>History of user blocks: <a id="userblocks-link" href="#">Username</a></li>
           <li>Wiki user page: <a id="wikiuser-link" href="#">Username</a></li>
+          <li>"How did you Contribute": <a id="hdyc-link" href="#">Username</a></li>
+        </ul>
+        <p>If these don't suffice... secondary indicator pages:</p>
+        <ul>
+          <li>Recent edit history: <a id="userchanges-link" href="#">Username</a></li>
+          <li>"Your OSM Heatmap": <a id="yosmhm-link" href="#">Username</a></li>
           <li>Wiki username search: <a id="wikisearch-link" href="#">Username</a></li>
         </ul>
         <div id="answer"> <!-- Start DIV for the submission buttons -->
@@ -58,18 +64,32 @@
         <div class="progress progress-striped">
             <div id="progress" rel="tooltip" title="#" class="bar" style="width: 0%;"></div>
         </div>
-        <p>You have completed <span id="done"></span> tasks from <span id="total"></span></p>
+        <p>You have completed <span id="done"></span> tasks of <span id="total"></span></p>
         <!-- <p>You are working now on task: <span id="task-id">#</span></p> -->
     </div><!-- End of Question and Submission DIV (column) -->
     <div class="span6"><!-- Start of item DIV (column) -->
-      <table border="1" cellspacing="5" cellpadding="5">
+      <style type = "text/css" scoped>
+      .datatable {
+        border: 1px solid #eeeeee;
+      }
+      .creator {
+        color: #888888;
+      };
+      .updater {
+        color: #000000;
+      }
+      .updater td {
+        font-weight: bold;
+      }
+      </style>
+      <table border="1" cellspacing="5" cellpadding="5" class="datatable">
         <tr><th>Metric</th><th>Count</th></tr>
-        <tr><td>num_edits</td><td><span id="num_edits">#</span></td></tr>
-        <tr><td>num_poi</td><td><span id="num_poi">#</span></td></tr>
-        <tr><td>num_coll_edits</td><td><span id="num_coll_edits">#</span></td></tr>
-        <tr><td>num_tag_add</td><td><span id="num_tag_add">#</span></td></tr>
-        <tr><td>num_tag_update</td><td><span id="num_tag_update">#</span></td></tr>
-        <tr><td>num_tag_remove</td><td><span id="num_tag_remove">#</span></td></tr>
+        <tr class="creator"><td>num_edits</td><td><span id="num_edits">#</span></td></tr>
+        <tr class="creator"><td>num_poi</td><td><span id="num_poi">#</span></td></tr>
+        <tr class="updater"><td>num_coll_edits</td><td><span id="num_coll_edits">#</span></td></tr>
+        <tr class="creator"><td>num_tag_add</td><td><span id="num_tag_add">#</span></td></tr>
+        <tr class="updater"><td>num_tag_update</td><td><span id="num_tag_update">#</span></td></tr>
+        <tr class="updater"><td>num_tag_remove</td><td><span id="num_tag_remove">#</span></td></tr>
       </table>
     </div><!-- End of item DIV (columnt) -->
 </div><!-- End of Skeleton Row -->
@@ -106,21 +126,28 @@ pybossa.presentTask(function(task, deferred) {
         $('#user-link').html('').append(task.info.username);
         $("#user-link").attr("href", 'http://www.openstreetmap.org/user/' + task.info.username);
 
+        $('#userblocks-link').html('').append(task.info.username);
+        $("#userblocks-link").attr("href", 'http://www.openstreetmap.org/user/' + task.info.username + '/blocks');
+
         $('#userchanges-link').html('').append(task.info.username);
         $("#userchanges-link").attr("href", 'http://www.openstreetmap.org/user/' + task.info.username + '/history');
 
         $('#hdyc-link').html('').append(task.info.username);
         $("#hdyc-link").attr("href", 'http://www.hdyc.neis-one.org/?' + task.info.username);
 
+        $('#yosmhm-link').html('').append(task.info.username);
+        $("#yosmhm-link").attr("href", 'http://yosmhm.neis-one.org/?' + task.info.username);
+
         $('#wikiuser-link').html('').append(task.info.username);
         $("#wikiuser-link").attr("href", 'http://wiki.openstreetmap.org/wiki/User:' + task.info.username);
 
         $('#wikisearch-link').html('').append(task.info.username);
-        $("#wikisearch-link").attr("href", 'http://wiki.openstreetmap.org/w/index.php?search=' + task.info.username);
-        
+        $("#wikisearch-link").attr("href", 'http://wiki.openstreetmap.org/w/index.php?ns0=1&ns1=1&ns2=1&ns3=1&ns4=1&ns5=1&ns200=1&ns202=1&ns204=1&ns206=1&ns208=1&ns210=1&ns212=1&search=' + task.info.username);
+
         var metrics = new Array(
           'num_poi', 'num_edits', 'num_coll_edits', 
           'num_tag_add', 'num_tag_update', 'num_tag_remove');
+          
         $.each(metrics, function(idx, metric) {
           console.log(metric);
           console.log($('#' + metric));
@@ -134,7 +161,13 @@ pybossa.presentTask(function(task, deferred) {
             var answer = $(evt.target).attr("value");
             if (typeof answer != 'undefined') {
                 //console.log(answer);
-                pybossa.saveTask(task.id, answer).done(function() {
+                var taskInfo = {
+                  group: task.info.group,
+                  uid: task.info.uid,
+                  username: task.info.username,
+                  answer: answer
+                };
+                pybossa.saveTask(task.id, taskInfo).done(function() {
                     deferred.resolve();
                 });
                 $("#loading").fadeIn(500);
