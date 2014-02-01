@@ -66,6 +66,8 @@ if __name__ == "__main__":
   parser.add_argument('group', help='A unique string identifier for this sample set')
   parser.add_argument('num_samples', help='The number of users to select', type=int)
   parser.add_argument('csvfile', help='A filename to store the samples')
+  parser.add_argument('--stats-table', help='Name of DB table with user edit stats', 
+    dest='stats_table', action='store', type=str, default='user_edit_stats')
   parser.add_argument('--min-edits', help='Minimum number of edits', dest='min_edits', 
     action='store', type=int, default=0)
   parser.add_argument('--country', help='Optional country name, as ISO2 country code', dest='country', 
@@ -98,11 +100,13 @@ if __name__ == "__main__":
     edits_filter = 'HAVING sum(num_edits)>=%d' % (args.min_edits)
   
   result = session.execute("""SELECT uid, MAX(username) as username, %s
-    FROM user_edit_stats ue %s %s
+    FROM %s ue %s %s
     GROUP BY uid
     %s
-    ORDER BY num_edits DESC""" % (', '.join(metrics_select), country_join, 
-      country_filter, edits_filter))
+    ORDER BY num_edits DESC""" % (
+      ', '.join(metrics_select), 
+      args.stats_table, country_join, country_filter, 
+      edits_filter))
 
   # uid -> {map: uid, username, num_edits, ...}
   items = dict()
