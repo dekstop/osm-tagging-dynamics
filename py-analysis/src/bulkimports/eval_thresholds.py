@@ -89,6 +89,48 @@ def eval_summary(cohort, filter_type, filter_param, abs_threshold, relevant, ret
 # = Plots =
 # =========  
 
+# x_labels: used for x-axis labels
+# metrics: metric_name -> list of measures, with same size as x_labels
+# kwargs is passed on to plt.scatter(...).
+def eval_plot(x_labels, measures, metric_names, outdir, filename_base, 
+  colors=QUALITATIVE_DARK, max_labels=30, **kwargs):
+  
+  fig = plt.figure(figsize=(4, 3))
+  fig.patch.set_facecolor('white')
+  
+  # x-axis labels
+  if len(x_labels) < max_labels:
+    x = range(len(x_labels))
+    plt.xticks(x, x_labels)
+  else:
+    x = [int(v*len(x_labels)/max_labels) for v in range(len(x_labels))]
+    labels = [x_labels[x1] for x1 in x if x1<len(x_labels)]
+    while len(labels) < len(x_labels):
+      labels.append('')
+    plt.xticks(x, labels)
+  
+  # plot
+  colgen = looping_generator(colors)
+  for metric_name in metric_names:
+    y = measures[metric_name]
+    print len(x_labels), len(y)
+    plt.plot(range(len(x_labels)), y, label=metric_name, color=next(colgen), **kwargs)
+
+  plt.legend(prop={'size':'xx-small'})
+    # loc='upper left', bbox_to_anchor=(1, 0.5), 
+    
+  
+  # rotate labels
+  locs, labels = plt.xticks()
+  plt.setp(labels, rotation=90)
+
+  plt.margins(0.1, 0.1)
+  plt.tick_params(axis='both', which='major', labelsize='x-small')
+  # plt.tick_params(axis='both', which='minor', labelsize='xx-small')
+
+  plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
+  plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+
 # ========
 # = Main =
 # ========
@@ -151,7 +193,7 @@ if __name__ == "__main__":
   # a list of evaluation metrics per filter and threshold
   eval_stats = []
   
-  for threshold in range(1000, 50000, 1000):
+  for threshold in range(5000, 100000, 5000):
     # global
     relevant = all_users['bulkimport'] # .union(all_users['unknown'])
     retrieved = get_uids_above_abs_threshold(session, threshold)
@@ -173,7 +215,6 @@ if __name__ == "__main__":
     # for iso2 in sorted(by_country.keys()):
       # pass
 
-
   # 
   # Report
   # 
@@ -181,3 +222,28 @@ if __name__ == "__main__":
   mkdir_p(args.outdir)
   eval_report(eval_stats, colnames, args.outdir, 'global_thresholds')
   
+  #
+  # Plots
+  #
+  
+  metric_names = ['precision', 'recall', 'F_1', 'F_0_5']
+  
+  abs_stats = [s for s in eval_stats if s['filter_type']=='absolute']
+  rel_stats = [s for s in eval_stats if s['filter_type']=='relative']
+  
+  abs_measures = defaultdict(list)
+  abs_xlabels = []
+  for s in abs_stats:
+    abs_xlabels.append(s['filter_param'])
+    for metric in metric_names:
+      abs_measures[metric].append(s[metric])
+
+  rel_measures = defaultdict(list)
+  rel_xlabels = []
+  for s in rel_stats:
+    rel_xlabels.append(s['filter_param'])
+    for metric in metric_names:
+      rel_measures[metric].append(s[metric])
+
+  eval_plot(abs_xlabels, abs_measures, metric_names, args.outdir, 'eval_absolute')
+  eval_plot(rel_xlabels, rel_measures, metric_names, args.outdir, 'eval_relative')
