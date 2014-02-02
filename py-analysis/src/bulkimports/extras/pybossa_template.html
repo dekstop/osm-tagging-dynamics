@@ -91,6 +91,8 @@
         <tr class="updater"><td>num_tag_update</td><td><span id="num_tag_update">#</span></td></tr>
         <tr class="updater"><td>num_tag_remove</td><td><span id="num_tag_remove">#</span></td></tr>
       </table>
+      <hr />
+      <p>Sample cohort: <span id="cohort">...</span></p>
     </div><!-- End of item DIV (columnt) -->
 </div><!-- End of Skeleton Row -->
 
@@ -145,13 +147,11 @@ pybossa.presentTask(function(task, deferred) {
         $("#wikisearch-link").attr("href", 'http://wiki.openstreetmap.org/w/index.php?ns0=1&ns1=1&ns2=1&ns3=1&ns4=1&ns5=1&ns200=1&ns202=1&ns204=1&ns206=1&ns208=1&ns210=1&ns212=1&search=' + task.info.username);
 
         var metrics = new Array(
+          'cohort',
           'num_poi', 'num_edits', 'num_coll_edits', 
           'num_tag_add', 'num_tag_update', 'num_tag_remove');
           
         $.each(metrics, function(idx, metric) {
-          console.log(metric);
-          console.log($('#' + metric));
-          console.log(task.info[metric]);
           $('#' + metric).html('').append(task.info[metric]);
         });
 
@@ -162,7 +162,7 @@ pybossa.presentTask(function(task, deferred) {
             if (typeof answer != 'undefined') {
                 //console.log(answer);
                 var taskInfo = {
-                  group: task.info.group,
+                  cohort: task.info.cohort,
                   uid: task.info.uid,
                   username: task.info.username,
                   answer: answer

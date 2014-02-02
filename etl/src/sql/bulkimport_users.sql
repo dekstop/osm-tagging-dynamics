@@ -182,3 +182,43 @@ INSERT INTO bulkimport_users(cohort, uid, type) VALUES
   ('201308-US_min2000_10', 510836, 'non-bulkimport'),
   ('201308-US_min2000_10', 554759, 'non-bulkimport'),
   ('201308-US_min2000_10', 994480, 'non-bulkimport');
+
+INSERT INTO bulkimport_users(cohort, uid, type) VALUES
+  ('201308-CA_min2000_10', 1060930, 'bulkimport'),
+  ('201308-CA_min2000_10', 1137518, 'bulkimport');
+
+INSERT INTO bulkimport_users(cohort, uid, type) VALUES
+  ('201108-CA_min1000_10', 155461, 'non-bulkimport'),
+  ('201108-DE_min1000_10', 476113, 'non-bulkimport'),
+  ('201108-US_min1000_10', 372357, 'unknown'),
+  ('201108-FR_min1000_10', 196894, 'non-bulkimport'),
+  ('201208-CZ_min1000_10', 417676, 'non-bulkimport'),
+  ('201208-CA_min1000_10', 8047, 'non-bulkimport'),
+  ('201108-DE_min1000_10', 490842, 'non-bulkimport'),
+  ('201208-JP_min1000_10', 550066, 'unknown'),
+  ('201308-CZ_min1000_10', 134948, 'unknown'),
+  ('201208-CA_min1000_10', 514776, 'non-bulkimport'),
+  ('201108-US_min1000_10', 28378, 'non-bulkimport'),
+  ('201108-CA_min1000_10', 118168, 'unknown'),
+  ('201308-JP_min1000_10', 651065, 'non-bulkimport'),
+  ('201208-CA_min1000_10', 76077, 'non-bulkimport'),
+  ('201208-CA_min1000_10', 779672, 'bulkimport'),
+  ('201208-PL_min1000_10', 706511, 'non-bulkimport'),
+  ('201308-US_min1000_10', 447903, 'non-bulkimport'),
+  ('201308-CA_min1000_10', 1688234, 'bulkimport'),
+  ('201108-SO_min1000_10', 64853, 'unknown'),
+  ('201308-US_min1000_10', 1687018, 'non-bulkimport'),
+  ('201208-DE_min1000_10', 39457, 'non-bulkimport'),
+  ('201108-CZ_min1000_10', 109724, 'bulkimport'),
+  ('201208-FR_min1000_10', 512235, 'non-bulkimport'),
+  ('201208-JP_min1000_10', 651065, 'non-bulkimport'),
+  ('201108-FR_min1000_10', 210173, 'bulkimport'),
+  ('201108-CZ_min1000_10', 217051, 'unknown'),
+  ('201108-FR_min1000_10', 29717, 'non-bulkimport'),
+  ('201108-CZ_min1000_10', 449434, 'non-bulkimport'),
+  ('201108-RU_min1000_10', 185115, 'non-bulkimport'),
+  ('201208-CZ_min1000_10', 461574, 'non-bulkimport'),
+  ('201308-DE_min1000_10', 56526, 'non-bulkimport'),
+  ('201108-CZ_min1000_10', 134948, 'unknown'),
+  ('201108-DE_min1000_10', 164833, 'non-bulkimport'),
+  ('201208-DE_min1000_10', 118856, 'non-bulkimport');

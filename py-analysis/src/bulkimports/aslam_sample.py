@@ -24,12 +24,12 @@ def encode(obj):
   return obj
 
 # data: a list of dictionaries
-def save_csv(group, data, colnames, filename):
+def save_csv(cohort, data, colnames, filename):
   outfile = open(filename, 'wb')
   outcsv = csv.writer(outfile)
-  outcsv.writerow(['group'] + colnames)
+  outcsv.writerow(['cohort'] + colnames)
   for row in data:
-    outcsv.writerow([group] + [encode(row[colname]) for colname in colnames])
+    outcsv.writerow([cohort] + [encode(row[colname]) for colname in colnames])
   outfile.close()
 
 # =========
@@ -63,15 +63,15 @@ def aslamSample(ranked_items, count):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(
     description='Sample user accounts for an evaluation of automated bulk import detection.')
-  parser.add_argument('group', help='A unique string identifier for this sample set')
+  parser.add_argument('cohort', help='A unique string identifier for this sample set')
   parser.add_argument('num_samples', help='The number of users to select', type=int)
   parser.add_argument('csvfile', help='A filename to store the samples')
   parser.add_argument('--stats-table', help='Name of DB table with user edit stats', 
     dest='stats_table', action='store', type=str, default='user_edit_stats')
   parser.add_argument('--min-edits', help='Minimum number of edits', dest='min_edits', 
     action='store', type=int, default=0)
-  parser.add_argument('--country', help='Optional country name, as ISO2 country code', dest='country', 
-    action='store', type=str, default=None)
+  parser.add_argument('--countries', help='Optional country name, as ISO2 country code', 
+    dest='countries', action='store', nargs='+', type=str, default=None)
   args = parser.parse_args()
 
   #
@@ -91,9 +91,9 @@ if __name__ == "__main__":
   
   country_join = ''
   country_filter = ''
-  if args.country:
+  if args.countries:
     country_join = 'JOIN world_borders w ON (w.gid=ue.country_gid)'
-    country_filter = "WHERE w.iso2='%s'" % (args.country)
+    country_filter = "WHERE w.iso2 IN ('%s')" % ("', '".join(args.countries))
   
   edits_filter = ''
   if args.min_edits:
@@ -138,7 +138,7 @@ if __name__ == "__main__":
   samples = [items[s] for s in sampled_ids]
 
   mkdir_p(os.path.dirname(args.csvfile))
-  save_csv(args.group, samples, fields, args.csvfile)
+  save_csv(args.cohort, samples, fields, args.csvfile)
 
   for item in samples[:10]:
     print "%d: %s (%d edits)" % (item['uid'], item['username'], item['num_edits'])

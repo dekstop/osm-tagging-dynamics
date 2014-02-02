@@ -147,7 +147,6 @@ def eval_plot(x_labels, measures, metric_names, outdir, filename_base,
   colgen = looping_generator(colors)
   for metric_name in metric_names:
     y = measures[metric_name]
-    print len(x_labels), len(y)
     plt.plot(range(len(x_labels)), y, label=metric_name, color=next(colgen), **kwargs)
 
   plt.legend(loc=legend_loc, prop={'size':'xx-small'})
@@ -168,17 +167,20 @@ def eval_plot(x_labels, measures, metric_names, outdir, filename_base,
 # xlabel_formatter: function for x-axis label format
 # metric_names: list of metrics to plot from stats entries
 def make_eval_plot(stats, xlabel_formatter, metric_names, outdir, filename_base, 
-legend_loc='upper right'):
+  colors=QUALITATIVE_DARK, legend_loc='upper right'):
 
+  if 2 > len([True for s in stats if s['num_relevant_retrieved']>1]):
+    print "Skipping plot %s: not enough data" % filename_base
+    return
+    
+  xlabels = [xlabel_formatter(s['filter_param']) for s in stats]
   measures = defaultdict(list)
-  xlabels = []
   for s in stats:
-    xlabels.append(xlabel_formatter(s['filter_param']))
     for metric in metric_names:
       measures[metric].append(s[metric])
 
   eval_plot(xlabels, measures, metric_names, outdir, filename_base, 
-    legend_loc=legend_loc)
+    colors=colors, legend_loc=legend_loc)
   
 
 # ========
@@ -199,10 +201,12 @@ if __name__ == "__main__":
   # Filter parameters
   #
   
-  abs_thresholds = range(10000, 110000, 10000)
+  # abs_thresholds = range(10000, 210000, 10000)
+  abs_thresholds = range(1000, 800000, 1000)
 
   # from 40% - ~99.994% in decreasing step sizes
-  rel_thresholds = [100 - 60.0/pow(2,n) for n in range(14)]
+  # rel_thresholds = [100 - 60.0/pow(2,n) for n in range(14)]
+  rel_thresholds = range(40, 95) + [100 - 5.0/pow(2,n) for n in range(14)]
 
   #
   # Get data
@@ -237,15 +241,20 @@ if __name__ == "__main__":
   if num_records==0:
     print "No training data found!"
     sys.exit(0)
+
+  # Country selection
+  countries = [iso2 
+    for iso2 in users_by_country.keys() 
+    if len(users_by_country[iso2]['bulkimport'])>=2]
   
-  countries = None
   if args.countries:
+    # manual country selection
     countries = []
     for iso2 in args.countries:
-      if len(users_by_country[iso2]['bulkimport'])>0:
-        countries.append(iso2)
+      if len(users_by_country[iso2]['bulkimport'])>=2:
+        countries.add(iso2)
       else:
-        print "No labelled data for country: %s, skipping" % iso2
+        print "Not enough labelled data for country: %s, skipping" % iso2
 
   #
   # Global evaluation reports
@@ -278,25 +287,23 @@ if __name__ == "__main__":
   abs_country_stats = defaultdict(list)
   rel_country_stats = defaultdict(list)
 
-  if countries:
+  for iso2 in countries:
+    for threshold in abs_thresholds:
+      abs_country_stats[iso2].append(
+        abs_eval_summary(iso2, threshold, users_by_country[iso2], 
+          session, args.stats_table, countries=[iso2]))
 
-    for iso2 in countries:
-      for threshold in abs_thresholds:
-        abs_country_stats[iso2].append(
-          abs_eval_summary(iso2, threshold, users_by_country[iso2], 
-            session, args.stats_table, countries=[iso2]))
-
-      eval_report(abs_country_stats[iso2], colnames, args.outdir, 
-        '%s_eval_absolute' % iso2)
-    
-    for iso2 in countries:
-      for percentile in rel_thresholds:
-        rel_country_stats[iso2].append(
-          rel_eval_summary(iso2, percentile, users_by_country[iso2], 
-            session, args.stats_table, countries=[iso2]))
+    eval_report(abs_country_stats[iso2], colnames, args.outdir, 
+      '%s_eval_absolute' % iso2)
   
-      eval_report(rel_country_stats[iso2], colnames, args.outdir, 
-        '%s_eval_relative' % iso2)
+  for iso2 in countries:
+    for percentile in rel_thresholds:
+      rel_country_stats[iso2].append(
+        rel_eval_summary(iso2, percentile, users_by_country[iso2], 
+          session, args.stats_table, countries=[iso2]))
+
+    eval_report(rel_country_stats[iso2], colnames, args.outdir, 
+      '%s_eval_relative' % iso2)
   
   #
   # Country report: "best" thresholds
@@ -336,11 +343,36 @@ if __name__ == "__main__":
     args.outdir, 'countries_relative_best')
 
   #
-  # Country variance report
+  # Threshold stability/variance report
   # 
 
-  abs_var = np.var([s['F_0_5'] for s in peak_abs_stats if s['F_0_5']!=None])
-  rel_var = np.var([s['F_0_5'] for s in peak_rel_stats if s['F_0_5']!=None])
+  # Get all "best" thresholds for each country
+  peak_abs_thresholds = [s['threshold'] for s in peak_abs_stats]
+
+  # Get F-scores for these thresholds across _all_ countries
+  pat_cohorts = [[s
+    for s in abs_country_stats[iso2] 
+    if s['abs_threshold'] in peak_abs_thresholds
+    and s['F_0_5']!=None]
+      for iso2 in abs_country_stats.keys()]
+  pat_F = [s['F_0_5'] for sublist in pat_cohorts for s in sublist]
+  
+  
+  # Get all "best" percentiles for each country
+  peak_rel_percentiles = [s['percentile'] for s in peak_rel_stats]
+  
+  # Get F-scores for these percentiles across _all_ countries
+  prp_cohorts = [[s
+    for s in rel_country_stats[iso2] 
+    if s['filter_param'] in peak_rel_percentiles
+    and s['F_0_5']!=None]
+      for iso2 in rel_country_stats.keys()]
+  prp_F = [s['F_0_5'] for sublist in prp_cohorts for s in sublist]
+
+
+  # Variances
+  abs_var = np.var(pat_F)
+  rel_var = np.var(prp_F)
   
   var_stats = []
   var_stats.append({'type': 'absolute', 'variance': abs_var})
@@ -352,30 +384,33 @@ if __name__ == "__main__":
   # Global evaluation plots
   #
   
-  metric_names = ['precision', 'recall', 'F_1', 'F_0_5']
+  metric_names = ['precision', 'recall', 'F_0_5']
+  colors = ['#6EDD89', '#75A8EB', '#000000']
+  # QUALITATIVE_DARK = ['#6EDD89', '#75A8EB', '#F2798C', '#F2D779', '#74D3E8']
   locale.setlocale(locale.LC_ALL, 'en_GB.utf8')
   
   make_eval_plot(abs_stats, 
     lambda x: locale.format("%d", x, grouping=True), 
     metric_names, args.outdir, 'global_eval_absolute', 
-    legend_loc='lower right')
+    colors=colors, legend_loc='lower right')
 
   make_eval_plot(rel_stats, 
     lambda x: str(x) + ' %', 
-    metric_names, args.outdir, 'global_eval_relative')
+    metric_names, args.outdir, 'global_eval_relative', 
+    colors=colors)
 
   #
   # Country evaluation plots
   #
   
-  if countries:
-    for iso2 in countries:
+  for iso2 in countries:
 
-      make_eval_plot(abs_country_stats[iso2], 
-        lambda x: locale.format("%d", x, grouping=True), 
-        metric_names, args.outdir, '%s_eval_absolute' % iso2, 
-        legend_loc='lower right')
+    make_eval_plot(abs_country_stats[iso2], 
+      lambda x: locale.format("%d", x, grouping=True), 
+      metric_names, args.outdir, '%s_eval_absolute' % iso2, 
+      colors=colors, legend_loc='lower right')
 
-      make_eval_plot(rel_country_stats[iso2], 
-        lambda x: str(x) + ' %', 
-        metric_names, args.outdir, '%s_eval_relative' % iso2)
+    make_eval_plot(rel_country_stats[iso2], 
+      lambda x: str(x) + ' %', 
+      metric_names, args.outdir, '%s_eval_relative' % iso2,
+      colors=colors)
