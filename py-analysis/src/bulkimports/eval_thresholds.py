@@ -96,8 +96,7 @@ def eval_summary(cohort, filter_type, filter_param, abs_threshold, relevant, ret
   if rec['num_relevant_retrieved']>0:
     rec['precision'] = float(rec['num_relevant_retrieved']) / rec['num_retrieved']
     rec['recall'] = float(rec['num_relevant_retrieved']) / rec['num_relevant']
-    rec['F_1'] = f_score(rec['precision'], rec['recall'], 1)
-    rec['F_0_5'] = f_score(rec['precision'], rec['recall'], 0.5)
+    rec['F'] = f_score(rec['precision'], rec['recall'], 2)
   return rec
 
 def abs_eval_summary(cohort, threshold, labelled_uids, session, stats_table, countries=None):
@@ -127,7 +126,7 @@ def rel_eval_summary(cohort, percentile, labelled_uids, session, stats_table, co
 # metrics: metric_name -> list of measures, with same size as x_labels
 # kwargs is passed on to plt.scatter(...).
 def eval_plot(x_labels, measures, metric_names, outdir, filename_base, 
-  colors=QUALITATIVE_DARK, max_labels=30, legend_loc='upper right', **kwargs):
+  colors=QUALITATIVE_DARK, max_labels=20, legend_loc='upper right', **kwargs):
   
   fig = plt.figure(figsize=(4, 3))
   fig.patch.set_facecolor('white')
@@ -138,6 +137,8 @@ def eval_plot(x_labels, measures, metric_names, outdir, filename_base,
     plt.xticks(x, x_labels)
   else:
     x = [int(v*len(x_labels)/max_labels) for v in range(len(x_labels))]
+    # skip = int(len(x_labels) / max_labels) + 1
+    # x = range(0, max_labels, skip)
     labels = [x_labels[x1] for x1 in x if x1<len(x_labels)]
     while len(labels) < len(x_labels):
       labels.append('')
@@ -157,7 +158,7 @@ def eval_plot(x_labels, measures, metric_names, outdir, filename_base,
   plt.setp(labels, rotation=90)
 
   plt.margins(0.1, 0.1)
-  plt.tick_params(axis='both', which='major', labelsize='x-small')
+  plt.tick_params(axis='both', which='major', labelsize='xx-small')
   # plt.tick_params(axis='both', which='minor', labelsize='xx-small')
 
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
@@ -202,11 +203,15 @@ if __name__ == "__main__":
   #
   
   # abs_thresholds = range(10000, 210000, 10000)
-  abs_thresholds = range(1000, 800000, 1000)
+  abs_thresholds = range(1000, 801000, 1000)
 
   # from 40% - ~99.994% in decreasing step sizes
   # rel_thresholds = [100 - 60.0/pow(2,n) for n in range(14)]
-  rel_thresholds = range(40, 95) + [100 - 5.0/pow(2,n) for n in range(14)]
+  # rel_thresholds = range(40, 80) + [100 - 20.0/pow(2,n) for n in range(14)]
+  rel_thresholds = \
+    [40 + v*40/200.0 for v in range(200)] + \
+    [80 + v*15/200.0 for v in range(200)] + \
+    [95 + v*5/400.0 for v in range(400)]
 
   #
   # Get data
@@ -245,13 +250,15 @@ if __name__ == "__main__":
   # Country selection
   countries = [iso2 
     for iso2 in users_by_country.keys() 
-    if len(users_by_country[iso2]['bulkimport'])>=2]
+    if (len(users_by_country[iso2]['bulkimport'])>=2
+      and len(users_by_country[iso2]['non-bulkimport'])>=2)]
   
   if args.countries:
     # manual country selection
     countries = []
     for iso2 in args.countries:
-      if len(users_by_country[iso2]['bulkimport'])>=2:
+      if (len(users_by_country[iso2]['bulkimport'])>=2 and 
+        len(users_by_country[iso2]['non-bulkimport'])>=2):
         countries.add(iso2)
       else:
         print "Not enough labelled data for country: %s, skipping" % iso2
@@ -260,12 +267,10 @@ if __name__ == "__main__":
   # Global evaluation reports
   #
 
-  mkdir_p(args.outdir)
-
   # report TSV format
   colnames = ['cohort', 'filter_type', 'filter_param', 'abs_threshold', 
     'num_relevant', 'num_retrieved', 'num_relevant_retrieved', 'precision', 
-    'recall', 'F_1', 'F_0_5']
+    'recall', 'F']
 
   abs_stats = []
   for threshold in abs_thresholds:
@@ -276,6 +281,8 @@ if __name__ == "__main__":
   for percentile in rel_thresholds:
     rel_stats.append(rel_eval_summary('global', percentile, all_users, 
       session, args.stats_table))
+
+  mkdir_p(args.outdir)
 
   eval_report(abs_stats, colnames, args.outdir, 'global_eval_absolute')
   eval_report(rel_stats, colnames, args.outdir, 'global_eval_relative')
@@ -314,77 +321,109 @@ if __name__ == "__main__":
   peak_rel_stats = []
   
   for iso2 in countries:
-    abs_F_scores = [s['F_0_5'] for s in abs_country_stats[iso2] if s['F_0_5']!=None]
+    abs_F_scores = [s['F'] for s in abs_country_stats[iso2] if s['F']!=None]
     if len(abs_F_scores) > 0:
       max_abs_F = max(abs_F_scores)
-      max_abs_threshold = max([s['abs_threshold'] for s in abs_country_stats[iso2] if s['F_0_5']==max_abs_F])
+      max_abs_threshold = min([s['abs_threshold'] for s in abs_country_stats[iso2] if s['F']==max_abs_F])
+
+      all_at_abs_threshold = [[s
+        for s in abs_country_stats[_iso2] 
+        if s['abs_threshold']==max_abs_threshold and s['F']!=None]
+          for _iso2 in abs_country_stats.keys()]
+      F_at_abs_threshold = [s['F'] for sublist in all_at_abs_threshold for s in sublist]
+
       peak_abs_stats.append({
         'iso2': iso2,
-        'F_0_5': max_abs_F,
-        'threshold': max_abs_threshold
+        'threshold': max_abs_threshold,
+        'F': max_abs_F,
+        'all_F_at_threshold': F_at_abs_threshold,
+        'mean_F_at_threshold': np.mean(F_at_abs_threshold),
+        'std_F_at_threshold': np.std(F_at_abs_threshold)
       })
   
-    rel_F_scores = [s['F_0_5'] for s in rel_country_stats[iso2] if s['F_0_5']!=None]
+    rel_F_scores = [s['F'] for s in rel_country_stats[iso2] if s['F']!=None]
     if len(rel_F_scores) > 0:
       max_rel_F = max(rel_F_scores)
-      max_rel_percentile = max([s['filter_param'] for s in rel_country_stats[iso2] if s['F_0_5']==max_rel_F])
-      max_rel_threshold = max([s['abs_threshold'] for s in rel_country_stats[iso2] if s['F_0_5']==max_rel_F])
+      max_rel_percentile = min([s['filter_param'] for s in rel_country_stats[iso2] if s['F']==max_rel_F])
+      max_rel_threshold = min([s['abs_threshold'] for s in rel_country_stats[iso2] if s['F']==max_rel_F])
+
+      all_at_rel_threshold = [[s
+        for s in rel_country_stats[_iso2] 
+        if s['filter_param']==max_rel_percentile and s['F']!=None]
+          for _iso2 in rel_country_stats.keys()]
+      F_at_rel_threshold = [s['F'] for sublist in all_at_rel_threshold for s in sublist]
+
       peak_rel_stats.append({
         'iso2': iso2,
-        'F_0_5': max_rel_F,
         'percentile': max_rel_percentile,
-        'threshold': max_rel_threshold
+        'threshold': max_rel_threshold,
+        'F': max_rel_F,
+        'all_F_at_threshold': F_at_rel_threshold,
+        'mean_F_at_threshold': np.mean(F_at_rel_threshold),
+        'std_F_at_threshold': np.std(F_at_rel_threshold)
       })
   
-  eval_report(peak_abs_stats, ['iso2', 'F_0_5', 'threshold'], 
+  eval_report(peak_abs_stats, 
+    ['iso2', 'threshold', 'F', 'mean_F_at_threshold', 'std_F_at_threshold'], 
     args.outdir, 'countries_absolute_best')
 
-  eval_report(peak_rel_stats, ['iso2', 'F_0_5', 'percentile', 'threshold'], 
+  eval_report(peak_rel_stats, 
+    ['iso2', 'percentile', 'threshold', 'F', 'mean_F_at_threshold', 'std_F_at_threshold'], 
     args.outdir, 'countries_relative_best')
 
   #
   # Threshold stability/variance report
   # 
-
-  # Get all "best" thresholds for each country
+  
+  # Summary stats for "best" thresholds
   peak_abs_thresholds = [s['threshold'] for s in peak_abs_stats]
-
-  # Get F-scores for these thresholds across _all_ countries
-  pat_cohorts = [[s
-    for s in abs_country_stats[iso2] 
-    if s['abs_threshold'] in peak_abs_thresholds
-    and s['F_0_5']!=None]
-      for iso2 in abs_country_stats.keys()]
-  pat_F = [s['F_0_5'] for sublist in pat_cohorts for s in sublist]
-  
-  
-  # Get all "best" percentiles for each country
+  peak_rel_thresholds = [s['threshold'] for s in peak_rel_stats]
   peak_rel_percentiles = [s['percentile'] for s in peak_rel_stats]
-  
-  # Get F-scores for these percentiles across _all_ countries
-  prp_cohorts = [[s
-    for s in rel_country_stats[iso2] 
-    if s['filter_param'] in peak_rel_percentiles
-    and s['F_0_5']!=None]
-      for iso2 in rel_country_stats.keys()]
-  prp_F = [s['F_0_5'] for sublist in prp_cohorts for s in sublist]
 
+  F_at_peak_rel_threshold = [s 
+    for sublist in peak_rel_stats 
+    for s in sublist['all_F_at_threshold']]
 
-  # Variances
-  abs_var = np.var(pat_F)
-  rel_var = np.var(prp_F)
+  # Apply the "best" thresholds to all countries and get F-scores
+  F_at_peak_abs_threshold = [s 
+    for sublist in peak_abs_stats 
+    for s in sublist['all_F_at_threshold']]
+
+  F_at_peak_rel_threshold = [s 
+    for sublist in peak_rel_stats 
+    for s in sublist['all_F_at_threshold']]
   
+  # Report
   var_stats = []
-  var_stats.append({'type': 'absolute', 'variance': abs_var})
-  var_stats.append({'type': 'relative', 'variance': rel_var})
+  var_stats.append({'type': 'absolute', 
+    'num_countries': len(peak_abs_stats),
+    'pop_std_F_at_peak': np.std(F_at_peak_abs_threshold),
+    'mean_peak_percentile': None,
+    'std_peak_percentile': None,
+    'mean_peak_threshold': np.mean(peak_abs_thresholds),
+    'std_peak_threshold': np.std(peak_abs_thresholds)
+  })
+  var_stats.append({'type': 'relative', 
+    'num_countries': len(peak_rel_stats),
+    'pop_std_F_at_peak': np.std(F_at_peak_rel_threshold),
+    'mean_peak_percentile': np.mean(peak_rel_percentiles),
+    'std_peak_percentile': np.std(peak_rel_percentiles),
+    'mean_peak_threshold': np.mean(peak_rel_thresholds),
+    'std_peak_threshold': np.std(peak_rel_thresholds)
+  })
 
-  eval_report(var_stats, ['type', 'variance'], args.outdir, 'countries_variance')
+  eval_report(var_stats, 
+    ['type', 'num_countries', 
+      'pop_std_F_at_peak', 
+      'mean_peak_percentile', 'std_peak_percentile',
+      'mean_peak_threshold', 'std_peak_threshold'], 
+    args.outdir, 'countries_variance')
 
   #
   # Global evaluation plots
   #
   
-  metric_names = ['precision', 'recall', 'F_0_5']
+  metric_names = ['precision', 'recall', 'F']
   colors = ['#6EDD89', '#75A8EB', '#000000']
   # QUALITATIVE_DARK = ['#6EDD89', '#75A8EB', '#F2798C', '#F2D779', '#74D3E8']
   locale.setlocale(locale.LC_ALL, 'en_GB.utf8')

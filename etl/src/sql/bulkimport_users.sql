@@ -63,7 +63,7 @@ INSERT INTO bulkimport_users(cohort, uid, type) VALUES
   ('201208-DE_min2000_10', 29639, 'non-bulkimport'),
   ('201208-DE_min2000_10', 36080, 'non-bulkimport'),
   ('201208-DE_min2000_10', 44122, 'non-bulkimport'),
-  ('201208-DE_min2000_10', 55462, 'non-bulkimport'),
+  ('201208-DE_min2000_10', 55462, 'unknown'),
   ('201208-DE_min2000_10', 120401, 'non-bulkimport'),
   ('201208-DE_min2000_10', 173844, 'non-bulkimport'),
   ('201208-DE_min2000_10', 465085, 'non-bulkimport'),
@@ -72,7 +72,7 @@ INSERT INTO bulkimport_users(cohort, uid, type) VALUES
   ('201208-DE_min2000_10', 731874, 'non-bulkimport'),
   ('201208-FR_min2000_10', 4363, 'non-bulkimport'),
   ('201208-FR_min2000_10', 45734, 'non-bulkimport'),
-  ('201208-FR_min2000_10', 163480, 'unknown'),
+  ('201208-FR_min2000_10', 163480, 'bulkimport'),
   ('201208-FR_min2000_10', 211154, 'unknown'),
   ('201208-FR_min2000_10', 400383, 'non-bulkimport'),
   ('201208-FR_min2000_10', 582049, 'non-bulkimport'),
@@ -222,3 +222,4 @@ INSERT INTO bulkimport_users(cohort, uid, type) VALUES
   ('201108-CZ_min1000_10', 134948, 'unknown'),
   ('201108-DE_min1000_10', 164833, 'non-bulkimport'),
   ('201208-DE_min1000_10', 118856, 'non-bulkimport');
+  
