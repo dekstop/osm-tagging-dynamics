@@ -310,7 +310,7 @@ if __name__ == "__main__":
     abs_F_scores = [s['F_0_5'] for s in abs_country_stats[iso2] if s['F_0_5']!=None]
     if len(abs_F_scores) > 0:
       max_abs_F = max(abs_F_scores)
-      max_abs_threshold = np.mean([s['abs_threshold'] for s in abs_country_stats[iso2] if s['F_0_5']==max_abs_F])
+      max_abs_threshold = max([s['abs_threshold'] for s in abs_country_stats[iso2] if s['F_0_5']==max_abs_F])
       peak_abs_stats.append({
         'iso2': iso2,
         'F_0_5': max_abs_F,
@@ -320,8 +320,8 @@ if __name__ == "__main__":
     rel_F_scores = [s['F_0_5'] for s in rel_country_stats[iso2] if s['F_0_5']!=None]
     if len(rel_F_scores) > 0:
       max_rel_F = max(rel_F_scores)
-      max_rel_percentile = np.mean([s['filter_param'] for s in rel_country_stats[iso2] if s['F_0_5']==max_rel_F])
-      max_rel_threshold = np.mean([s['abs_threshold'] for s in rel_country_stats[iso2] if s['F_0_5']==max_rel_F])
+      max_rel_percentile = max([s['filter_param'] for s in rel_country_stats[iso2] if s['F_0_5']==max_rel_F])
+      max_rel_threshold = max([s['abs_threshold'] for s in rel_country_stats[iso2] if s['F_0_5']==max_rel_F])
       peak_rel_stats.append({
         'iso2': iso2,
         'F_0_5': max_rel_F,
