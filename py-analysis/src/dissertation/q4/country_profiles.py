@@ -95,6 +95,8 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(
     description='Statistics relating to collaborative editing practices.')
   parser.add_argument('outdir', help='directory for output files')
+  parser.add_argument('--schema', dest='schema', type=str, default='public', 
+      action='store', help='parent schema that contains data tables. Default: public')
   parser.add_argument('--countries', help='list of country names', 
     dest='countries', nargs='+', action='store', type=str, default=None)
   parser.add_argument('--min-edits', dest='min_edits', type=int, default=None, 
@@ -135,10 +137,10 @@ if __name__ == "__main__":
   #getDb().echo = True    
   session = getSession()
   result = session.execute("""SELECT w.name as country, %s
-  FROM user_edit_stats ue
+  FROM %s.user_edit_stats ue
   JOIN world_borders w ON (ue.country_gid=w.gid)
   WHERE TRUE %s
-  ORDER BY w.name, uid""" % (", ".join(user_fields), select_filter))
+  ORDER BY w.name, uid""" % (", ".join(user_fields), args.schema, select_filter))
 
   # dict: country -> list of user records
   data = defaultdict(list)

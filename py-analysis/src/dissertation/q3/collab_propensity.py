@@ -121,6 +121,8 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(
     description='Statistics relating to collaborative editing practices.')
   parser.add_argument('outdir', help='directory for output files')
+  parser.add_argument('--schema', dest='schema', type=str, default='public', 
+      action='store', help='parent schema that contains data tables. Default: public')
   parser.add_argument('--actions', help='list of tag edit actions', 
     dest='actions', nargs='+', action='store', type=str, default=None)
   args = parser.parse_args()
@@ -146,19 +148,19 @@ if __name__ == "__main__":
     COALESCE(num_collab_edits, 0)::numeric / num_edits as share_collab_edits
   FROM (
     SELECT uid, count(*) as num_edits
-    FROM poi p 
-    JOIN poi_tag_edit_action pt ON (p.id=pt.poi_id AND p.version=pt.version)
+    FROM %s.poi p 
+    JOIN %s.poi_tag_edit_action pt ON (p.id=pt.poi_id AND p.version=pt.version)
     GROUP BY uid
   ) t1
   LEFT OUTER JOIN (
     SELECT uid, count(*) as num_collab_edits
-    FROM poi p
+    FROM %s.poi p
     JOIN shared_poi sp ON (p.id=sp.poi_id AND p.version>=sp.first_shared_version)
-    JOIN poi_tag_edit_action pt ON (p.id=pt.poi_id AND p.version=pt.version)
+    JOIN %s.poi_tag_edit_action pt ON (p.id=pt.poi_id AND p.version=pt.version)
     %s
     GROUP BY uid
   ) t2 ON (t1.uid=t2.uid)
-  ORDER BY num_edits ASC""" % (action_filter))
+  ORDER BY num_edits ASC""" % (args.schema, args.schema, args.schema, args.schema, action_filter))
 
   data = []
   num_records = 0
