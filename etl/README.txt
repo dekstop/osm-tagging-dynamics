@@ -14,34 +14,48 @@ Optionally:
 - access to a Hadoop cluster with Pig and LZO compression set up
 - lzop
 
- ===========
- = Install =
- ===========
+ =========
+ = Fetch =
+ =========
 
-Create a Postgres DB with src/sql/schema.sql
-(Your Postgres user needs CREATE permissions on the respective DB.)
+Configure local paths etc:
+$ cp bin/env.sh-example bin/env.sh
+Edit bin/env.sh
+
+To update the hard-coded OSM history source dir (lame, I know):
+Edit bin/fetch_osh.sh
 
 Fetch/extract history data:
-$ cp bin/env.sh-example bin/env.sh
 $ ./bin/fetch_osh.sh
-$ ./bin/extract_osh.sh <.osh.pbf files>
+$ ./bin/extract_osh.sh [*.osh.pbf files]
 
 Recommended but optional:
 - compress with lzop
   $ lzop --delete -v data/etl/*.txt
 - index with com.hadoop.compression.lzo.LzoIndexer
   $ hadoop jar .../hadoop-lzo.jar com.hadoop.compression.lzo.LzoIndexer data/etl/
-- clean/filter raw node data to extract POI data
-  - upload to a Hadoop cluster
-  $ pig <...> src/mapred/clean_poi.pig
 
-To load:
-$ ./bin/load_tsv.sh <tsv files>
+Then upload all this to a Hadoop cluster.
+A range of Pig scripts in src/mapred help with data cleaning etc.
 
-The SQL scripts in src/sql/* provide some further aggregations etc.
+Clean the node history to extract pure POI data:
+$ pig <...> src/mapred/clean_poi.pig
 
-Some key derivative data sets may be too expensive to compute in DB. 
+Some (optional) derivative data sets are too expensive to compute in DB. 
 You can compute these in Hadoop instead, then load into your DB manually.
-- poi_sequence: src/mapred/deriv_poi_sequence.pig
-- tag_edit_action: src/mapred/deriv_poi_tag_edit_action.pig
-- changeset: src/mapred/deriv_changeset.pig
+-> have a look at src/mapred/deriv_*.pig
+
+Then copy it all to a local drive to it into Postgres.
+
+========
+= Load =
+========
+
+Create a Postgres DB with src/sql/schema.sql
+Your Postgres user needs CREATE permissions on the respective DB.
+
+To load a segment:
+$ ./bin/load_tsv.sh <root_dir>
+
+SQL scripts in src/sql/* can provide some further aggregations etc.
+

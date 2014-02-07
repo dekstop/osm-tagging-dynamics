@@ -7,8 +7,9 @@ BIN=$( cd "$( dirname "$0" )" && pwd )
 # = Main =
 # ========
 
-tag=2013-11-02
-rootUrl=http://osm.personalwerk.de/full-history-extracts/planet-history-${tag}/continents
+year=2014
+tag=2014-01-06
+rootUrl=http://osm.personalwerk.de/full-history-extracts/${year}/${tag}/continents
 files="africa antarctica asia australia-oceania central-america europe north-america south-america"
 
 oshDir=${OSH_DATADIR}/continents-${tag}
