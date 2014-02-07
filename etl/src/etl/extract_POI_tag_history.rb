@@ -184,10 +184,10 @@ while keep_scanning
     # Get tags
     while is_a(xml, 'tag')
       tag = get_attributes(xml)
-      if tag['k']!='created_by'
+      #if tag['k']!='created_by'
         tagfile.write("#{id}\t#{version}\t#{escape(tag['k'])}\t#{escape(tag['v'])}\n")
         has_tags = true
-      end
+      #end
       seek_to_next_tag(xml)
     end
   end
