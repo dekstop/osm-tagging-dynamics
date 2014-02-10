@@ -7,8 +7,13 @@ BIN=$( cd "$( dirname "$0" )" && pwd )
 # = Prepare =
 # ===========
 
+function sqlScript() {
+  echo "Running script: ${@}"
+  $PSQL --set ON_ERROR_STOP=1 $DATABASE < $@ || return 1
+}
+
 function createSchema() {
-  $PSQL --set ON_ERROR_STOP=1 $DATABASE < ${SRCDIR}/sql/schema.sql || return 1
+  sqlScript ${SRCDIR}/sql/schema.sql || return 1
 }
 
 function truncate() {
@@ -67,6 +72,22 @@ function loadTableData() {
   $PSQL $DATABASE -c "VACUUM ANALYZE $tablename" || return 1
 }
 
+# ====================
+# = Auxiliary tables =
+# ====================
+
+function createWorldBordersTable() {
+  sqlScript ${DATADIR}/world_borders/TM_WORLD_BORDERS-0.3.sql || return 1
+}
+
+function createWorldBordersSimplTable() {
+  sqlScript ${DATADIR}/world_borders/TM_WORLD_BORDERS_SIMPL-0.3.sql || return 1
+}
+
+function createWorldBordersJoin() {
+  sqlScript ${SRCDIR}/sql/world_borders_poi.sql || return 1
+}
+
 # ========
 # = Main =
 # ========
@@ -75,6 +96,7 @@ datadir=
 do_truncate=
 create_schema=
 drop_index=
+load_world_borders=
 tablenames="poi poi_tag poi_tag_edit_action shared_poi"
 
 if [[ $# -lt 1 ]]
@@ -96,6 +118,7 @@ do
     --schema) echo "Will recreate database schema before loading."; create_schema=t ;;
     --truncate) echo "Will truncate tables before loading."; do_truncate=t ;;
     --drop-index) echo "Will drop indices before loading."; drop_index=t ;;
+    --world-borders) echo "Will load world borders data."; load_world_borders=t ;;
     *) 
       echo "Loading data from: ${1}"
       datadir=$1 
@@ -146,4 +169,14 @@ then
   createIndex || exit 1
   echo
 fi
+
+if [ $load_world_borders ]
+then
+  echo "Loading world borders data..."
+  createWorldBordersTable || exit 1
+  createWorldBordersSimplTable || exit 1
+  createWorldBordersJoin || exit 1
+fi
+
+echo "All done."
 
