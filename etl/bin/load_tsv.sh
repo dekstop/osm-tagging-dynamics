@@ -9,7 +9,7 @@ BIN=$( cd "$( dirname "$0" )" && pwd )
 
 function sqlScript() {
   echo "Running script: ${@}"
-  $PSQL --set ON_ERROR_STOP=1 $DATABASE < $@ || return 1
+  $PSQL --quiet --set ON_ERROR_STOP=1 $DATABASE < $@ || return 1
 }
 
 function createSchema() {
@@ -77,15 +77,19 @@ function loadTableData() {
 # ====================
 
 function createWorldBordersTable() {
-  sqlScript ${DATADIR}/world_borders/TM_WORLD_BORDERS-0.3.sql || return 1
+  sqlScript ${SRCDIR}/sql/world_borders/TM_WORLD_BORDERS-0.3.sql || return 1
 }
 
 function createWorldBordersSimplTable() {
-  sqlScript ${DATADIR}/world_borders/TM_WORLD_BORDERS_SIMPL-0.3.sql || return 1
+  sqlScript ${SRCDIR}/sql/world_borders/TM_WORLD_BORDERS_SIMPL-0.3.sql || return 1
 }
 
 function createWorldBordersJoin() {
   sqlScript ${SRCDIR}/sql/world_borders_poi.sql || return 1
+}
+
+function createUserEditStats() {
+  sqlScript ${SRCDIR}/sql/user_edit_stats.sql || return 1
 }
 
 # ========
@@ -158,7 +162,7 @@ do
       truncate $tablename || exit 1
     fi
     echo "Loading table data: ${tablename}"
-    loadTableData $tablename ${datadir}/${tablename}/* || exit 1
+    #loadTableData $tablename ${datadir}/${tablename}/* || exit 1
     echo
   fi
 done
@@ -176,6 +180,8 @@ then
   createWorldBordersTable || exit 1
   createWorldBordersSimplTable || exit 1
   createWorldBordersJoin || exit 1
+  echo "User edit stats..."
+  createUserEditStats || exit 1
 fi
 
 echo "All done."
