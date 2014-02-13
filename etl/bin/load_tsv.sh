@@ -162,7 +162,7 @@ do
       truncate $tablename || exit 1
     fi
     echo "Loading table data: ${tablename}"
-    #loadTableData $tablename ${datadir}/${tablename}/* || exit 1
+    loadTableData $tablename ${datadir}/${tablename}/* || exit 1
     echo
   fi
 done
