@@ -184,11 +184,15 @@ if __name__ == "__main__":
   
   # outlier thresholds
   min_edits = 20
-  max_edits = 50000
+  # max_edits = 50000
+
+  filtered_data = [record for record in data if record['num_edits']>=min_edits]
   
-  filtered_data = [record for record in data if
-    record['num_edits']>=min_edits and
-    record['num_edits']<=max_edits]
+  # filtered_data = [record for record in data if
+  #   record['num_edits']>=min_edits and
+  #   record['num_edits']<=max_edits]
+
+  # filtered_data = data
 
   #
   # Regression
@@ -211,7 +215,7 @@ if __name__ == "__main__":
   #
   # Box plots of normal/power user propensity
   #
-  power_threshold = 100
+  power_threshold = 50
   normal_propensity = [record['share_collab_edits'] for record in filtered_data 
     if record['num_edits']<=power_threshold]
   power_propensity = [record['share_collab_edits'] for record in filtered_data 
