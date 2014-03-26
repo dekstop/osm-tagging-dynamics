@@ -230,7 +230,7 @@ if __name__ == "__main__":
       iso2, len(raw_data[iso2]), len(data[iso2]), bulk_thresholds[iso2])
 
   #
-  # Graph: impact of bulk import filters
+  # Filter stats: impact of bulk import filter
   #
   
   # Countries are ranked by number of users, descending
@@ -242,29 +242,48 @@ if __name__ == "__main__":
   for iso2 in iso2s:
     rec = dict()
 
-    rec['p_users_removed'] = decimal.Decimal(1.0) - decimal.Decimal(len(data[iso2])) / len(raw_data[iso2])
+    rec['threshold'] = bulk_thresholds[iso2]
+
+    rec['num_users_pre'] = len(raw_data[iso2])
+    rec['num_users_post'] = len(data[iso2])
+    rec['p_users_removed'] = decimal.Decimal(1.0) - \
+      decimal.Decimal(rec['num_users_post']) / rec['num_users_pre']
 
     raw_edits = [d['num_edits'] for d in raw_data[iso2]]
     edits = [d['num_edits'] for d in data[iso2]]
-    rec['p_edits_removed'] = decimal.Decimal(1.0) - decimal.Decimal(sum(edits)) / sum(raw_edits)
+    rec['num_edits_pre'] = sum(raw_edits)
+    rec['num_edits_post'] = sum(edits)
+    rec['p_edits_removed'] = decimal.Decimal(1.0) - \
+      decimal.Decimal(rec['num_edits_post']) / rec['num_edits_pre']
 
     raw_coll_edits = [d['num_coll_edits'] for d in raw_data[iso2]]
     coll_edits = [d['num_coll_edits'] for d in data[iso2]]
-    rec['p_coll_edits_removed'] = decimal.Decimal(1.0) - decimal.Decimal(sum(coll_edits)) / sum(raw_coll_edits)
+    rec['num_coll_edits_pre'] = sum(raw_coll_edits)
+    rec['num_coll_edits_post'] = sum(coll_edits)
+    rec['p_coll_edits_removed'] = decimal.Decimal(1.0) - \
+      decimal.Decimal(rec['num_coll_edits_post']) / rec['num_coll_edits_pre']
     
     filter_stats[iso2] = rec
+  
+  #
+  # Basic user report, impact of bulk import filter
+  #
+  mkdir_p(args.outdir)
+
+  group_report(raw_data, 'country', user_fields, args.outdir, "user_profiles_unfiltered")
+  group_report(data, 'country', user_fields, args.outdir, "user_profiles")
+  
+  segment_report(filter_stats, 'country', 
+    ['threshold', 
+      'num_users_pre', 'num_users_post', 'p_users_removed',
+      'num_edits_pre', 'num_edits_post', 'p_edits_removed',
+      'num_coll_edits_pre', 'num_coll_edits_post', 'p_coll_edits_removed'], 
+    args.outdir, 'bulkimport_filter_stats')
   
   group_share_plot(filter_stats, iso2s, 
     ['p_users_removed', 'p_edits_removed', 'p_coll_edits_removed'], 
     args.outdir, 'bulkimport_filter_stats')
 
-  #
-  # Basic user report
-  #
-  mkdir_p(args.outdir)
-  group_report(raw_data, 'country', user_fields, args.outdir, "user_profiles_unfiltered")
-  group_report(data, 'country', user_fields, args.outdir, "user_profiles")
-  
   
   #
   # Per country: share of collab editors
