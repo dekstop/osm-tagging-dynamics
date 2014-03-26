@@ -5,6 +5,7 @@ DROP VIEW IF EXISTS view_poi_tag_removal;
 DROP VIEW IF EXISTS view_poi_tag_update;
 DROP VIEW IF EXISTS view_shared_poi;
 DROP VIEW IF EXISTS view_poi_sequence;
+DROP VIEW IF EXISTS view_changeset;
 
 DROP TABLE IF EXISTS node;
 DROP TABLE IF EXISTS poi;
@@ -166,7 +167,10 @@ CREATE UNIQUE INDEX idx_poi_tag_edit_action_poi_id_version_key ON poi_tag_edit_a
 
 CREATE TABLE changeset (
   id          INTEGER NOT NULL,
-  num_nodes   INTEGER NOT NULL,
+  uid         INTEGER,
+  username    TEXT,
+  num_poi     INTEGER NOT NULL,
+  num_edits   INTEGER NOT NULL,
   first_time  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
   last_time   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
   minlat      NUMERIC,
@@ -176,4 +180,20 @@ CREATE TABLE changeset (
 );
 
 CREATE UNIQUE INDEX idx_changeset_id ON changeset(id);
-CREATE INDEX idx_changeset_num_nodes ON changeset(num_nodes);
+CREATE INDEX idx_changeset_num_poi ON changeset(num_poi);
+
+CREATE VIEW view_changeset AS 
+  SELECT changeset as id, 
+    max(uid) as uid, 
+    max(username) as username, 
+    count(distinct id) as num_poi,
+    count(*) as num_edits,
+    min(timestamp) as first_time,
+    max(timestamp) as last_time,
+    min(latitude) as minlat,
+    min(longitude) as minlon,
+    max(latitude) as maxlat,
+    max(latitude) as maxlon
+  FROM poi p 
+  JOIN poi_tag_edit_action pea ON (p.id=pea.poi_id AND p.version=pea.version)
+  GROUP BY changeset;

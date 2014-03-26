@@ -1,4 +1,4 @@
--- Requires the world_borders_poi_latest and poi_multiple_editors tables.
+-- Requires the world_borders_poi_latest and shared_poi tables.
 
 DROP TABLE IF EXISTS user_edit_stats;
 
