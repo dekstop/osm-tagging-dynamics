@@ -135,7 +135,7 @@ def segment_report(data, keycolname, segcolnames, outdir, filename_base):
 def group_share_plot(data, iso2s, measures, outdir, filename_base, 
   colors=QUALITATIVE_MEDIUM, scale=100, **kwargs):
 
-  for (measure, iso2, ax1) in plot_matrix(measures, iso2s, cellwidth=3, cellheight=0.5):
+  for (measure, iso2, ax1) in plot_matrix(measures, iso2s, cellwidth=4, cellheight=0.5):
     colgen = looping_generator(colors)
     value = data[iso2][measure] * scale
     ax1.barh(0, value, 1, left=0, color=next(colgen), **kwargs)
