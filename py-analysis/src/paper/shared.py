@@ -1,8 +1,6 @@
 # Some functions shared by several scripts.
 
-# ================
-# = Econometrics =
-# ================
+from app import *
 
 # ===========
 # = Reports =
