@@ -58,6 +58,31 @@ def ranked_percentile_share(values, perc, reverse=False):
   limit = int(len(values) * perc / Decimal(100))
   return Decimal(sum(values[:limit])) / sum(values) * 100
 
+# From http://stackoverflow.com/questions/20279458/implementation-of-theil-inequality-index-in-python
+
+def error_if_not_in_range01(value):
+  if (value < 0) or (value > 1):
+    raise Exception, str(value) + ' is not in [0,1]!'
+
+def Group_negentropy(x_i):
+  if x_i == 0:
+    return 0.0
+  else:
+    return x_i * np.log(x_i)
+
+def H(x):
+  n = len(x)
+  entropy = 0.0
+  sum = 0.0
+  for x_i in x: # work on all x[i]
+    # print x_i
+    error_if_not_in_range01(x_i)
+    sum += x_i
+    group_negentropy = Group_negentropy(x_i)
+    entropy += group_negentropy
+  # error_if_not_1(sum)
+  return -entropy
+
 # x is a list of percentages in the range [0,1]
 # NOTE: sum(x) must be 1.0
 def theil(x):
@@ -90,7 +115,6 @@ def threshold_plot(data, iso2s, measures, thresholds, outdir, filename_base,
     ax1.barh(0, scale-value, 1, left=value, color=next(colgen), **kwargs)
 
     ax1.margins(0, 0)
-    # ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(to_even_percent))
     ax1.get_xaxis().set_ticks([])
     ax1.get_yaxis().set_ticks([])
     
@@ -111,7 +135,7 @@ def lorenz_plot(data, iso2s, measures, steps, outdir, filename_base,
     y = [ranked_percentile_share(data[iso2][measure], perc) for perc in steps]
     ax1.fill(steps, y, color=colgen.next(), **kwargs)
 
-    ax1.margins(0, 0)
+    ax1.margins(0.1, 0.1)
   
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
@@ -121,7 +145,7 @@ def lorenz_plot(data, iso2s, measures, steps, outdir, filename_base,
 # Converts to relative values and draws a Lorenz curve per iso2.
 # kwargs is passed on to plt.plot(...).
 def combined_lorenz_plot(data, iso2s, measure, steps, outdir, filename_base, 
-  colors=QUALITATIVE_MEDIUM, alpha=0.1, **kwargs):
+  colors=QUALITATIVE_MEDIUM, alpha=0.4, **kwargs):
   
   fig = plt.figure(figsize=(4, 4))
   fig.patch.set_facecolor('white')
@@ -144,10 +168,11 @@ def combined_lorenz_plot(data, iso2s, measure, steps, outdir, filename_base,
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Statistics relating to collaborative editing practices.')
   parser.add_argument('datafile', help='TSV of user data')
-  parser.add_argument('groupcol', help='column name used to group population subsets')
   parser.add_argument('outdir', help='directory for output files')
+  parser.add_argument('groupcol', help='column name used to group population subsets')
   parser.add_argument('--topuser-percentiles', help='work percentile threshold for highly engaged users', dest='topuser_percentiles', nargs='+', action='store', type=Decimal, default=[Decimal(10), Decimal(1), Decimal('0.1')])
   parser.add_argument('--lorenz-steps', help='Lorenz curve population percentage thresholds', dest='lorenz_steps', nargs='+', action='store', type=Decimal, default=[Decimal(v) for v in range(0,102,2)])
+  parser.add_argument('--num-groups', help='The number of groups to analyse (ranked by size)', dest='num_groups', action='store', type=int, default=None)
   args = parser.parse_args()
 
   #
@@ -158,14 +183,21 @@ if __name__ == "__main__":
   metrics = df.columns.tolist()
   metrics.remove(args.groupcol)
   
-  # iso2 -> list of user dicts
+  # group -> list of user dicts
   data = defaultdict(list)
   for idx, row in df.iterrows():
-    iso2 = row[args.groupcol]
+    group = row[args.groupcol]
     rec = dict()
     for metric in metrics:
       rec[metric] = row[metric]
-    data[iso2].append(rec)
+    data[group].append(rec)
+
+  # Groups are ranked by population size, descending
+  groups = sorted(data.keys(), key=lambda group: len(data[group]), reverse=True)
+
+  if args.num_groups:
+    print "Limiting to %d groups (from %d)" % (args.num_groups, len(data.keys()))
+    groups = groups[:args.num_groups]
 
   #
   # Per country: Lorenz curves
@@ -173,11 +205,11 @@ if __name__ == "__main__":
   
   # dict: iso2 -> metric -> list of values
   pop = dict()
-  for iso2 in data.keys():
+  for group in groups:
     rec = dict()
     for measure in ['num_edits', 'num_coll_edits']:
-      rec[measure] = [d[measure] for d in data[iso2]]
-    pop[iso2] = rec
+      rec[measure] = [d[measure] for d in data[group]]
+    pop[group] = rec
   
   #
   # Per country: impact of highly engaged editors
@@ -185,18 +217,18 @@ if __name__ == "__main__":
   
   # dict: iso2 -> metric -> value
   stats = defaultdict(dict)
-  for iso2 in data.keys():
+  for group in groups:
     rec = dict()
 
     # "population"
-    rec['num_users'] = len(data[iso2])
+    rec['num_users'] = len(data[group])
 
     # "work"
-    edits = [d['num_edits'] for d in data[iso2]]
-    coll_edits = [d['num_coll_edits'] for d in data[iso2]]
-    # coll_tag_adds = [d['num_coll_tag_add'] for d in data[iso2]]
-    # coll_tag_updates = [d['num_coll_tag_update'] for d in data[iso2]]
-    # coll_tag_removes = [d['num_coll_tag_remove'] for d in data[iso2]]
+    edits = [d['num_edits'] for d in data[group]]
+    coll_edits = [d['num_coll_edits'] for d in data[group]]
+    # coll_tag_adds = [d['num_coll_tag_add'] for d in data[group]]
+    # coll_tag_updates = [d['num_coll_tag_update'] for d in data[group]]
+    # coll_tag_removes = [d['num_coll_tag_remove'] for d in data[group]]
 
     # # "population inequality"
     # norm_edits = edits / linalg.norm(edits)
@@ -215,7 +247,7 @@ if __name__ == "__main__":
       rec['top_users'][pc] = Decimal(ranked_percentile_sum(edits, pc)) / rec['num_users']
       rec['top_coll_users'][pc] = Decimal(ranked_percentile_sum(coll_edits, pc)) / rec['num_users']
     
-    stats[iso2] = rec
+    stats[group] = rec
   
   #
   # Graphs: country profiles
@@ -223,16 +255,13 @@ if __name__ == "__main__":
   
   mkdir_p(args.outdir)
 
-  # Countries are ranked by number of users, descending
-  iso2s = sorted(stats.keys(), key=lambda iso2: stats[iso2]['num_users'], reverse=True)
-  
-  lorenz_plot(pop, iso2s, ['num_edits', 'num_coll_edits'], args.lorenz_steps,
+  lorenz_plot(pop, groups, ['num_edits', 'num_coll_edits'], args.lorenz_steps,
     args.outdir, 'lorenz_plots')
-  combined_lorenz_plot(pop, iso2s, 'num_edits', args.lorenz_steps,
+  combined_lorenz_plot(pop, groups, 'num_edits', args.lorenz_steps,
     args.outdir, 'lorenz_plot_combined_num_edits')
-  combined_lorenz_plot(pop, iso2s, 'num_coll_edits', args.lorenz_steps,
+  combined_lorenz_plot(pop, groups, 'num_coll_edits', args.lorenz_steps,
     args.outdir, 'lorenz_plot_combined_num_coll_edits')
 
-  threshold_plot(stats, iso2s, 
+  threshold_plot(stats, groups, 
     ['top_users', 'top_coll_users'], args.topuser_percentiles,
     args.outdir, 'inequality_users')

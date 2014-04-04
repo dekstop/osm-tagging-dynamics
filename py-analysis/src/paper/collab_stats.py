@@ -18,6 +18,7 @@ import pandas
 import matplotlib.pyplot as plt
 from matplotlib import ticker
 import numpy as np
+import numpy.linalg as linalg
 
 from app import *
 from shared import *
@@ -74,8 +75,7 @@ def H(x):
   n = len(x)
   entropy = 0.0
   sum = 0.0
-  for x_i in x: # work on all x[i]
-    # print x_i
+  for x_i in x: 
     error_if_not_in_range01(x_i)
     sum += x_i
     group_negentropy = Group_negentropy(x_i)
@@ -101,8 +101,8 @@ def theil(x):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Statistics relating to collaborative editing practices.')
   parser.add_argument('datafile', help='TSV of user data')
-  parser.add_argument('groupcol', help='column name used to group population subsets')
   parser.add_argument('outdir', help='directory for output files')
+  parser.add_argument('groupcol', help='column name used to group population subsets')
   parser.add_argument('--topuser-percentile', help='work percentile threshold for highly engaged users', dest='topuser_percentile', action='store', type=decimal.Decimal, default=80.0)
   args = parser.parse_args()
 
@@ -151,9 +151,8 @@ if __name__ == "__main__":
 
     rec['coll_users_gini'] = gini(coll_edits)
     
-    sum_coll_edits = sum(coll_edits)
-    p_coll_edits = [1.0 * n / sum_coll_edits for n in coll_edits]
-    redundancy, inequality = theil(p_coll_edits)
+    norm_coll_edits = coll_edits / linalg.norm(coll_edits)
+    redundancy, inequality = theil(norm_coll_edits)
     # rec['coll_users_theil_r'] = redundancy
     rec['coll_users_theil'] = inequality
 
