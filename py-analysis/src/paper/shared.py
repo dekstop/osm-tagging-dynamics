@@ -1,6 +1,7 @@
 # Some functions shared by several scripts.
 
 from decimal import Decimal
+import numpy as np
 
 from app import *
 
@@ -40,10 +41,11 @@ def group_share_plot(data, iso2s, measures, outdir, filename_base,
   colors=QUALITATIVE_MEDIUM, scale=100, **kwargs):
 
   for (measure, iso2, ax1) in plot_matrix(measures, iso2s, cellwidth=4, cellheight=0.5):
-    colgen = looping_generator(colors)
-    value = data[iso2][measure] * scale
-    ax1.barh(0, value, 1, left=0, color=next(colgen), **kwargs)
-    ax1.barh(0, scale-value, 1, left=value, color=next(colgen), **kwargs)
+    if data[iso2][measure] != None:
+      colgen = looping_generator(colors)
+      value = data[iso2][measure] * scale
+      ax1.barh(0, value, 1, left=0, color=next(colgen), **kwargs)
+      ax1.barh(0, scale-value, 1, left=value, color=next(colgen), **kwargs)
 
     ax1.margins(0, 0)
     # ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(to_even_percent))
@@ -61,13 +63,14 @@ def group_share_plot(data, iso2s, measures, outdir, filename_base,
 
 # From http://planspace.org/2013/06/21/how-to-calculate-gini-coefficient-from-raw-data-in-python/
 
-def gini(list_of_values):
-  sorted_list = sorted(list_of_values)
+# values: a list of positive integers
+def gini(values):
+  sorted_list = sorted(values)
   height, area = 0, 0
   for value in sorted_list:
     height += value
     area += height - value / Decimal(2)
-  fair_area = height * len(list_of_values) / Decimal(2)
+  fair_area = height * len(values) / Decimal(2)
   return (fair_area - area) / fair_area
 
 # ===============

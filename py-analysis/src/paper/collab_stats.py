@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     rec['coll_users_gini'] = gini(coll_edits)
     
-    norm_coll_edits = coll_edits / linalg.norm(coll_edits)
+    norm_coll_edits = coll_edits / Decimal(sum(coll_edits))
     redundancy, inequality = theil(norm_coll_edits)
     # rec['coll_users_theil_r'] = redundancy
     rec['coll_users_theil'] = inequality

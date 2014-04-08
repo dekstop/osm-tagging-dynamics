@@ -95,7 +95,6 @@ if __name__ == "__main__":
   parser.add_argument('outdir', help='directory for output files')
   parser.add_argument('groupcol', help='column name used to group population subsets')
   parser.add_argument('measures', help='column names of population measures', nargs='+')
-  parser.add_argument('--topuser-percentiles', help='work percentile threshold for highly engaged users', dest='topuser_percentiles', nargs='+', action='store', type=Decimal, default=[Decimal(10), Decimal(1), Decimal('0.1')])
   parser.add_argument('--lorenz-steps', help='Lorenz curve population percentage thresholds', dest='lorenz_steps', nargs='+', action='store', type=Decimal, default=[Decimal(v) for v in range(0,102,2)])
   parser.add_argument('--num-groups', help='The number of groups to analyse (ranked by size)', dest='num_groups', action='store', type=int, default=None)
   args = parser.parse_args()
@@ -138,7 +137,7 @@ if __name__ == "__main__":
   # Per group: collect population measures
   # 
   
-  # dict: group -> metric -> list of values
+  # dict: group -> measure -> list of values
   pop = dict()
 
   for group in groups:
@@ -151,12 +150,12 @@ if __name__ == "__main__":
   # Per group: compute inequality scores
   # 
 
-  # dict: group -> metric -> score
+  # dict: group -> measure -> score
   ineq_gini = dict()
 
   for group in groups:
     scores = dict()
-    scores['pop'] = len(data[group])
+    scores['pop'] = len(pop[group])
     for measure in args.measures:
       scores[measure] = gini(pop[group][measure])
     ineq_gini[group] = scores

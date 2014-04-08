@@ -1,3 +1,4 @@
+from collections import defaultdict
 import ConfigParser
 import csv
 import os, errno
@@ -146,33 +147,59 @@ def looping_generator(list):
     yield(list[idx])
     idx = (idx+1) % len(list)
 
+def autoscale_axes_xlim(axes):
+  limits = [ax1.get_xlim() for ax1 in axes]
+  left = min([v[0] for v in limits])
+  right = max([v[1] for v in limits])
+  for ax1 in axes:
+    ax1.set_xlim(left, right)
+
+def autoscale_axes_ylim(axes):
+  limits = [ax1.get_ylim() for ax1 in axes]
+  bottom = min([v[0] for v in limits])
+  top = max([v[1] for v in limits])
+  for ax1 in axes:
+    ax1.set_ylim(bottom, top)
+
 # A generator that prepares a matrix layout of subplots and yields a tuple for each cell.
 # This iterates over rows first -- i.e., the fist tuples returned are for the top row of cells.
+# 
 # Expected parameters:
 # - columns: list of column names for this matrix
 # - rows: list of row names
+# 
+# Optional parameters:
+# - cellwidth:
+# - cellheight:
+# - shared_xscale: maintain x-axis range along cells in the same column?
+# - xgroups: a nested list of column names, this can be used to link related columns that should have the same x-axis range: ['a', 'b', ['c', 'd']]
+# - shared_xscale: maintain y-axis range along cells in the same row?
+# 
 # The tuple yielded per cell contains the values:
 # - col: the column name for this cell
 # - row: the row name
 # - ax1: a matplotlib subplot handle
-def plot_matrix(columns, rows, cellwidth=3, cellheight=3, shared_yscale=False):
+def plot_matrix(columns, rows, cellwidth=3, cellheight=3, shared_xscale=False, 
+  xgroups=None, shared_yscale=False, hspace=0.2, wspace=0.2):
+  
   ncols = len(columns)
   nrows = len(rows)
 
   fig = plt.figure(figsize=(cellwidth*ncols, cellheight*nrows))
-  plt.subplots_adjust(hspace=0.2, wspace=0.2)
+  plt.subplots_adjust(hspace=hspace, wspace=wspace)
   fig.patch.set_facecolor('white')
 
+  # dict: row -> column -> ax1
+  axes = defaultdict(dict)
   n = 1
   for row in rows:
-    axes = []
     for column in columns:
 
       if n <= ncols: # first row
         ax1 = plt.subplot(nrows, ncols, n, title=column)
       else:
         ax1 = plt.subplot(nrows, ncols, n)
-      axes.append(ax1)
+      axes[row][column] = ax1
       
       if (n % ncols == 1): # first column
         plt.ylabel(row)
@@ -181,8 +208,15 @@ def plot_matrix(columns, rows, cellwidth=3, cellheight=3, shared_yscale=False):
       n += 1
 
     if shared_yscale: # for every row: shared scale across columns?
-      limits = [ax1.get_ylim() for ax1 in axes]
-      bottom = min([v[0] for v in limits])
-      top = max([v[1] for v in limits])
-      for ax1 in axes:
-        ax1.set_ylim(bottom, top)
+      autoscale_axes_ylim(axes[row].values())
+
+  if shared_xscale: # for every column: shared scale across rows?
+    if xgroups==None:
+      xgroups = columns
+    for xgroup in xgroups:
+      if isinstance(xgroup, list):
+        group_axes = [axes[row][col] for row in axes.keys() for col in xgroup]
+        autoscale_axes_xlim(group_axes)
+      else:
+        group_axes = [axes[row][xgroup] for row in axes.keys()]
+        autoscale_axes_xlim(group_axes)
