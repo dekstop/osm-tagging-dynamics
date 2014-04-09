@@ -23,43 +23,6 @@ import numpy as np
 from app import *
 from shared import *
 
-# =========
-# = Tools =
-# =========
-
-# What is the sum of the highest-ranking x% number of entries?
-#
-# The process:
-# - count the number of items
-# - order all values by size (by default: in descending order)
-# - identify the index position which is at the given percentage (rounding down)
-# - return the sum of these values
-#
-# values: array of numbers
-# reverse: sum of top percentile? (vs bottom percentile)
-# perc: [0..100]
-def ranked_percentile_sum(values, perc, reverse=False):
-  values = sorted(values, reverse=reverse)
-  limit = int(len(values) * perc / Decimal(100))
-  if reverse:
-    return sum(values[limit:])
-  else:
-    return sum(values[:limit])
-
-# What is the share (workload, income, ...) of the lowest-ranking x% number of entries (contributors)?
-#
-# The process:
-# - count the number of items
-# - order all values by size (by default: in ascending order)
-# - identify the index position which is at the given percentage (rounding down)
-# - calculate the sum of these values
-# - calculate its percentage of the overall total
-#
-# values: array of numbers
-# perc: [0..1]
-def ranked_percentile_share(values, perc, reverse=False):
-  return Decimal(ranked_percentile_sum(values, perc, reverse=reverse)) / sum(values)
-
 # ==========
 # = Graphs =
 # ==========
@@ -246,16 +209,16 @@ if __name__ == "__main__":
       scores['gini'] = gini(values)
       
       # 20/20 ratio: top 20% vs bottom 20% income
-      top_20 = ranked_percentile_sum(values, Decimal(20), reverse=True)
-      bottom_20 = ranked_percentile_sum(values, Decimal(20), reverse=False)
+      top_20 = ranked_percentile_sum(values, Decimal(20), top=True)
+      bottom_20 = ranked_percentile_sum(values, Decimal(20), top=False)
       if bottom_20==0:
         scores['20_20'] = None
       else:
         scores['20_20'] = Decimal(top_20) / bottom_20
 
       # Palma ratio: top 10% vs bottom 40% income
-      top_10 = ranked_percentile_sum(values, Decimal(10), reverse=True)
-      bottom_40 = ranked_percentile_sum(values, Decimal(40), reverse=False)
+      top_10 = ranked_percentile_sum(values, Decimal(10), top=True)
+      bottom_40 = ranked_percentile_sum(values, Decimal(40), top=False)
       if bottom_40==0:
         scores['palma'] = None
       else:
@@ -264,7 +227,7 @@ if __name__ == "__main__":
       # Top percentiles
       for pc in args.topuser_percentiles:
         scores['top_%s%%' % pc] = \
-          ranked_percentile_share(values, 100 - pc, reverse=True)
+          ranked_percentile_share(values, 100 - pc, top=True)
 
       # Ratio of percentiles to median
       for pc in args.rop_percentiles:
@@ -272,8 +235,18 @@ if __name__ == "__main__":
           scores['rop_%s' % pc] = None
         else:
           scores['rop_%s' % pc] = \
-            Decimal(ranked_percentile_sum(values, pc, reverse=False)) / \
+            Decimal(ranked_percentile_sum(values, pc, top=False)) / \
             Decimal(median_)
+
+      # Ratio of percentile bands to median
+      for (q_from, q_to) in zip(range(4), range(1, 5)):
+        if median_==0:
+          scores['qom_%d' % q_to] = None
+        else:
+          from_pc = Decimal(q_from) / 4 * 100
+          to_pc = Decimal(q_to) / 4 * 100
+          scores['qom_%d' % q_to] = \
+            Decimal(percentile_range_sum(values, from_pc, to_pc)) / Decimal(median_)
 
       # Done
       stats[measure][group] = scores
@@ -282,8 +255,9 @@ if __name__ == "__main__":
   basic_scores = ['gini', '20_20', 'palma']
   top_scores = ['top_%s%%' % pc for pc in args.topuser_percentiles]
   rop_scores = ['rop_%s' % pc for pc in args.rop_percentiles]
+  qom_scores = ['qom_%d' % q for q in range(1,5)]
 
-  stats_types = ['pop', 'total'] + basic_scores + top_scores + rop_scores
+  stats_types = ['pop', 'total'] + basic_scores + top_scores + rop_scores + qom_scores
   
   #
   # Graphs and reports: country profiles
@@ -317,6 +291,13 @@ if __name__ == "__main__":
     group_plot(stats[measure], groups, rop_scores, 
       args.outdir, '%s_inequality_3' % measure,
       xgroups=[rop_scores]) 
+    
+    group_plot(stats[measure], groups, qom_scores, 
+      args.outdir, '%s_inequality_4_normalised' % measure)
+    
+    group_plot(stats[measure], groups, qom_scores, 
+      args.outdir, '%s_inequality_4' % measure,
+      xgroups=[qom_scores]) 
 
     # Scatter plots
     pop = {group: stats[measure][group]['pop'] for group in groups}
@@ -325,8 +306,8 @@ if __name__ == "__main__":
     sizemap = {group: norm[group] + 0.2 for group in groups}
 
     scatter_grid(stats[measure], groups, 
-      ['20_20', 'palma', 'top_10%', 'rop_95'], 
-      ['pop', 'total', 'gini', 'top_10%', 'rop_95'], 
+      ['20_20', 'palma', 'top_10%', 'rop_95', 'qom_3'], 
+      ['pop', 'total', 'gini', 'top_10%', 'rop_95', 'qom_3'], 
       args.outdir, '%s_scatter_complements' % measure,
       size=100, sizemap=sizemap, alpha=0.8)
 
@@ -343,8 +324,14 @@ if __name__ == "__main__":
       size=100, sizemap=sizemap, alpha=0.8)
 
     scatter_grid(stats[measure], groups, 
-      top_scores, 
-      rop_scores, 
-      args.outdir, '%s_scatter_top_rop' % measure,
+      qom_scores, 
+      qom_scores, 
+      args.outdir, '%s_scatter_qom' % measure,
       size=100, sizemap=sizemap, alpha=0.8)
-      
+    # 
+    # scatter_grid(stats[measure], groups, 
+    #   top_scores, 
+    #   rop_scores, 
+    #   args.outdir, '%s_scatter_top_rop' % measure,
+    #   size=100, sizemap=sizemap, alpha=0.8)
+    #   
