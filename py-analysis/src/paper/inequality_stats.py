@@ -227,7 +227,7 @@ if __name__ == "__main__":
       # Top percentiles
       for pc in args.topuser_percentiles:
         scores['top_%s%%' % pc] = \
-          ranked_percentile_share(values, 100 - pc, top=True)
+          ranked_percentile_share(values, pc, top=True)
 
       # Ratio of percentiles to median
       for pc in args.rop_percentiles:
