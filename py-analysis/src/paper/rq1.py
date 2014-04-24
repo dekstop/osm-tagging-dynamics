@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
   for group in groups:
     scores = dict()
-    scores['pop'] = len(pop[group])
+    scores['pop'] = len(pop[group][args.measures[0]])
     for measure in args.measures:
       scores[measure] = gini(pop[group][measure])
     ineq_gini[group] = scores

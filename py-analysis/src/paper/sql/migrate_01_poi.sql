@@ -1,5 +1,7 @@
 -- Expects the standard schema with shared_poi and world_borders_poi scripts.
 -- Implements a more strict POI filter: all nodes with a name or amenity tag.
+-- (Note that view_poi_strict_ids depends on a table that is later renamed.
+-- Postgres correctly updates the reference to this table when it is renamed.)
 -- 2014-04-08 15:22:21
 
 CREATE VIEW view_poi_strict_ids AS
