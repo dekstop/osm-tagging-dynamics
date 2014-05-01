@@ -5,6 +5,23 @@ import numpy as np
 
 from app import *
 
+# =============
+# = Filtering =
+# =============
+
+# Returns a list of dict keys, ranked in descending order based on a computed 
+# summary statistic.
+#
+# data: an arbitrary dict, e.g. a mapping of { key: [val1, val2, val3] }
+# num_keys: the number of keys to return, or None for all
+# summarise(data, key): an expression that returns a score for a given key. By 
+# default: the number of items stored under this key.
+def top_keys(data, num_keys=None, summarise=lambda data,key: len(data[key])):
+  keys = sorted(data.keys(), key=lambda _key: summarise(data, _key), reverse=True)
+  if num_keys:
+    return keys[:num_keys]
+  return keys
+
 # ===========
 # = Reports =
 # ===========

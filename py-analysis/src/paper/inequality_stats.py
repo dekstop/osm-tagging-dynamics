@@ -271,33 +271,33 @@ if __name__ == "__main__":
       args.outdir, 'stats_%s' % measure) 
     
     # Bar plots
-    group_plot(stats[measure], groups, basic_scores, 
-      args.outdir, '%s_inequality_1_normalised' % measure)
-    
-    group_plot(stats[measure], groups, basic_scores, 
-      args.outdir, '%s_inequality_1' % measure,
-      xgroups=basic_scores) 
-    
-    group_plot(stats[measure], groups, top_scores, 
-      args.outdir, '%s_inequality_2_normalised' % measure)
-    
-    group_plot(stats[measure], groups, top_scores, 
-      args.outdir, '%s_inequality_2' % measure,
-      xgroups=[top_scores]) 
-    
-    group_plot(stats[measure], groups, rop_scores, 
-      args.outdir, '%s_inequality_3_normalised' % measure)
-    
-    group_plot(stats[measure], groups, rop_scores, 
-      args.outdir, '%s_inequality_3' % measure,
-      xgroups=[rop_scores]) 
-    
-    group_plot(stats[measure], groups, qom_scores, 
-      args.outdir, '%s_inequality_4_normalised' % measure)
-    
-    group_plot(stats[measure], groups, qom_scores, 
-      args.outdir, '%s_inequality_4' % measure,
-      xgroups=[qom_scores]) 
+    # group_plot(stats[measure], groups, basic_scores, 
+    #   args.outdir, '%s_inequality_1_normalised' % measure)
+    # 
+    # group_plot(stats[measure], groups, basic_scores, 
+    #   args.outdir, '%s_inequality_1' % measure,
+    #   xgroups=basic_scores) 
+    # 
+    # group_plot(stats[measure], groups, top_scores, 
+    #   args.outdir, '%s_inequality_2_normalised' % measure)
+    # 
+    # group_plot(stats[measure], groups, top_scores, 
+    #   args.outdir, '%s_inequality_2' % measure,
+    #   xgroups=[top_scores]) 
+    # 
+    # group_plot(stats[measure], groups, rop_scores, 
+    #   args.outdir, '%s_inequality_3_normalised' % measure)
+    # 
+    # group_plot(stats[measure], groups, rop_scores, 
+    #   args.outdir, '%s_inequality_3' % measure,
+    #   xgroups=[rop_scores]) 
+    # 
+    # group_plot(stats[measure], groups, qom_scores, 
+    #   args.outdir, '%s_inequality_4_normalised' % measure)
+    # 
+    # group_plot(stats[measure], groups, qom_scores, 
+    #   args.outdir, '%s_inequality_4' % measure,
+    #   xgroups=[qom_scores]) 
 
     # Scatter plots
     pop = {group: stats[measure][group]['pop'] for group in groups}
@@ -305,29 +305,35 @@ if __name__ == "__main__":
     norm = {group: 1.0 * pop[group] / max_pop for group in groups}
     sizemap = {group: norm[group] + 0.2 for group in groups}
 
-    scatter_grid(stats[measure], groups, 
-      ['20_20', 'palma', 'top_10%', 'rop_95', 'qom_3'], 
-      ['pop', 'total', 'gini', 'top_10%', 'rop_95', 'qom_3'], 
-      args.outdir, '%s_scatter_complements' % measure,
-      size=100, sizemap=sizemap, alpha=0.8)
+    # scatter_grid(stats[measure], groups, 
+    #   ['20_20', 'palma', 'top_10%', 'rop_95', 'qom_3'], 
+    #   ['pop', 'total', 'gini', 'top_10%', 'rop_95', 'qom_3'], 
+    #   args.outdir, '%s_scatter_complements' % measure,
+    #   size=100, sizemap=sizemap, alpha=0.8)
 
     scatter_grid(stats[measure], groups, 
-      top_scores, 
-      top_scores, 
-      args.outdir, '%s_scatter_topx' % measure,
+      ['gini', 'palma', 'top_10%'], 
+      ['pop', 'total'], 
+      args.outdir, '%s_scatter_scale' % measure,
       size=100, sizemap=sizemap, alpha=0.8)
 
-    scatter_grid(stats[measure], groups, 
-      rop_scores, 
-      rop_scores, 
-      args.outdir, '%s_scatter_rop' % measure,
-      size=100, sizemap=sizemap, alpha=0.8)
-
-    scatter_grid(stats[measure], groups, 
-      qom_scores, 
-      qom_scores, 
-      args.outdir, '%s_scatter_qom' % measure,
-      size=100, sizemap=sizemap, alpha=0.8)
+    # scatter_grid(stats[measure], groups, 
+    #   top_scores, 
+    #   top_scores, 
+    #   args.outdir, '%s_scatter_topx' % measure,
+    #   size=100, sizemap=sizemap, alpha=0.8)
+    # 
+    # scatter_grid(stats[measure], groups, 
+    #   rop_scores, 
+    #   rop_scores, 
+    #   args.outdir, '%s_scatter_rop' % measure,
+    #   size=100, sizemap=sizemap, alpha=0.8)
+    # 
+    # scatter_grid(stats[measure], groups, 
+    #   qom_scores, 
+    #   qom_scores, 
+    #   args.outdir, '%s_scatter_qom' % measure,
+    #   size=100, sizemap=sizemap, alpha=0.8)
     # 
     # scatter_grid(stats[measure], groups, 
     #   top_scores, 

@@ -23,26 +23,6 @@ import numpy.linalg as linalg
 from app import *
 from shared import *
 
-# =========
-# = Tools =
-# =========
-
-# What is the share (workload, income, ...) of the lowest-ranking x% number of entries (contributors)?
-#
-# The process:
-# - count the number of items
-# - order all values by size (by default: in ascending order)
-# - identify the index position which is at the given percentage (rounding down)
-# - calculate the sum of these values
-# - calculate its percentage of the overall total
-#
-# values: array of numbers
-# perc: [0..100]
-def ranked_percentile_share(values, perc, reverse=False):
-  values = sorted(values, reverse=reverse)
-  limit = int(len(values) * perc / Decimal(100))
-  return Decimal(sum(values[:limit])) / sum(values) * 100
-
 # ==========
 # = Graphs =
 # ==========
@@ -120,17 +100,10 @@ if __name__ == "__main__":
   # Filter according to options, if needed
   #
 
-  # Groups are ranked by population size, descending
-  print "Group column: %s" % args.groupcol
-  
-  groups = sorted(data.keys(), key=lambda group: len(data[group]), reverse=True)
+  groups = top_keys(data, args.num_groups)
 
-  if args.num_groups:
-    print "Limiting to %d groups (from %d)" % (args.num_groups, len(data.keys()))
-    groups = groups[:args.num_groups]
-  else:
-    print "Found %d groups" % len(data.keys())
-  
+  print "Group column: %s" % args.groupcol
+  print "Found %d groups" % len(groups)
   print "Computing population statistics for measures: %s" % ", ".join(args.measures)
 
   #
@@ -150,15 +123,20 @@ if __name__ == "__main__":
   # Per group: compute inequality scores
   # 
 
-  # dict: group -> measure -> score
-  ineq_gini = dict()
+  # dict: measure -> group -> score -> value
+  scores = defaultdict(dict)
 
-  for group in groups:
-    scores = dict()
-    scores['pop'] = len(pop[group][args.measures[0]])
-    for measure in args.measures:
-      scores[measure] = gini(pop[group][measure])
-    ineq_gini[group] = scores
+  for measure in args.measures:
+    for group in groups:
+      values = [v for v in pop[group][measure] if v>0]
+      rec = dict()
+      rec['pop'] = len(values)
+      rec['total'] = sum(values)
+      rec['gini'] = gini(values)
+      rec['palma'] = palma(values)
+      rec['top_10%'] = ranked_percentile_share(values, Decimal(10), top=True)
+      
+      scores[measure][group] = rec
 
   #
   # Report: inequality measures
@@ -166,8 +144,10 @@ if __name__ == "__main__":
   
   mkdir_p(args.outdir)
 
-  segment_report(ineq_gini, args.groupcol, ['pop'] + args.measures, 
-    args.outdir, 'inequality_gini')
+  for measure in args.measures:
+    segment_report(scores[measure], args.groupcol, 
+      ['pop', 'total', 'gini', 'palma', 'top_10%'],
+      args.outdir, 'inequality_scores_%s' % measure)
 
   #
   # Graphs: Lorenz curves

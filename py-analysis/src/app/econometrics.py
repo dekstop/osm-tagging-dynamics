@@ -21,6 +21,19 @@ def gini(values):
   return (fair_area - area) / fair_area
 
 # ===============
+# = Palma ratio =
+# ===============
+
+# Palma ratio: top 10% vs bottom 40% income
+def palma(values):
+  top_10 = ranked_percentile_sum(values, Decimal(10), top=True)
+  bottom_40 = ranked_percentile_sum(values, Decimal(40), top=False)
+  if bottom_40==0:
+    return None
+  else:
+    return Decimal(top_10) / bottom_40
+
+# ===============
 # = Theil index =
 # ===============
 
