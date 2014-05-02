@@ -197,7 +197,7 @@ if __name__ == "__main__":
     'num_coll_tag_update', 'p_coll_tag_update',
     'num_coll_tag_remove', 'p_coll_tag_remove',
     ]
-  segment_report(stats, 'country', country_fields, args.outdir, 'country_profiles')
+  groupstat_report(stats, 'country', country_fields, args.outdir, 'country_profiles')
   
   #
   # Graphs: country profiles

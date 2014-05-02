@@ -83,7 +83,7 @@ if __name__ == "__main__":
     report_measures.append('p_%s_removed' % metric)
     graph_measures.append('p_%s_removed' % metric)
 
-  segment_report(stats, args.groupcol, report_measures,
+  groupstat_report(stats, args.groupcol, report_measures,
     args.outdir, 'bulkimport_filter_stats')
   
   # Groups are ranked by population size, descending

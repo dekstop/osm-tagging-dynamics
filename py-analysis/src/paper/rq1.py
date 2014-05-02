@@ -31,7 +31,7 @@ from shared import *
 # steps: the percentages for which cumulative "income" is computed
 # Converts to relative values and draws a Lorenz curve per group and measure.
 # kwargs is passed on to plt.fill(...).
-def lorenz_plot(data, groups, measures, steps, outdir, filename_base, 
+def lorenz_matrix_plot(data, groups, measures, steps, outdir, filename_base, 
   colors=QUALITATIVE_MEDIUM, **kwargs):
   
   for (measure, group, ax1) in plot_matrix(measures, groups, cellwidth=4, cellheight=4):
@@ -101,7 +101,7 @@ if __name__ == "__main__":
   #
 
   groups = top_keys(data, args.num_groups)
-
+  
   print "Group column: %s" % args.groupcol
   print "Found %d groups" % len(groups)
   print "Computing population statistics for measures: %s" % ", ".join(args.measures)
@@ -112,7 +112,6 @@ if __name__ == "__main__":
   
   # dict: group -> measure -> list of values
   pop = dict()
-
   for group in groups:
     rec = dict()
     for measure in args.measures:
@@ -125,7 +124,6 @@ if __name__ == "__main__":
 
   # dict: measure -> group -> score -> value
   scores = defaultdict(dict)
-
   for measure in args.measures:
     for group in groups:
       values = [v for v in pop[group][measure] if v>0]
@@ -139,21 +137,25 @@ if __name__ == "__main__":
       scores[measure][group] = rec
 
   #
-  # Report: inequality measures
+  # Inequality measures
   #
   
   mkdir_p(args.outdir)
 
+  score_names = ['pop', 'total', 'gini', 'palma', 'top_10%']
+
   for measure in args.measures:
-    segment_report(scores[measure], args.groupcol, 
-      ['pop', 'total', 'gini', 'palma', 'top_10%'],
+    groupstat_report(scores[measure], args.groupcol, score_names,
+      args.outdir, 'inequality_scores_%s' % measure)
+
+    groupstat_plot(scores[measure], groups, score_names, 
       args.outdir, 'inequality_scores_%s' % measure)
 
   #
   # Graphs: Lorenz curves
   #
   
-  lorenz_plot(pop, groups, args.measures, args.lorenz_steps,
+  lorenz_matrix_plot(pop, groups, args.measures, args.lorenz_steps,
     args.outdir, 'lorenz_plots')
 
   for measure in args.measures:

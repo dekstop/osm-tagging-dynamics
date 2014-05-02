@@ -1,4 +1,5 @@
 import ConfigParser
+import os
 
 import psycopg2.extensions
 

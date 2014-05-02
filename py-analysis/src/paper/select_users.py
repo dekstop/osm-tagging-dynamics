@@ -4,17 +4,11 @@
 
 from __future__ import division # non-truncating division in Python 2.x
 
-import matplotlib
-matplotlib.use('Agg')
-
 import argparse
 from collections import defaultdict
-import decimal
-import gc
+from decimal import Decimal
 import sys
 
-import matplotlib.pyplot as plt
-from matplotlib import ticker
 import numpy as np
 
 from app import *
@@ -101,7 +95,7 @@ if __name__ == "__main__":
   mkdir_p(args.outdir)
 
   if args.bulk_percentile==None:
-    group_report(raw_data, 'country', user_fields, args.outdir, "user_profiles")
+    profiledata_report(raw_data, 'country', user_fields, args.outdir, "user_profiles")
     sys.exit(0)
   
   #
@@ -115,7 +109,6 @@ if __name__ == "__main__":
   print "Filtering bulk imports based on percentile threshold: %.4f" % args.bulk_percentile
   for iso2 in raw_data.keys():
     all_num_edits = [r['num_edits'] for r in raw_data[iso2]]
-    print np.percentile(sorted(all_num_edits), args.bulk_percentile)
     bulk_thresholds[iso2] = round(np.percentile(sorted(all_num_edits), args.bulk_percentile))
     data[iso2] = [r for r in raw_data[iso2] if r['num_edits'] < bulk_thresholds[iso2]]
 
@@ -137,22 +130,22 @@ if __name__ == "__main__":
 
     rec['num_users_pre'] = len(raw_data[iso2])
     rec['num_users_post'] = len(data[iso2])
-    rec['p_users_removed'] = decimal.Decimal(1.0) - \
-      decimal.Decimal(rec['num_users_post']) / rec['num_users_pre']
+    rec['p_users_removed'] = Decimal(1.0) - \
+      Decimal(rec['num_users_post']) / rec['num_users_pre']
 
     raw_edits = [d['num_edits'] for d in raw_data[iso2]]
     edits = [d['num_edits'] for d in data[iso2]]
     rec['num_edits_pre'] = sum(raw_edits)
     rec['num_edits_post'] = sum(edits)
-    rec['p_edits_removed'] = decimal.Decimal(1.0) - \
-      decimal.Decimal(rec['num_edits_post']) / rec['num_edits_pre']
+    rec['p_edits_removed'] = Decimal(1.0) - \
+      Decimal(rec['num_edits_post']) / rec['num_edits_pre']
 
     raw_coll_edits = [d['num_coll_edits'] for d in raw_data[iso2]]
     coll_edits = [d['num_coll_edits'] for d in data[iso2]]
     rec['num_coll_edits_pre'] = sum(raw_coll_edits)
     rec['num_coll_edits_post'] = sum(coll_edits)
-    rec['p_coll_edits_removed'] = decimal.Decimal(1.0) - \
-      decimal.Decimal(rec['num_coll_edits_post']) / rec['num_coll_edits_pre']
+    rec['p_coll_edits_removed'] = Decimal(1.0) - \
+      Decimal(rec['num_coll_edits_post']) / rec['num_coll_edits_pre']
     
     filter_stats[iso2] = rec
   
@@ -160,10 +153,10 @@ if __name__ == "__main__":
   # Basic user report, impact of bulk import filter
   #
   
-  group_report(raw_data, 'country', user_fields, args.outdir, "user_profiles_unfiltered")
-  group_report(data, 'country', user_fields, args.outdir, "user_profiles")
+  profiledata_report(raw_data, 'country', user_fields, args.outdir, "user_profiles_unfiltered")
+  profiledata_report(data, 'country', user_fields, args.outdir, "user_profiles")
 
-  segment_report(filter_stats, 'country', 
+  groupstat_report(filter_stats, 'country', 
     ['threshold', 
       'num_users_pre', 'num_users_post', 'p_users_removed',
       'num_edits_pre', 'num_edits_post', 'p_edits_removed',

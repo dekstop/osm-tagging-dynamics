@@ -99,10 +99,10 @@ if __name__ == "__main__":
   mkdir_p(args.outdir)
   
   for measure in args.measures:
-    segment_report(group_bands[measure], 'country', sorted(group_band_colnames), 
+    groupstat_report(group_bands[measure], 'country', sorted(group_band_colnames), 
       args.outdir, 'country_bands_%s' % measure)
 
-  segment_report(band_cv, 'measure', sorted(band_names), 
+  groupstat_report(band_cv, 'measure', sorted(band_names), 
     args.outdir, 'band_cv_scores')
 
   # 
