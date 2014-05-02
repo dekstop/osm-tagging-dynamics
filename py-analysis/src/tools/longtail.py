@@ -29,8 +29,6 @@ def plot_hist(data, measures, outdir, filename_base, bins=10, **kwargs):
     ax1.tick_params(axis='both', which='minor', labelsize='xx-small')
   
     ax1.margins(0.1, 0.1)
-    # ax1.get_xaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
-    # ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
     ax1.get_xaxis().set_ticks([])
     ax1.get_yaxis().set_ticks([])
 

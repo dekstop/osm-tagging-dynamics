@@ -73,24 +73,29 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Statistics relating to collaborative editing practices.')
   parser.add_argument('datafile', help='TSV of user data')
   parser.add_argument('outdir', help='directory for output files')
-  parser.add_argument('groupcol', help='column name used to group population subsets')
-  parser.add_argument('measures', help='column names of population measures', nargs='+')
   parser.add_argument('--lorenz-steps', help='Lorenz curve population percentage thresholds', dest='lorenz_steps', nargs='+', action='store', type=Decimal, default=[Decimal(v) for v in range(0,102,2)])
   parser.add_argument('--num-groups', help='The number of groups to analyse (ranked by size)', dest='num_groups', action='store', type=int, default=None)
   args = parser.parse_args()
-
+  
   #
-  # Get data and transform it
+  # Defaults
   #
   
+  groupcol = 'country'
+  measures = ['num_edits', 'num_coll_edits']
+  
+  # ============================
+  # = Load data & transform it =
+  # ============================
+
   df = pandas.read_csv(args.datafile, sep="\t")
   metrics = df.columns.tolist()
-  metrics.remove(args.groupcol)
+  metrics.remove(groupcol)
   
   # dict: group -> list of user dicts
   data = defaultdict(list)
   for idx, row in df.iterrows():
-    group = row[args.groupcol]
+    group = row[groupcol]
     rec = dict()
     for metric in metrics:
       rec[metric] = row[metric]
@@ -102,9 +107,12 @@ if __name__ == "__main__":
 
   groups = top_keys(data, args.num_groups)
   
-  print "Group column: %s" % args.groupcol
   print "Found %d groups" % len(groups)
-  print "Computing population statistics for measures: %s" % ", ".join(args.measures)
+  print "Computing population statistics for measures: %s" % ", ".join(measures)
+
+  # =================
+  # = Compute stats =
+  # =================
 
   #
   # Per group: collect population measures
@@ -114,17 +122,17 @@ if __name__ == "__main__":
   pop = dict()
   for group in groups:
     rec = dict()
-    for measure in args.measures:
+    for measure in measures:
       rec[measure] = [d[measure] for d in data[group]]
     pop[group] = rec
     
   #
-  # Per group: compute inequality scores
+  # Per group: compute summary stats
   # 
 
   # dict: measure -> group -> score -> value
-  scores = defaultdict(dict)
-  for measure in args.measures:
+  stats = defaultdict(dict)
+  for measure in measures:
     for group in groups:
       values = [v for v in pop[group][measure] if v>0]
       rec = dict()
@@ -134,30 +142,59 @@ if __name__ == "__main__":
       rec['palma'] = palma(values)
       rec['top_10%'] = ranked_percentile_share(values, Decimal(10), top=True)
       
-      scores[measure][group] = rec
+      stats[measure][group] = rec
 
   #
-  # Inequality measures
+  # Per group: collab share
   #
   
+  # dict: group -> score -> value
+  coll_stats = defaultdict(dict)
+  for group in groups:
+    rec = dict()
+    rec['coll_user_share'] = stats['num_coll_edits'][group]['pop'] / Decimal(stats['num_edits'][group]['pop'])
+    rec['coll_edit_share'] = stats['num_coll_edits'][group]['total'] / Decimal(stats['num_edits'][group]['total'])
+    
+    coll_stats[group] = rec
+
+  # ====================
+  # = Reports & charts =
+  # ====================
+
   mkdir_p(args.outdir)
 
-  score_names = ['pop', 'total', 'gini', 'palma', 'top_10%']
-
-  for measure in args.measures:
-    groupstat_report(scores[measure], args.groupcol, score_names,
-      args.outdir, 'inequality_scores_%s' % measure)
-
-    groupstat_plot(scores[measure], groups, score_names, 
-      args.outdir, 'inequality_scores_%s' % measure)
-
   #
-  # Graphs: Lorenz curves
+  # Summary stats
   #
   
-  lorenz_matrix_plot(pop, groups, args.measures, args.lorenz_steps,
-    args.outdir, 'lorenz_plots')
+  stat_names = ['pop', 'total', 'gini', 'palma', 'top_10%']
 
-  for measure in args.measures:
+  for measure in measures:
+    groupstat_report(stats[measure], groupcol, stat_names,
+      args.outdir, 'stats_%s' % measure)
+
+    groupstat_plot(stats[measure], groups, stat_names, 
+      args.outdir, 'stats_%s' % measure)
+
+  #
+  # Collab stats
+  #
+
+  coll_stat_names = ['coll_user_share', 'coll_edit_share']
+
+  groupstat_report(coll_stats, groupcol, coll_stat_names,
+    args.outdir, 'coll_stats')
+
+  groupstat_plot(coll_stats, groups, coll_stat_names, 
+    args.outdir, 'coll_stats')
+
+  #
+  # Lorenz curves
+  #
+  
+  lorenz_matrix_plot(pop, groups, measures, args.lorenz_steps,
+    args.outdir, 'lorenz_matrix')
+
+  for measure in measures:
     combined_lorenz_plot(pop, groups, measure, args.lorenz_steps,
-      args.outdir, 'lorenz_plot_combined_%s' % measure)
+      args.outdir, 'lorenz_%s' % measure)
