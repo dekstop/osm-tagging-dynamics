@@ -2,6 +2,7 @@
 
 from decimal import Decimal
 import gc
+import math
 
 import numpy as np
 
@@ -74,7 +75,7 @@ def groupstat_plot(data, groups, measures, outdir, filename_base,
     cellheight=0.5, shared_xscale=True, xgroups=xgroups,
     hspace=0.05, wspace=0.05):
 
-    if data[group][measure] == None:
+    if data[group][measure]==None or math.isnan(data[group][measure]):
       ax1.set_axis_bgcolor('#eeeeee')
       plt.setp(ax1.spines.values(), color='none')
     else:

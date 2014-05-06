@@ -23,6 +23,32 @@ import numpy.linalg as linalg
 from app import *
 from shared import *
 
+# =========
+# = Plots =
+# =========
+
+# data: row -> column -> list of values
+# kwargs is passed on to plt.boxplot(...).
+def boxplot_matrix(data, columns, rows, outdir, filename_base, min_values=5, **kwargs):
+  for (column, row, ax1) in plot_matrix(columns, rows):
+    if len(data[row][column]) < min_values:
+      ax1.set_axis_bgcolor('#eeeeee')
+      plt.setp(ax1.spines.values(), color='none')
+    else:
+      values = data[row][column]
+      mean = np.mean(data[row][column])
+      norm_values = [v / mean for v in values]
+      ax1.boxplot(norm_values, **kwargs)
+
+    ax1.margins(0.1, 0.1)
+    ax1.get_xaxis().set_visible(False)
+    ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+    ax1.tick_params(axis='y', which='major', labelsize='x-small')
+    ax1.tick_params(axis='y', which='minor', labelsize='xx-small')
+  
+  plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
+  plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+
 # ========
 # = Main =
 # ========
@@ -32,6 +58,8 @@ if __name__ == "__main__":
   parser.add_argument('datafile', help='TSV of user data')
   parser.add_argument('outdir', help='directory for output files')
   parser.add_argument('--num-groups', help='The number of groups to analyse (ranked by size)', dest='num_groups', action='store', type=int, default=None)
+  parser.add_argument('--num-segments', help='The number of segments per group', dest='num_segments', action='store', type=int, default=4)
+  parser.add_argument('--threshold-base', help='The "power of x" base when calculating segment thresholds', dest='threshold_base', action='store', type=int, default=10)
   args = parser.parse_args()
   
   #
@@ -41,7 +69,10 @@ if __name__ == "__main__":
   groupcol = 'country'
   
   # segmentation: powers of ten
-  segments = [10**p for p in range(4)]
+  segments = [args.threshold_base**p for p in range(args.num_segments)]
+  # segments = [2**p for p in range(5)]
+  # segments = [5**p for p in range(4)]
+  # segments = [10**p for p in range(4)]
   thresholds = zip(segments, segments[1:] + [None])
   threshold_label = lambda n1, n2: \
     '%d<=num_coll_edits<%d' % (n1, n2) if n2 else \
@@ -105,10 +136,12 @@ if __name__ == "__main__":
   stats = defaultdict(lambda: defaultdict(dict))
   for group in groups:
     for label in threshold_labels:
-      seg_num_users = len(coll_seg[group][label])
+      values = coll_seg[group][label]
+      seg_num_users = len(values)
       stats['#users'][group][label] = seg_num_users
       stats['%coll_pop'][group][label] = seg_num_users / Decimal(pop[group]['coll_pop'])
       stats['%pop'][group][label] = seg_num_users / Decimal(pop[group]['pop'])
+      stats['cov_coll_edits'][group][label] = np.std(values) / np.mean(values)
 
   # ====================
   # = Reports & charts =
@@ -120,7 +153,7 @@ if __name__ == "__main__":
   # Summary stats
   #
   
-  stat_names = ['#users', '%coll_pop', '%pop']
+  stat_names = ['#users', '%coll_pop', '%pop', 'cov_coll_edits']
   
   for stat_name in stat_names:
     groupstat_report(stats[stat_name], groupcol, threshold_labels,
@@ -130,25 +163,5 @@ if __name__ == "__main__":
       args.outdir, 'stats_%s' % stat_name,
       xgroups=[threshold_labels])
   
-  # #
-  # # Collab stats
-  # #
-  # 
-  # coll_stat_names = ['coll_user_share', 'coll_edit_share']
-  # 
-  # groupstat_report(coll_stats, groupcol, coll_stat_names,
-  #   args.outdir, 'coll_stats')
-  # 
-  # groupstat_plot(coll_stats, groups, coll_stat_names, 
-  #   args.outdir, 'coll_stats')
-  # 
-  # #
-  # # Lorenz curves
-  # #
-  # 
-  # lorenz_matrix_plot(pop, groups, measures, args.lorenz_steps,
-  #   args.outdir, 'lorenz_matrix')
-  # 
-  # for measure in measures:
-  #   combined_lorenz_plot(pop, groups, measure, args.lorenz_steps,
-  #     args.outdir, 'lorenz_%s' % measure)
+  boxplot_matrix(coll_seg, threshold_labels, groups, 
+    args.outdir, 'boxplot_coll_edits')
