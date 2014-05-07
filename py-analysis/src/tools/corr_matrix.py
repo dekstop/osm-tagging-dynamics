@@ -106,23 +106,28 @@ if __name__ == "__main__":
   groups_a = data_a.index
   groups_b = data_b.index
   groups = sorted([g for g in groups_a if g in groups_b])
+  print "Number of samples: %d" % len(groups)
   
   metrics_a = data_a.keys()
   metrics_b = data_b.keys()
 
+  #
+  # Correlation scores
+  #
+  
   # dict: metric1 -> metric2 -> measure -> value
   corr = defaultdict(lambda: defaultdict(dict)) 
   
   for metric_a in metrics_a:
     print metric_a + " ..."
-    values_a = [(data_a.ix[g][metric_a]) for g in groups]
+    values_a = [data_a.ix[g][metric_a] for g in groups if data_a.ix[g][metric_a]!=None]
 
     for metric_b in metrics_b:
 
       if self_corr and len(corr[metric_b][metric_a]) > 0:
         pass # Check for symmetry: we already computed this
       else:
-        values_b = [(data_b.ix[g][metric_b]) for g in groups]
+        values_b = [data_b.ix[g][metric_b] for g in groups if data_b.ix[g][metric_b]!=None]
       
         (pcc, p_pcc) = stats.pearsonr(values_a, values_b)
         (scc, p_scc) = stats.spearmanr(values_a, values_b)
