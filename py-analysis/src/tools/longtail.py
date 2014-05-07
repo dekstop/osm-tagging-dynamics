@@ -7,13 +7,24 @@ matplotlib.use('Agg')
 
 import argparse
 from collections import defaultdict
+import math
 
 import matplotlib.pyplot as plt
 from matplotlib import ticker
+import numpy
 import pandas as pd
 import powerlaw
 
 from app import *
+
+# =========
+# = Tools =
+# =========
+
+def is_numeric(v):
+  return v!=None and \
+    (type(np.asscalar(v))==int or type(np.asscalar(v))==long or \
+    (type(np.asscalar(v))==float and math.isnan(np.asscalar(v))!=True))
 
 # =========
 # = Plots =
@@ -21,56 +32,67 @@ from app import *
 
 # data: a dict of { measure -> list of values }
 # kwargs are passed on to plt.hist(...)
-def plot_hist(data, measures, outdir, filename_base, bins=10, **kwargs):
+def plot_hist(data, measures, outdir, filename_base, bins=10, min_distinc_values=5,
+  **kwargs):
   for (measure, temp, ax1) in plot_matrix(measures, [1]):
-    plt.hist(data[measure], bins=bins, histtype='bar', **kwargs)
+    values = [v for v in data[measure] if is_numeric(v)]
+    if len(set(values)) < min_distinc_values:
+      ax1.set_axis_bgcolor('#eeeeee')
+      plt.setp(ax1.spines.values(), color='none')
+    else:
+      plt.hist(values, bins=bins, histtype='bar', **kwargs)
 
-    ax1.tick_params(axis='both', which='major', labelsize='x-small')
-    ax1.tick_params(axis='both', which='minor', labelsize='xx-small')
+      ax1.tick_params(axis='both', which='major', labelsize='x-small')
+      ax1.tick_params(axis='both', which='minor', labelsize='xx-small')
   
-    ax1.margins(0.1, 0.1)
-    ax1.get_xaxis().set_ticks([])
-    ax1.get_yaxis().set_ticks([])
+      ax1.margins(0.1, 0.1)
+      ax1.get_xaxis().set_ticks([])
+      ax1.get_yaxis().set_ticks([])
 
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
 
 # data: a dict of { measure -> list of values }
 # Will ignore values of value 0
-def report_dist(data, measures, outdir, filename_base, discrete=False):
+def report_dist(data, measures, outdir, filename_base, discrete=False, 
+  min_distinc_values=5):
   reportfilename = "%s/%s.txt" % (outdir, filename_base)
   reportfile = open(reportfilename, 'wb')
 
   for (measure, temp, ax1) in plot_matrix(measures, [1]):
       reportfile.write("= %s =\n" % measure)
-      values = list(value for value in data[measure] if value>0)
-
-      powerlaw.plot_pdf(values, ax=ax1, color='k')
-      ax1.tick_params(axis='both', which='major', labelsize='x-small')
-      ax1.tick_params(axis='both', which='minor', labelsize='xx-small')
-
-      fit = powerlaw.Fit(values, discrete=discrete, xmin=2) #, xmin=min(values))
-      reportfile.write("Lognormal:\n")
-      reportfile.write("  mu = %f\n" % (fit.lognormal.mu))
-      reportfile.write("  sigma = %f\n" % (fit.lognormal.sigma))
-      reportfile.write("  xmin = %d\n" % (fit.lognormal.xmin))
-      reportfile.write("Power-law:\n")
-      reportfile.write("  alpha = %f\n" % (fit.power_law.alpha))
-      reportfile.write("  sigma = %f\n" % (fit.power_law.sigma))
-      reportfile.write("  xmin = %d\n" % (fit.power_law.xmin))
-
-      R, p = fit.distribution_compare('lognormal', 'power_law')
-      # 'lognormal', 'exponential', 'truncated_power_law', 'stretched_exponential', 'gamma', 'power_law'
-      reportfile.write("Lognormal fit compared to power-law distribution: R=%f, p=%f\n" % (R, p))
-      reportfile.write("\n")
-
-      fit.power_law.plot_pdf(linestyle='--', color='b', ax=ax1, label='Power-law fit')
-      info = "Power-law:\nalpha=%.3f\nsigma=%.3f\nxmin=%d" % (fit.power_law.alpha, fit.power_law.sigma, fit.power_law.xmin)
-      plt.text(0.1, 0.1, info, transform=ax1.transAxes, color='b', ha='left', va='bottom', size='small')
-
-      fit.lognormal.plot_pdf(linestyle='--', color='r', ax=ax1, label='Lognormal fit')
-      info = "Lognormal:\nmu=%.3f\nsigma=%.3f\nxmin=%d" % (fit.lognormal.mu, fit.lognormal.sigma, fit.lognormal.xmin)
-      plt.text(0.9, 0.9, info, transform=ax1.transAxes, color='r', ha='right', va='top', size='small')
+      values = list(value for value in data[measure] if is_numeric(value) and value>0)
+      
+      if len(set(values)) < min_distinc_values:
+        ax1.set_axis_bgcolor('#eeeeee')
+        plt.setp(ax1.spines.values(), color='none')
+      else:
+        powerlaw.plot_pdf(values, ax=ax1, color='k')
+        ax1.tick_params(axis='both', which='major', labelsize='x-small')
+        ax1.tick_params(axis='both', which='minor', labelsize='xx-small')
+    
+        fit = powerlaw.Fit(values, discrete=discrete, xmin=2) #, xmin=min(values))
+        reportfile.write("Lognormal:\n")
+        reportfile.write("  mu = %f\n" % (fit.lognormal.mu))
+        reportfile.write("  sigma = %f\n" % (fit.lognormal.sigma))
+        reportfile.write("  xmin = %d\n" % (fit.lognormal.xmin))
+        reportfile.write("Power-law:\n")
+        reportfile.write("  alpha = %f\n" % (fit.power_law.alpha))
+        reportfile.write("  sigma = %f\n" % (fit.power_law.sigma))
+        reportfile.write("  xmin = %d\n" % (fit.power_law.xmin))
+    
+        R, p = fit.distribution_compare('lognormal', 'power_law')
+        # 'lognormal', 'exponential', 'truncated_power_law', 'stretched_exponential', 'gamma', 'power_law'
+        reportfile.write("Lognormal fit compared to power-law distribution: R=%f, p=%f\n" % (R, p))
+        reportfile.write("\n")
+    
+        fit.power_law.plot_pdf(linestyle='--', color='b', ax=ax1, label='Power-law fit')
+        info = "Power-law:\nalpha=%.3f\nsigma=%.3f\nxmin=%d" % (fit.power_law.alpha, fit.power_law.sigma, fit.power_law.xmin)
+        plt.text(0.1, 0.1, info, transform=ax1.transAxes, color='b', ha='left', va='bottom', size='small')
+    
+        fit.lognormal.plot_pdf(linestyle='--', color='r', ax=ax1, label='Lognormal fit')
+        info = "Lognormal:\nmu=%.3f\nsigma=%.3f\nxmin=%d" % (fit.lognormal.mu, fit.lognormal.sigma, fit.lognormal.xmin)
+        plt.text(0.9, 0.9, info, transform=ax1.transAxes, color='r', ha='right', va='top', size='small')
 
   reportfile.close()
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
