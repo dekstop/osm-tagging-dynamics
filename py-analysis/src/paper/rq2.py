@@ -27,18 +27,25 @@ from shared import *
 # = Plots =
 # =========
 
-# data: row -> column -> list of values
+# data: column -> row -> list of values
 # kwargs is passed on to plt.boxplot(...).
-def boxplot_matrix(data, columns, rows, outdir, filename_base, min_values=5, **kwargs):
-  for (column, row, ax1) in plot_matrix(columns, rows):
-    if len(data[row][column]) < min_values:
+def boxplot_matrix(data, columns, rows, outdir, filename_base, min_values=5,
+   shared_yscale=True, show_minmax=True, **kwargs):
+
+  for (column, row, ax1) in plot_matrix(columns, rows, shared_yscale=shared_yscale):
+    values = data[column][row]
+    if len(values) < min_values:
       ax1.set_axis_bgcolor('#eeeeee')
       plt.setp(ax1.spines.values(), color='none')
     else:
-      values = data[row][column]
-      mean = np.mean(data[row][column])
+      mean = np.mean(values)
       norm_values = [v / mean for v in values]
       ax1.boxplot(norm_values, **kwargs)
+      
+      if show_minmax:
+        w = 0.1
+        plt.plot([-w, w], [min(values)]*2, 'k-')
+        plt.plot([-w, w], [max(values)]*2, 'k-')
 
     ax1.margins(0.1, 0.1)
     ax1.get_xaxis().set_visible(False)
@@ -69,14 +76,15 @@ if __name__ == "__main__":
   groupcol = 'country'
   
   # segmentation: powers of ten
-  segments = [args.threshold_base**p for p in range(args.num_segments)]
+  segments = [args.threshold_base**p for p in range(args.num_segments-1)]
   # segments = [2**p for p in range(5)]
   # segments = [5**p for p in range(4)]
   # segments = [10**p for p in range(4)]
-  thresholds = zip(segments, segments[1:] + [None])
+  thresholds = zip([None] + segments, segments + [None])
   threshold_label = lambda n1, n2: \
-    '%d<=num_coll_edits<%d' % (n1, n2) if n2 else \
-    '%d<=num_coll_edits' % n1
+    '%d<n<=%d' % (n1, n2) if (n1 and n2) else \
+    'n>%s' % n1 if (not n2) else \
+    'n=%d' % n2
   threshold_labels = [threshold_label(min1, max1) for (min1, max1) in thresholds]
   
   # ============================
@@ -116,8 +124,11 @@ if __name__ == "__main__":
   for group in groups:
     pop[group]['edits'] = [d['num_edits'] for d in data[group] if d['num_edits']>0]
     pop[group]['pop'] = len(pop[group]['edits'])
+    pop[group]['total'] = sum(pop[group]['edits'])
+
     pop[group]['coll_edits'] = [d['num_coll_edits'] for d in data[group] if d['num_coll_edits']>0]
     pop[group]['coll_pop'] = len(pop[group]['coll_edits'])
+    pop[group]['coll_total'] = sum(pop[group]['coll_edits'])
   
   # dict: group -> segment -> list of values
   coll_seg = defaultdict(dict)
@@ -125,8 +136,8 @@ if __name__ == "__main__":
     for (min1, max1) in thresholds:
       coll_seg[group][threshold_label(min1, max1)] = \
         [v for v in pop[group]['coll_edits'] 
-          if v>=min1 
-          and (max1==None or v<max1)]
+          if (min1==None or v>min1)
+          and (max1==None or v<=max1)]
   
   #
   # Per group: compute summary stats
@@ -138,11 +149,43 @@ if __name__ == "__main__":
     for label in threshold_labels:
       values = coll_seg[group][label]
       seg_num_users = len(values)
+      seg_num_edits = sum(values)
       stats['#users'][group][label] = seg_num_users
-      stats['%coll_pop'][group][label] = seg_num_users / Decimal(pop[group]['coll_pop'])
+      # stats['%coll_pop'][group][label] = seg_num_users / Decimal(pop[group]['coll_pop'])
       stats['%pop'][group][label] = seg_num_users / Decimal(pop[group]['pop'])
-      stats['cov_coll_edits'][group][label] = np.std(values) / np.mean(values)
+      stats['%edits'][group][label] = seg_num_edits / Decimal(pop[group]['total'])
+      # stats['cov_coll_edits'][group][label] = np.std(values) / np.mean(values)
 
+  #
+  # Segment variances across groups
+  #
+  
+  stat_names = ['#users', '%pop', '%edits']
+  
+  # dict: segment -> stat -> list of values
+  seg_stats = { 
+    label: { 
+      stat_name: 
+        [float(stats[stat_name][group][label]) for group in groups] 
+      for stat_name in stat_names }
+    for label in threshold_labels }
+  
+  # dict: stat -> segment -> value
+  cov_seg_stats = { 
+    stat_name: { 
+      label:
+        np.std(seg_stats[label][stat_name])/np.mean(seg_stats[label][stat_name]) 
+      for label in threshold_labels }
+    for stat_name in stat_names }
+
+  # # dict: segment -> stat -> value
+  # cov_seg_stats = { 
+  #   label: { 
+  #     stat_name:
+  #       np.std(seg_stats[label][stat_name])/np.mean(seg_stats[label][stat_name]) 
+  #       for stat_name in stat_names }
+  #   for label in threshold_labels }
+  
   # ====================
   # = Reports & charts =
   # ====================
@@ -153,15 +196,25 @@ if __name__ == "__main__":
   # Summary stats
   #
   
-  stat_names = ['#users', '%coll_pop', '%pop', 'cov_coll_edits']
-  
   for stat_name in stat_names:
     groupstat_report(stats[stat_name], groupcol, threshold_labels,
       args.outdir, 'stats_%s' % stat_name)
-  
+      
     groupstat_plot(stats[stat_name], groups, threshold_labels, 
       args.outdir, 'stats_%s' % stat_name,
       xgroups=[threshold_labels])
   
-  boxplot_matrix(coll_seg, threshold_labels, groups, 
-    args.outdir, 'boxplot_coll_edits')
+  boxplot_matrix(seg_stats, threshold_labels, stat_names, 
+    args.outdir, 'boxplots')
+
+  groupstat_report(cov_seg_stats, 'CoV(x)', threshold_labels,
+    args.outdir, 'cov')
+  # groupstat_report(cov_seg_stats, 'segment', stat_names,
+  #   args.outdir, 'cov')
+  
+  groupstat_plot(cov_seg_stats, stat_names, threshold_labels, 
+    args.outdir, 'cov', 
+    xgroups=[threshold_labels])
+  # groupstat_plot(cov_seg_stats, threshold_labels, stat_names, 
+  #   args.outdir, 'cov')
+
