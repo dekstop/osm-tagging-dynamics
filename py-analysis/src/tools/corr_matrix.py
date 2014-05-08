@@ -14,6 +14,7 @@ import gc
 import sys
 
 import matplotlib.cm as cm
+import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy
 import pandas as pd
@@ -43,7 +44,7 @@ def report(data, key1name, key2name, colnames, outdir, filename_base):
 
 # corr: metric1 -> metric2 -> measure -> value
 def corrmatrix(metrics1, metrics2, corr, measure, outdir, filename_base, 
-  cmap=cm.gray, **kwargs):
+  cmap=cm.gray, norm=None, **kwargs):
 
   ncols = len(metrics1)
   nrows = len(metrics2)
@@ -69,7 +70,11 @@ def corrmatrix(metrics1, metrics2, corr, measure, outdir, filename_base,
         if (a == 0): # first column
           plt.ylabel(metrics2[b], rotation=0)
       
-        ax1.bar(0, 1, 1, 0, color=cmap(val), **kwargs)
+        if norm:
+          color=cmap(norm(val))
+        else:
+          color=cmap(val)
+        ax1.bar(0, 1, 1, 0, color=color, **kwargs)
 
         ax1.get_xaxis().set_ticks([])
         ax1.get_yaxis().set_ticks([])
@@ -145,10 +150,16 @@ if __name__ == "__main__":
   #
   mkdir_p(args.outdir)
   
-  measures = ['pcc', 'p_pcc', 'scc', 'p_scc']
-  report(corr, 'metric a', 'metric b', measures, args.outdir, 'corr_matrix')
+  report(corr, 'metric a', 'metric b', ['pcc', 'p_pcc', 'scc', 'p_scc'], 
+    args.outdir, 'corr_matrix')
   
-  for measure in measures:
-    corrmatrix(metrics_a, metrics_b, corr, measure, args.outdir, 
-      'corr_matrix_' + measure, cmap=cm.Blues)
+  for stat in ['pcc', 'scc']:
+    corrmatrix(metrics_a, metrics_b, corr, stat, args.outdir, 
+      'corr_matrix_' + stat, 
+      cmap=cm.RdBu, norm=colors.Normalize(vmin=-1,vmax=1))
+  
+  for pvalue in ['p_pcc', 'p_scc']:
+    corrmatrix(metrics_a, metrics_b, corr, pvalue, args.outdir, 
+      'corr_matrix_' + pvalue, 
+      cmap=cm.Blues)
   
