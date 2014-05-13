@@ -82,7 +82,7 @@ if __name__ == "__main__":
   # segments = [10**p for p in range(4)]
   thresholds = zip([None] + segments, segments + [None])
   threshold_label = lambda n1, n2: \
-    '%d<n<=%d' % (n1, n2) if (n1 and n2) else \
+    '%d<n≤%d' % (n1, n2) if (n1 and n2) else \
     'n>%s' % n1 if (not n2) else \
     'n=%d' % n2
   threshold_labels = [threshold_label(min1, max1) for (min1, max1) in thresholds]
@@ -116,28 +116,35 @@ if __name__ == "__main__":
   # =================
 
   #
-  # Per group: segment users
+  # Per group: summary stats, segment users
   # 
 
   # dict: group -> metric -> value(s)
   pop = defaultdict(dict)
   for group in groups:
-    pop[group]['edits'] = [d['num_edits'] for d in data[group] if d['num_edits']>0]
-    pop[group]['pop'] = len(pop[group]['edits'])
-    pop[group]['total'] = sum(pop[group]['edits'])
+    edits = [d['num_edits'] for d in data[group] if d['num_edits']>0]
+    pop[group]['pop'] = len(edits)
+    pop[group]['total'] = sum(edits)
 
-    pop[group]['coll_edits'] = [d['num_coll_edits'] for d in data[group] if d['num_coll_edits']>0]
-    pop[group]['coll_pop'] = len(pop[group]['coll_edits'])
-    pop[group]['coll_total'] = sum(pop[group]['coll_edits'])
+    coll_edits = [d['num_coll_edits'] for d in data[group] if d['num_coll_edits']>0]
+    pop[group]['coll_pop'] = len(coll_edits)
+    pop[group]['coll_total'] = sum(coll_edits)
   
   # dict: group -> segment -> list of values
-  coll_seg = defaultdict(dict)
+  all_seg = defaultdict(dict)
   for group in groups:
     for (min1, max1) in thresholds:
-      coll_seg[group][threshold_label(min1, max1)] = \
-        [v for v in pop[group]['coll_edits'] 
-          if (min1==None or v>min1)
-          and (max1==None or v<=max1)]
+      all_seg[group][threshold_label(min1, max1)] = \
+        [d['num_coll_edits'] for d in data[group]
+          if (min1==None or d['num_edits']>min1)
+          and (max1==None or d['num_edits']<=max1)]
+
+  # dict: group -> segment -> list of values
+  coll_seg = \
+    {group: \
+      {label: [v for v in all_seg[group][label] if v>0] 
+        for label in all_seg[group].keys() } 
+      for group in all_seg.keys() }
   
   #
   # Per group: compute summary stats
