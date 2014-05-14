@@ -82,7 +82,12 @@ if __name__ == "__main__":
   #
   
   groupcol = 'country'
-  measures = ['num_edits', 'num_coll_edits']
+  measures = ['num_edits', 'num_coll_edits', 
+    'num_tag_add', 'num_tag_update', 'num_tag_remove',
+    'num_coll_tag_add', 'num_coll_tag_update', 'num_coll_tag_remove']
+  to_cohort_name = lambda measure: measure.replace('num_', '', 1)
+  cohorts = [to_cohort_name(measure) for measure in measures]
+  actions = ['add', 'update', 'remove']
   
   # ============================
   # = Load data & transform it =
@@ -119,30 +124,28 @@ if __name__ == "__main__":
   # 
   
   # dict: group -> measure -> list of values
-  pop = dict()
-  for group in groups:
-    rec = dict()
-    for measure in measures:
-      rec[measure] = [d[measure] for d in data[group]]
-    pop[group] = rec
-    
+  pop = { group: { to_cohort_name(measure): 
+        [d[measure] for d in data[group]] 
+      for measure in measures }
+    for group in groups }
+  
   #
   # Per group: compute summary stats
   # 
 
   # dict: measure -> group -> score -> value
   stats = defaultdict(dict)
-  for measure in measures:
+  for cohort in cohorts:
     for group in groups:
-      values = [v for v in pop[group][measure] if v>0]
+      values = pop[group][cohort]
       rec = dict()
-      rec['pop'] = len(values)
-      rec['total'] = sum(values)
+      rec['pop'] = len([v for v in values if v>0])
+      rec['edits'] = sum(values)
       rec['gini'] = gini(values)
       rec['palma'] = palma(values)
-      rec['top_10%'] = ranked_percentile_share(values, Decimal(10), top=True)
+      rec['top10%'] = ranked_percentile_share(values, Decimal(10), top=True)
       
-      stats[measure][group] = rec
+      stats[cohort][group] = rec
 
   #
   # Per group: collab share
@@ -152,8 +155,18 @@ if __name__ == "__main__":
   coll_stats = defaultdict(dict)
   for group in groups:
     rec = dict()
-    rec['coll_user_share'] = stats['num_coll_edits'][group]['pop'] / Decimal(stats['num_edits'][group]['pop'])
-    rec['coll_edit_share'] = stats['num_coll_edits'][group]['total'] / Decimal(stats['num_edits'][group]['total'])
+    rec['%pop'] = stats['coll_edits'][group]['pop'] / Decimal(stats['edits'][group]['pop'])
+    rec['%edits'] = stats['coll_edits'][group]['edits'] / Decimal(stats['edits'][group]['edits'])
+
+    for stat_name in ['gini', 'palma', 'top10%']:
+      rec[stat_name] = stats['coll_edits'][group][stat_name]
+
+    for action in actions:
+      rec['%%pop-%s' % action] = stats['coll_tag_%s' % action][group]['pop'] / Decimal(stats['edits'][group]['pop'])
+      rec['%%edits-%s' % action] = stats['coll_tag_%s' % action][group]['edits'] / Decimal(stats['edits'][group]['edits'])
+      
+      for stat_name in ['gini', 'palma', 'top10%']:
+        rec['%s-%s' % (stat_name, action)] = stats['coll_tag_%s' % action][group][stat_name]
     
     coll_stats[group] = rec
 
@@ -164,23 +177,39 @@ if __name__ == "__main__":
   mkdir_p(args.outdir)
 
   #
-  # Summary stats
+  # Summary stats: group sizes
   #
   
-  stat_names = ['pop', 'total', 'gini', 'palma', 'top_10%']
+  # dict: group -> cohort -> value
+  cohort_sizes = { group: { cohort: 
+        stats[cohort][group]['pop'] 
+      for cohort in cohorts } 
+    for group in groups }
 
-  for measure in measures:
-    groupstat_report(stats[measure], groupcol, stat_names,
-      args.outdir, 'stats_%s' % measure)
+  groupstat_report(cohort_sizes, groupcol, cohorts, args.outdir, 'cohort_sizes')
 
-    groupstat_plot(stats[measure], groups, stat_names, 
-      args.outdir, 'stats_%s' % measure)
+  #
+  # Summary stats per metric
+  #
+  
+  stat_names = ['pop', 'edits', 'gini', 'palma', 'top10%']
+
+  for cohort in cohorts:
+    groupstat_report(stats[cohort], groupcol, stat_names,
+      args.outdir, 'cohort_%s' % cohort)
+
+    groupstat_plot(stats[cohort], groups, stat_names, 
+      args.outdir, 'cohort_%s' % cohort)
 
   #
   # Collab stats
   #
 
-  coll_stat_names = ['coll_user_share', 'coll_edit_share']
+  coll_stat_names = list()
+  for stat_name in ['%pop', '%edits', 'gini', 'palma', 'top10%']:
+    coll_stat_names.append(stat_name)
+    for action in actions:
+      coll_stat_names.append('%s-%s' % (stat_name, action))
 
   groupstat_report(coll_stats, groupcol, coll_stat_names,
     args.outdir, 'coll_stats')
@@ -192,9 +221,9 @@ if __name__ == "__main__":
   # Lorenz curves
   #
   
-  lorenz_matrix_plot(pop, groups, measures, args.lorenz_steps,
+  lorenz_matrix_plot(pop, groups, cohorts, args.lorenz_steps,
     args.outdir, 'lorenz_matrix')
 
-  for measure in measures:
-    combined_lorenz_plot(pop, groups, measure, args.lorenz_steps,
-      args.outdir, 'lorenz_%s' % measure)
+  for cohort in cohorts:
+    combined_lorenz_plot(pop, groups, cohort, args.lorenz_steps,
+      args.outdir, 'lorenz_%s' % cohort)
