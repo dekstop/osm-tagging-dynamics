@@ -82,11 +82,13 @@ if __name__ == "__main__":
   #
   
   groupcol = 'country'
+
   measures = ['num_edits', 'num_coll_edits', 
     'num_tag_add', 'num_tag_update', 'num_tag_remove',
     'num_coll_tag_add', 'num_coll_tag_update', 'num_coll_tag_remove']
   to_cohort_name = lambda measure: measure.replace('num_', '', 1)
   cohorts = [to_cohort_name(measure) for measure in measures]
+
   actions = ['add', 'update', 'remove']
   
   # ============================
@@ -123,17 +125,20 @@ if __name__ == "__main__":
   # Per group: collect population measures
   # 
   
-  # dict: group -> measure -> list of values
-  pop = { group: { to_cohort_name(measure): 
-        [d[measure] for d in data[group]] 
-      for measure in measures }
-    for group in groups }
+  # dict: group -> cohort -> list of values
+  pop = { 
+    group: { 
+      to_cohort_name(measure): [
+        d[measure] for d in data[group]
+      ] for measure in measures 
+    } for group in groups 
+  }
   
   #
   # Per group: compute summary stats
   # 
 
-  # dict: measure -> group -> score -> value
+  # dict: cohort -> group -> score -> value
   stats = defaultdict(dict)
   for cohort in cohorts:
     for group in groups:
