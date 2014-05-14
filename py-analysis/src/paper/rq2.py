@@ -82,10 +82,17 @@ if __name__ == "__main__":
   # segments = [10**p for p in range(4)]
   thresholds = zip([None] + segments, segments + [None])
   threshold_label = lambda n1, n2: \
-    '%d<n≤%d' % (n1, n2) if (n1 and n2) else \
+    '%d<n<=%d' % (n1, n2) if (n1 and n2) else \
     'n>%s' % n1 if (not n2) else \
     'n=%d' % n2
   threshold_labels = [threshold_label(min1, max1) for (min1, max1) in thresholds]
+
+  measures = ['num_coll_edits', 'num_coll_tag_add', 'num_coll_tag_update', 
+    'num_coll_tag_remove']
+  # to_cohort_name = lambda measure: measure.replace('num_', '', 1)
+  # cohorts = [to_cohort_name(measure) for measure in measures]
+
+  actions = ['add', 'update', 'remove']
   
   # ============================
   # = Load data & transform it =
@@ -116,78 +123,92 @@ if __name__ == "__main__":
   # =================
 
   #
-  # Per group: summary stats, segment users
+  # Per group: collect population measures
   # 
 
-  # dict: group -> metric -> value(s)
-  pop = defaultdict(dict)
+  # dict: group -> metric -> value
+  group_stats = defaultdict(dict)
   for group in groups:
     edits = [d['num_edits'] for d in data[group] if d['num_edits']>0]
-    pop[group]['pop'] = len(edits)
-    pop[group]['total'] = sum(edits)
-  
-  # dict: group -> segment -> list of values
-  all_seg = defaultdict(dict)
-  for group in groups:
-    for (min1, max1) in thresholds:
-      all_seg[group][threshold_label(min1, max1)] = \
-        [d['num_coll_edits'] for d in data[group]
-          if (min1==None or d['num_edits']>min1)
-          and (max1==None or d['num_edits']<=max1)]
-
-  # dict: group -> segment -> list of values
-  coll_seg = \
-    {group: \
-      {label: [v for v in all_seg[group][label] if v>0] 
-        for label in all_seg[group].keys() } 
-      for group in all_seg.keys() }
+    group_stats[group]['pop'] = len(edits)
+    group_stats[group]['edits'] = sum(edits)
   
   #
-  # Per group: compute summary stats
+  # Segment users
+  # 
+
+  # dict: group -> segment -> measure -> list of values
+  pop = { 
+    group: { 
+      threshold_label(min1, max1): {
+        measure: [
+          d[measure] for d in data[group]
+            if (min1==None or d['num_edits']>min1)
+            and (max1==None or d['num_edits']<=max1)
+        ] for measure in measures
+      } for (min1, max1) in thresholds
+    } for group in groups
+  }
+  
+  # dict: measure -> group -> segment -> value
+  measure_segment_sizes = {
+    measure: {
+      group: {
+        label: 
+          len([v for v in pop[group][label][measure] if v>0])
+        for label in threshold_labels
+      } for group in groups
+    } for measure in measures
+  }
+  
+  #
+  # Per segment: compute summary stats
   # 
 
   # dict: stat -> group -> segment -> value
   stats = defaultdict(lambda: defaultdict(dict))
   for group in groups:
     for label in threshold_labels:
-      values = coll_seg[group][label]
-      seg_num_users = len(values)
-      seg_num_edits = sum(values)
-      stats['#users'][group][label] = seg_num_users
-      # stats['%coll_pop'][group][label] = seg_num_users / Decimal(pop[group]['coll_pop'])
-      stats['%pop'][group][label] = seg_num_users / Decimal(pop[group]['pop'])
-      stats['%edits'][group][label] = seg_num_edits / Decimal(pop[group]['total'])
-      # stats['cov_coll_edits'][group][label] = np.std(values) / np.mean(values)
+      total_users = Decimal(group_stats[group]['pop'])
+      total_edits = Decimal(group_stats[group]['edits'])
+
+      values = pop[group][label]['num_coll_edits']
+      stats['%pop'][group][label] = len([v for v in values if v>0]) / total_users
+      stats['%edits'][group][label] = sum(values) / total_edits
+      
+      for action in actions:
+        values = pop[group][label]['num_coll_tag_%s' % action]
+        stats['%%pop-%s' % action][group][label] = len([v for v in values if v>0]) / total_users
+        stats['%%edits-%s' % action][group][label] = sum(values) / total_edits
+        
 
   #
   # Segment variances across groups
   #
   
-  stat_names = ['#users', '%pop', '%edits']
+  stat_names = list()
+  for stat_name in ['%pop', '%edits']:
+    stat_names.append(stat_name)
+    for action in actions:
+      stat_names.append('%s-%s' % (stat_name, action))
   
   # dict: segment -> stat -> list of values
   seg_stats = { 
     label: { 
       stat_name: 
         [float(stats[stat_name][group][label]) for group in groups] 
-      for stat_name in stat_names }
-    for label in threshold_labels }
+      for stat_name in stat_names 
+    } for label in threshold_labels 
+  }
   
   # dict: stat -> segment -> value
   cov_seg_stats = { 
     stat_name: { 
-      label:
-        np.std(seg_stats[label][stat_name])/np.mean(seg_stats[label][stat_name]) 
-      for label in threshold_labels }
-    for stat_name in stat_names }
-
-  # # dict: segment -> stat -> value
-  # cov_seg_stats = { 
-  #   label: { 
-  #     stat_name:
-  #       np.std(seg_stats[label][stat_name])/np.mean(seg_stats[label][stat_name]) 
-  #       for stat_name in stat_names }
-  #   for label in threshold_labels }
+      label: 
+        np.std(seg_stats[label][stat_name]) / np.mean(seg_stats[label][stat_name]) 
+      for label in threshold_labels 
+    } for stat_name in stat_names 
+  }
   
   # ====================
   # = Reports & charts =
@@ -199,6 +220,10 @@ if __name__ == "__main__":
   # Summary stats
   #
   
+  for measure in measures:
+    groupstat_report(measure_segment_sizes[measure], groupcol, threshold_labels, 
+      args.outdir, 'segment_sizes_%s' % measure)
+
   for stat_name in stat_names:
     groupstat_report(stats[stat_name], groupcol, threshold_labels,
       args.outdir, 'stats_%s' % stat_name)
