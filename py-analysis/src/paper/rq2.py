@@ -125,10 +125,6 @@ if __name__ == "__main__":
     edits = [d['num_edits'] for d in data[group] if d['num_edits']>0]
     pop[group]['pop'] = len(edits)
     pop[group]['total'] = sum(edits)
-
-    coll_edits = [d['num_coll_edits'] for d in data[group] if d['num_coll_edits']>0]
-    pop[group]['coll_pop'] = len(coll_edits)
-    pop[group]['coll_total'] = sum(coll_edits)
   
   # dict: group -> segment -> list of values
   all_seg = defaultdict(dict)
