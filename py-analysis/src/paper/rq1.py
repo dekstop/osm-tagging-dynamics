@@ -83,14 +83,10 @@ if __name__ == "__main__":
   
   groupcol = 'country'
 
-  measures = ['num_edits', 'num_coll_edits', 
-    'num_tag_add', 'num_tag_update', 'num_tag_remove',
-    'num_coll_tag_add', 'num_coll_tag_update', 'num_coll_tag_remove']
+  measures = ['num_edits', 'num_coll_edits']
   to_cohort_name = lambda measure: measure.replace('num_', '', 1)
   cohorts = [to_cohort_name(measure) for measure in measures]
 
-  actions = ['add', 'update', 'remove']
-  
   # ============================
   # = Load data & transform it =
   # ============================
@@ -166,13 +162,6 @@ if __name__ == "__main__":
     for stat_name in ['gini', 'palma', 'top10%']:
       rec[stat_name] = stats['coll_edits'][group][stat_name]
 
-    for action in actions:
-      rec['%%pop-%s' % action] = stats['coll_tag_%s' % action][group]['pop'] / Decimal(stats['edits'][group]['pop'])
-      rec['%%edits-%s' % action] = stats['coll_tag_%s' % action][group]['edits'] / Decimal(stats['edits'][group]['edits'])
-      
-      for stat_name in ['gini', 'palma', 'top10%']:
-        rec['%s-%s' % (stat_name, action)] = stats['coll_tag_%s' % action][group][stat_name]
-    
     coll_stats[group] = rec
 
   # ====================
@@ -210,11 +199,7 @@ if __name__ == "__main__":
   # Collab stats
   #
 
-  coll_stat_names = list()
-  for stat_name in ['%pop', '%edits', 'gini', 'palma', 'top10%']:
-    coll_stat_names.append(stat_name)
-    for action in actions:
-      coll_stat_names.append('%s-%s' % (stat_name, action))
+  coll_stat_names = ['%pop', '%edits', 'gini', 'palma', 'top10%']
 
   groupstat_report(coll_stats, groupcol, coll_stat_names,
     args.outdir, 'coll_stats')
@@ -228,7 +213,7 @@ if __name__ == "__main__":
   
   lorenz_matrix_plot(pop, groups, cohorts, args.lorenz_steps,
     args.outdir, 'lorenz_matrix')
-
+  
   for cohort in cohorts:
     combined_lorenz_plot(pop, groups, cohort, args.lorenz_steps,
       args.outdir, 'lorenz_%s' % cohort)

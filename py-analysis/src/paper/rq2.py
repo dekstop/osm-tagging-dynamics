@@ -87,13 +87,10 @@ if __name__ == "__main__":
     'n=%d' % n2
   threshold_labels = [threshold_label(min1, max1) for (min1, max1) in thresholds]
 
-  measures = ['num_coll_edits', 'num_coll_tag_add', 'num_coll_tag_update', 
-    'num_coll_tag_remove']
+  measures = ['num_coll_edits']
   # to_cohort_name = lambda measure: measure.replace('num_', '', 1)
   # cohorts = [to_cohort_name(measure) for measure in measures]
 
-  actions = ['add', 'update', 'remove']
-  
   # ============================
   # = Load data & transform it =
   # ============================
@@ -175,22 +172,12 @@ if __name__ == "__main__":
       values = pop[group][label]['num_coll_edits']
       stats['%pop'][group][label] = len([v for v in values if v>0]) / total_users
       stats['%edits'][group][label] = sum(values) / total_edits
-      
-      for action in actions:
-        values = pop[group][label]['num_coll_tag_%s' % action]
-        stats['%%pop-%s' % action][group][label] = len([v for v in values if v>0]) / total_users
-        stats['%%edits-%s' % action][group][label] = sum(values) / total_edits
-        
 
   #
   # Segment variances across groups
   #
   
-  stat_names = list()
-  for stat_name in ['%pop', '%edits']:
-    stat_names.append(stat_name)
-    for action in actions:
-      stat_names.append('%s-%s' % (stat_name, action))
+  stat_names = ['%pop', '%edits']
   
   # dict: segment -> stat -> list of values
   seg_stats = { 
