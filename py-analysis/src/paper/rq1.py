@@ -10,15 +10,10 @@ matplotlib.use('Agg')
 import argparse
 from collections import defaultdict
 from decimal import Decimal
-import gc
-import sys
 
 import pandas
 
 import matplotlib.pyplot as plt
-from matplotlib import ticker
-import numpy as np
-import numpy.linalg as linalg
 
 from app import *
 from shared import *
