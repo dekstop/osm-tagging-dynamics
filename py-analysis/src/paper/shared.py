@@ -29,6 +29,10 @@ def top_keys(data, num_keys=None, summarise=lambda data,key: len(data[key])):
 # = Reports =
 # ===========
 
+# Convert any string objects to UTF-8
+def encode(arr):
+  return [v.encode('utf-8') if type(v) in [str, unicode] else v for v in arr]
+
 # Export member profiles that are segmented into groups.
 # data: a dict: group_id -> list of profile dictionaries
 # groupcolname: used in TSV header
@@ -37,10 +41,10 @@ def profiledata_report(data, groupcolname, propcolnames, outdir, filename_base):
   filename = "%s/%s.txt" % (outdir, filename_base)
   outfile = open(filename, 'wb')
   outcsv = csv.writer(outfile, dialect='excel-tab')
-  outcsv.writerow([groupcolname] + propcolnames)
+  outcsv.writerow(encode([groupcolname] + propcolnames))
   for key in sorted(data.keys()):
     for row in data[key]:
-      outcsv.writerow([key] + [row[colname] for colname in propcolnames])
+      outcsv.writerow(encode([key] + [row[colname] for colname in propcolnames]))
   outfile.close()
 
 # Export summary statistics for several groups.
@@ -51,9 +55,9 @@ def groupstat_report(data, groupcolname, statcolnames, outdir, filename_base):
   filename = "%s/%s.txt" % (outdir, filename_base)
   outfile = open(filename, 'wb')
   outcsv = csv.writer(outfile, dialect='excel-tab')
-  outcsv.writerow([groupcolname] + statcolnames)
+  outcsv.writerow(encode([groupcolname] + statcolnames))
   for key in sorted(data.keys()):
-    outcsv.writerow([key] + [data[key][colname] for colname in statcolnames])
+    outcsv.writerow(encode([key] + [data[key][colname] for colname in statcolnames]))
   outfile.close()
 
 # ==========
