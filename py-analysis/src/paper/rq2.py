@@ -13,45 +13,10 @@ from decimal import Decimal
 
 import pandas
 
-import matplotlib.pyplot as plt
-from matplotlib import ticker
 import numpy as np
 
 from app import *
 from shared import *
-
-# =========
-# = Plots =
-# =========
-
-# data: column -> row -> list of values
-# kwargs is passed on to plt.boxplot(...).
-def boxplot_matrix(data, columns, rows, outdir, filename_base, min_values=5,
-   shared_yscale=True, show_minmax=True, **kwargs):
-
-  for (column, row, ax1) in plot_matrix(columns, rows, shared_yscale=shared_yscale):
-    values = data[column][row]
-    if len(values) < min_values:
-      ax1.set_axis_bgcolor('#eeeeee')
-      plt.setp(ax1.spines.values(), color='none')
-    else:
-      mean = np.mean(values)
-      norm_values = [v / mean for v in values]
-      ax1.boxplot(norm_values, **kwargs)
-      
-      if show_minmax:
-        w = 0.1
-        plt.plot([-w, w], [min(values)]*2, 'k-')
-        plt.plot([-w, w], [max(values)]*2, 'k-')
-
-    ax1.margins(0.1, 0.1)
-    ax1.get_xaxis().set_visible(False)
-    ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
-    ax1.tick_params(axis='y', which='major', labelsize='x-small')
-    ax1.tick_params(axis='y', which='minor', labelsize='xx-small')
-  
-  plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
-  plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
 
 # ========
 # = Main =

@@ -4,6 +4,8 @@ from decimal import Decimal
 import gc
 import math
 
+import matplotlib.pyplot as plt
+from matplotlib import ticker
 import numpy as np
 
 from app import *
@@ -125,3 +127,75 @@ def group_share_plot(data, iso2s, measures, outdir, filename_base,
   plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
   plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
 
+# data: row -> column -> list of values
+# kwargs is passed on to plt.boxplot(...).
+def boxplot_matrix(data, rows, columns, outdir, filename_base, min_values=5,
+   shared_yscale=True, show_minmax=True, **kwargs):
+
+  for (column, row, ax1) in plot_matrix(columns, rows, shared_yscale=shared_yscale):
+    values = data[row][column]
+    if len(values) < min_values:
+      ax1.set_axis_bgcolor('#eeeeee')
+      plt.setp(ax1.spines.values(), color='none')
+    else:
+      mean = np.mean(values)
+      norm_values = [v / mean for v in values]
+      ax1.boxplot(norm_values, **kwargs)
+      
+      if show_minmax:
+        w = 0.1
+        plt.plot([-w, w], [min(values)]*2, 'k-')
+        plt.plot([-w, w], [max(values)]*2, 'k-')
+
+    ax1.margins(0.1, 0.1)
+    ax1.get_xaxis().set_visible(False)
+    # ax1.get_yaxis().set_major_formatter(ticker.FuncFormatter(simplified_SI_format))
+    ax1.tick_params(axis='y', which='major', labelsize='x-small')
+    ax1.tick_params(axis='y', which='minor', labelsize='xx-small')
+  
+  plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
+  plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+
+# data_cols: group -> metric -> value
+# data_rows: group -> metric -> value
+# groups: list of groups to plot
+# row_measures: list of metrics across rows
+# col_measures: list of metrics across columns
+# outdir:
+# filename_base:
+# scale:
+# colors:
+# size: dot size in points^2
+# sizemap: a map from group name to a [0..1] size multiplier
+#
+# kwargs is passed on to plt.scatter(...).
+def scatter_matrix(data_rows, data_cols, groups, row_measures, col_measures, 
+  outdir, filename_base,  scale='linear', colors=QUALITATIVE_MEDIUM, size=20, 
+  sizemap=None, **kwargs):
+  
+  for (col, row, ax1) in plot_matrix(col_measures, row_measures):
+    x = [data_cols[group][col] for group in groups]
+    y = [data_rows[group][row] for group in groups]
+
+    s = size
+    if sizemap!=None:
+      s = [sizemap[group] * size for group in groups]
+
+    ax1.scatter(x, y, s=s, edgecolors='none', color=colors[0], **kwargs)
+
+    # # Workaround: won't autoscale for very small values
+    # ax1.set_xlim(min(x), max(x))
+    # ax1.set_ylim(min(y), max(y))
+
+    ax1.margins(0.2, 0.2)
+    ax1.set_xscale(scale)
+    ax1.set_yscale(scale)
+    ax1.get_xaxis().set_ticks([])
+    ax1.get_yaxis().set_ticks([])
+  
+  plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
+  plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+
+  # free memory
+  plt.close() # closes current figure
+  gc.collect()
