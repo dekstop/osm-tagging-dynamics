@@ -10,6 +10,7 @@ matplotlib.use('Agg')
 import argparse
 from collections import defaultdict
 from decimal import Decimal
+import os.path
 
 import pandas
 from scipy.spatial import distance
@@ -25,6 +26,8 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Statistics relating to collaborative editing practices.')
   parser.add_argument('datafile', help='TSV of user data')
   parser.add_argument('outdir', help='directory for output files')
+  parser.add_argument('--group-column', help='The column name used for group IDs', dest='groupcol', action='store', default='country')
+  parser.add_argument('--tag-column', help='The column name used for tag IDs', dest='tagcol', action='store', default='key')
   parser.add_argument('--num-groups', help='The number of groups to analyse (ranked by size)', dest='num_groups', action='store', type=int, default=None)
   parser.add_argument('--num-top-tags', help='The number of top tags to analyse (ranked by popularity)', dest='num_top_tags', action='store', type=int, default=20)
   parser.add_argument('--num-top-tags-scatter', help='The number of top tags to show in scatter plots (ranked by popularity)', dest='num_top_tags_scatter', action='store', type=int, default=20)
@@ -34,8 +37,6 @@ if __name__ == "__main__":
   # Defaults
   #
   
-  groupcol = 'country'
-  tagcol = 'key'
   measures = ['%pop', '%coll_pop', '%edits', '%coll_edits']
   aux_measures = ['num_users', 'num_edits', 'num_coll_users', 'num_coll_edits']
 
@@ -48,8 +49,8 @@ if __name__ == "__main__":
   # dict: group -> tag -> dict of measures
   data = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0)))
   for idx, row in df.iterrows():
-    group = row[groupcol]
-    tag = row[tagcol]
+    group = row[args.groupcol]
+    tag = row[args.tagcol]
     data[group][tag] = {
       measure: row[measure] for measure in measures + aux_measures
     }
@@ -123,7 +124,7 @@ if __name__ == "__main__":
   
   make_stats = lambda stats_dict: {
     'delta-%pop': distance.cosine(stats_dict['%pop'], stats_dict['%coll_pop']),
-    'delta-%edits': distance.cosine(stats_dict['%edits'], stats_dict['%coll_edits']),
+    'delta-%edits': distance.cosine(stats_dict['%edits'], stats_dict['%coll_edits'])
   }
   
   # dict: group -> stat_name -> value
@@ -151,32 +152,49 @@ if __name__ == "__main__":
   stat_names = ['delta-%pop', 'delta-%edits']
   
   # summary stats
-  groupstat_report(country_all_tag_stats, groupcol, stat_names,
+  groupstat_report(country_all_tag_stats, args.groupcol, stat_names,
     args.outdir, 'country_all_tag_stats')
   
-  groupstat_report(country_top_tag_stats, groupcol, stat_names,
+  groupstat_report(country_top_tag_stats, args.groupcol, stat_names,
     args.outdir, 'country_top_tag_stats')
   
-  groupstat_report(all_tag_country_stats, tagcol, stat_names,
+  groupstat_report(all_tag_country_stats, args.tagcol, stat_names,
     args.outdir, 'all_tag_country_stats')
   
-  groupstat_report(top_tag_country_stats, tagcol, stat_names,
+  groupstat_report(top_tag_country_stats, args.tagcol, stat_names,
     args.outdir, 'top_tag_country_stats')
 
   # boxplots: tag edit activity across countries
   cross_country_stats = {
-    'top-tags': {
-      stat_name: [ country_top_tag_stats[group][stat_name] for group in groups ]
-        for stat_name in stat_names
-    },
-    'all-tags': {
-      stat_name: [ country_all_tag_stats[group][stat_name] for group in groups ]
-        for stat_name in stat_names
-    },
+    stat_name: {
+      'top-tags': [ country_top_tag_stats[group][stat_name] for group in groups ],
+      'all-tags': [ country_all_tag_stats[group][stat_name] for group in groups ]
+    } for stat_name in stat_names
   }
 
-  boxplot_matrix(cross_country_stats, ['top-tags', 'all-tags'], stat_names,
+  boxplot_matrix(cross_country_stats, stat_names, ['top-tags', 'all-tags'], 
     args.outdir, 'country_stat_boxplot')
+
+  # ============
+  # = Features =
+  # ============
+
+  features_dir = os.path.join(args.outdir, 'features')
+  mkdir_p(features_dir)
+  
+  for group in groups:
+
+    groupstat_report(data[group], args.tagcol, measures, 
+      features_dir, 'all_tags_features_%s' % group)
+
+    top_tag_features = {
+      tag: {
+        measure: data[group][tag][measure] for measure in measures
+      } for tag in top_tags
+    }
+
+    groupstat_report(top_tag_features, args.tagcol, measures, 
+      features_dir, 'top_tags_features_%s' % group)
 
   # =================
   # = Scatter plots =
