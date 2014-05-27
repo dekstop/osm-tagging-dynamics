@@ -76,7 +76,6 @@ if __name__ == "__main__":
   parser.add_argument('--group-column', help='The column name used for group IDs', dest='groupcol', action='store', default='country')
   parser.add_argument('--tag-column', help='The column name used for tag IDs', dest='tagcol', action='store', default='key')
   parser.add_argument('--num-groups', help='The number of groups to analyse (ranked by size)', dest='num_groups', action='store', type=int, default=None)
-  parser.add_argument('--min-tag-edits', help='The minimum number of edits per tag in each country, tags below this threshold will not be considered', dest='min_tag_edits', action='store', type=int, default=None)
   parser.add_argument('--num-top-tags', help='The number of top tags to analyse (ranked by popularity)', dest='num_top_tags', action='store', type=int, default=20)
   parser.add_argument('--num-top-tags-scatter', help='The number of top tags to show in scatter plots (ranked by popularity)', dest='num_top_tags_scatter', action='store', type=int, default=20)
   args = parser.parse_args()
@@ -124,18 +123,6 @@ if __name__ == "__main__":
       tag for groupdict in data.values() 
             for tag in groupdict.keys() })
 
-  if args.min_tag_edits:
-    # dict: tag -> num countries below minimum edit threshold
-    low_edit_tags = {
-      tag: sum([
-        1 for group in groups if data[group][tag]['num_edits'] < args.min_tag_edits
-      ]) for tag in all_tags
-    }
-    skip_tags = [ tag for tag in low_edit_tags.keys() if low_edit_tags[tag] > 0 ]
-    print "Ignoring %d tags of %d which fall below minimum edit threshold (%d)" % (len(skip_tags), len(all_tags), args.min_tag_edits)
-    all_tags = [tag for tag in all_tags if tag not in skip_tags]
-    print "Number of remaining tags: %d" % len(all_tags)
-  
   # dict: tag -> sum of user counts across countries
   all_tag_counts = {
     tag: sum([ data[group][tag]['num_users'] for group in groups ])
