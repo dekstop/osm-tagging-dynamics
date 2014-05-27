@@ -32,11 +32,11 @@ def get_unknown_countries(session, iso2_codes):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Statistics relating to collaborative editing practices.')
   parser.add_argument('outdir', help='directory for output files')
-  parser.add_argument('--tag-column', help='the column name used for tag IDs', dest='tagcol', action='store', default='key')
+  parser.add_argument('--poi-type-column', help='the column name used for POI type IDs', dest='poitypecol', action='store', default='kind')
   parser.add_argument('--iso2-codes', help='list of ISO2 country codes', dest='iso2_codes', nargs='+', action='store', type=str, default=None)
-  parser.add_argument('--min-edits', help='minimum number of edits per tag and region', dest='min_edits', action='store', type=int, default=None)
-  parser.add_argument('--max-edits', help='maximum number of edits per tag and region', dest='max_edits', action='store', type=int, default=None)
-  parser.add_argument('--tag-stats-table', help='table name with tag edit stats', dest='tag_stats_table', action='store', default='tag_edit_stats')
+  parser.add_argument('--min-edits', help='minimum number of edits per type and region', dest='min_edits', action='store', type=int, default=None)
+  parser.add_argument('--max-edits', help='maximum number of edits per type and region', dest='max_edits', action='store', type=int, default=None)
+  parser.add_argument('--poi-stats-table', help='table name with POI edit stats', dest='poi_stats_table', action='store', default='poi_edit_stats')
   parser.add_argument('--user-stats-table', help='table name with user edit stats', dest='user_stats_table', action='store', default='user_edit_stats')
   args = parser.parse_args()
 
@@ -44,12 +44,12 @@ if __name__ == "__main__":
   # Get data
   #
 
-  tag_fields = [args.tagcol, 'num_users', 'num_coll_users', 'num_poi', 
+  poi_fields = [args.poitypecol, 'num_users', 'num_coll_users', 'num_poi', 
     'num_edits',  'num_tag_add', 'num_tag_update', 'num_tag_remove', 
     'num_coll_edits',  'num_coll_tag_add', 'num_coll_tag_update', 'num_coll_tag_remove', 
     'num_tag_values']
-  computed_tag_fields = ['%pop', '%coll_pop', '%edits', '%coll_edits']
-  fields = tag_fields + computed_tag_fields
+  computed_poi_fields = ['%pop', '%coll_pop', '%edits', '%coll_edits']
+  fields = poi_fields + computed_poi_fields
 
   #getDb().echo = True    
   session = getSession()
@@ -95,8 +95,8 @@ if __name__ == "__main__":
   ) pop ON (te.country_gid=pop.country_gid)
   JOIN world_borders w ON (te.country_gid=w.gid)
   WHERE TRUE %s %s
-  ORDER BY w.iso2, %s""" % (", ".join(tag_fields), args.tag_stats_table, 
-    args.user_stats_table, country_filter, thresholds_filter, args.tagcol))
+  ORDER BY w.iso2, %s""" % (", ".join(poi_fields), args.poi_stats_table, 
+    args.user_stats_table, country_filter, thresholds_filter, args.poitypecol))
   
   # dict: iso2 -> list of user records
   raw_data = defaultdict(list)

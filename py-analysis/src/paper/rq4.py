@@ -74,10 +74,11 @@ if __name__ == "__main__":
   parser.add_argument('datafile', help='TSV of user data')
   parser.add_argument('outdir', help='directory for output files')
   parser.add_argument('--group-column', help='The column name used for group IDs', dest='groupcol', action='store', default='country')
-  parser.add_argument('--tag-column', help='The column name used for tag IDs', dest='tagcol', action='store', default='key')
+  parser.add_argument('--poi-type-column', help='The column name used for POI type IDs', dest='poitypecol', action='store', default='kind')
   parser.add_argument('--num-groups', help='The number of groups to analyse (ranked by size)', dest='num_groups', action='store', type=int, default=None)
-  parser.add_argument('--num-top-tags', help='The number of top tags to analyse (ranked by popularity)', dest='num_top_tags', action='store', type=int, default=20)
-  parser.add_argument('--num-top-tags-scatter', help='The number of top tags to show in scatter plots (ranked by popularity)', dest='num_top_tags_scatter', action='store', type=int, default=20)
+  parser.add_argument('--min-poi-edits', help='The minimum number of edits per POI type in each country, POI types below this threshold will not be considered', dest='min_poi_edits', action='store', type=int, default=None)
+  parser.add_argument('--num-top-poi', help='The number of top POI to analyse (ranked by popularity)', dest='num_top_poi', action='store', type=int, default=20)
+  parser.add_argument('--num-top-poi-scatter', help='The number of top POI to show in scatter plots (ranked by popularity)', dest='num_top_poi_scatter', action='store', type=int, default=20)
   args = parser.parse_args()
   
   #
@@ -93,19 +94,19 @@ if __name__ == "__main__":
 
   df = pandas.read_csv(args.datafile, sep="\t", encoding='utf-8')
   
-  # dict: group -> tag -> dict of measures
+  # dict: group -> poi-type -> dict of measures
   data = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0.0)))
   for idx, row in df.iterrows():
     group = row[args.groupcol]
-    tag = row[args.tagcol]
-    data[group][tag] = {
+    kind = row[args.poitypecol]
+    data[group][kind] = {
       measure: row[measure] for measure in measures + aux_measures
     }
 
   #
   # Filter according to options, if needed
   #
-  group_size = lambda data, group: sum([ tagdict['num_users'] for tagdict in data[group].values() ])
+  group_size = lambda data, group: sum([ poidict['num_users'] for poidict in data[group].values() ])
   
   if args.num_groups:
     groups = top_keys(data, args.num_groups, summarise=group_size)
@@ -113,39 +114,54 @@ if __name__ == "__main__":
     groups = data.keys()
   
   print "Found %d groups: %s" % (len(groups), ", ".join(groups))
-  print "Computing tag statistics for measures: %s" % ", ".join(measures)
+  print "Computing POI statistics for measures: %s" % ", ".join(measures)
 
   #
-  # Most popular tags
+  # Most popular POI
   #
   
-  all_tags = sorted({ 
-      tag for groupdict in data.values() 
-            for tag in groupdict.keys() })
+  all_kinds = sorted({ 
+      kind for groupdict in data.values() 
+            for kind in groupdict.keys() })
 
-  # dict: tag -> sum of user counts across countries
-  all_tag_counts = {
-    tag: sum([ data[group][tag]['num_users'] for group in groups ])
-      for tag in all_tags
+  if args.min_poi_edits:
+    # dict: kind -> num countries below minimum edit threshold
+    low_edit_kind = {
+      kind: sum([
+        1 for group in groups if data[group][kind]['num_edits'] < args.min_poi_edits
+      ]) for kind in all_kinds
+    }
+    skip_kinds = [ kind for kind in low_edit_kind.keys() if low_edit_kind[kind] > 0 ]
+    print "Ignoring %d POI types out of %d which fall below minimum edit threshold (%d)" % (len(skip_kinds), len(all_kinds), args.min_poi_edits)
+    all_kinds = [kind for kind in all_kinds if kind not in skip_kinds]
+    print "Number of remaining POI types: %d" % len(all_kinds)
+  
+  import sys
+  sys.exit(0)
+  
+  # dict: kind -> sum of user counts across countries
+  all_counts = {
+    kind: sum([ data[group][kind]['num_users'] for group in groups ])
+      for kind in all_kinds
   }
   
-  top_tags = top_keys(all_tag_counts, args.num_top_tags, 
+  top_kinds = top_keys(all_counts, args.num_top_poi, 
     summarise=lambda data,key: data[key])
 
-  top_tags_scatter = top_keys(all_tag_counts, args.num_top_tags_scatter, 
+  top_kinds_scatter = top_keys(all_counts, args.num_top_poi_scatter, 
     summarise=lambda data,key: data[key])
   
-  print "Selecting %d top tags: %s" % (len(top_tags), ", ".join(top_tags))
+  print "Selecting %d top POI types: %s" % (len(top_kinds), ", ".join(top_kinds))
   
   # ===================
   # = Feature vectors =
   # ===================
   
-  # dict: group -> measure -> ordered vector of values, one per tag
+  # dict: group -> measure -> ordered vector of values, one per kind
   country_features_all = {
     group: {
       measure: [
-        data[group][tag][measure] for tag in all_tags
+        data[group][kind][measure] for kind in all_kinds
       ] for measure in measures
     } for group in groups
   }
@@ -153,18 +169,18 @@ if __name__ == "__main__":
   country_features_top = {
     group: {
       measure: [
-        data[group][tag][measure] for tag in top_tags
+        data[group][kind][measure] for kind in top_kinds
       ] for measure in measures
     } for group in groups
   }
   
-  # dict: tag -> measure -> ordered vector of values, one per group
-  tag_features = {
-    tag: {
+  # dict: kind -> measure -> ordered vector of values, one per group
+  poi_features = {
+    kind: {
       measure: [
-        data[group][tag][measure] for group in groups
+        data[group][kind][measure] for group in groups
       ] for measure in measures
-    } for tag in all_tags
+    } for kind in all_kinds
   }
   
   # =================
@@ -177,19 +193,19 @@ if __name__ == "__main__":
   }
   
   # dict: group -> stat_name -> value
-  country_all_tag_stats = {
+  country_all_poi_stats = {
     group: make_stats(country_features_all[group]) for group in groups
   }
-  country_top_tag_stats = {
+  country_top_poi_stats = {
     group: make_stats(country_features_top[group]) for group in groups
   }
   
-  # dict: tag -> stat_name -> value
-  all_tag_country_stats = {
-    tag: make_stats(tag_features[tag]) for tag in all_tags
+  # dict: kind -> stat_name -> value
+  all_poi_country_stats = {
+    kind: make_stats(poi_features[kind]) for kind in all_kinds
   }
-  top_tag_country_stats = {
-    tag: make_stats(tag_features[tag]) for tag in top_tags
+  top_poi_country_stats = {
+    kind: make_stats(poi_features[kind]) for kind in top_kinds
   }
 
   # ====================
@@ -201,27 +217,27 @@ if __name__ == "__main__":
   stat_names = ['delta-%pop', 'delta-%edits']
   
   # summary stats
-  groupstat_report(country_all_tag_stats, args.groupcol, stat_names,
-    args.outdir, 'country_all_tag_stats')
+  groupstat_report(country_all_poi_stats, args.groupcol, stat_names,
+    args.outdir, 'country_all_poi_stats')
   
-  groupstat_report(country_top_tag_stats, args.groupcol, stat_names,
-    args.outdir, 'country_top_tag_stats')
+  groupstat_report(country_top_poi_stats, args.groupcol, stat_names,
+    args.outdir, 'country_top_poi_stats')
   
-  groupstat_report(all_tag_country_stats, args.tagcol, stat_names,
-    args.outdir, 'all_tag_country_stats')
+  groupstat_report(all_poi_country_stats, args.poitypecol, stat_names,
+    args.outdir, 'all_poi_country_stats')
   
-  groupstat_report(top_tag_country_stats, args.tagcol, stat_names,
-    args.outdir, 'top_tag_country_stats')
+  groupstat_report(top_poi_country_stats, args.poitypecol, stat_names,
+    args.outdir, 'top_poi_country_stats')
 
-  # boxplots: tag edit activity across countries
+  # boxplots: POI edit activity across countries
   cross_country_stats = {
     stat_name: {
-      'top-tags': [ country_top_tag_stats[group][stat_name] for group in groups ],
-      'all-tags': [ country_all_tag_stats[group][stat_name] for group in groups ]
+      'top-types': [ country_top_poi_stats[group][stat_name] for group in groups ],
+      'all-types': [ country_all_poi_stats[group][stat_name] for group in groups ]
     } for stat_name in stat_names
   }
 
-  boxplot_matrix(cross_country_stats, stat_names, ['top-tags', 'all-tags'], 
+  boxplot_matrix(cross_country_stats, stat_names, ['top-types', 'all-types'], 
     args.outdir, 'country_stat_boxplot')
 
   # ============
@@ -233,25 +249,25 @@ if __name__ == "__main__":
   
   for group in groups:
 
-    # all tags
-    groupstat_report(data[group], args.tagcol, measures, 
-      features_dir, 'all_tags_features_%s' % group)
+    # all kinds
+    groupstat_report(data[group], args.poitypecol, measures, 
+      features_dir, 'all_poi_features_%s' % group)
 
-    groupstat_report(data[group], args.tagcol, aux_measures, 
-      features_dir, 'all_tags_popsize_%s' % group)
+    groupstat_report(data[group], args.poitypecol, aux_measures, 
+      features_dir, 'all_poi_popsize_%s' % group)
 
-    # top tags
-    top_tag_features = {
-      tag: {
-        measure: data[group][tag][measure] for measure in (measures + aux_measures)
-      } for tag in top_tags
+    # top kinds
+    top_poi_features = {
+      kind: {
+        measure: data[group][kind][measure] for measure in (measures + aux_measures)
+      } for kind in top_kinds
     }
 
-    groupstat_report(top_tag_features, args.tagcol, measures, 
-      features_dir, 'top_tags_features_%s' % group)
+    groupstat_report(top_poi_features, args.poitypecol, measures, 
+      features_dir, 'top_poi_features_%s' % group)
 
-    groupstat_report(top_tag_features, args.tagcol, aux_measures, 
-      features_dir, 'top_tags_popsize_%s' % group)
+    groupstat_report(top_poi_features, args.poitypecol, aux_measures, 
+      features_dir, 'top_poi_popsize_%s' % group)
 
   # =================
   # = Scatter plots =
@@ -262,19 +278,19 @@ if __name__ == "__main__":
   mean_size = np.mean(sizemap.values())
   sizemap = { group: min(max(0.5, sizemap[group] / mean_size), 5) for group in groups }
 
-  # dict: tag -> <pop|edits> -> group -> dict of coll/all stats
+  # dict: kind -> <pop|edits> -> group -> dict of coll/all stats
   cross_stats = {
-    tag: {
-      kind: {
+    kind: {
+      variant: {
         group: {
-          'coll': data[group][tag]['%%coll_%s' % kind],
-          'all': data[group][tag]['%%%s' % kind]
+          'coll': data[group][kind]['%%coll_%s' % variant],
+          'all': data[group][kind]['%%%s' % variant]
         } for group in groups
-      } for kind in ['pop', 'edits'] 
-    } for tag in top_tags_scatter
+      } for variant in ['pop', 'edits'] 
+    } for kind in top_kinds_scatter
   }
   
-  multi_scatter_matrix(cross_stats, top_tags_scatter, ['pop', 'edits'], groups,
+  multi_scatter_matrix(cross_stats, top_kinds_scatter, ['pop', 'edits'], groups,
     'all', 'coll',
     args.outdir, 'all_vs_coll_scatter',
     sizemap=sizemap)
