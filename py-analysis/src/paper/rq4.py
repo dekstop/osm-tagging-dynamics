@@ -12,11 +12,58 @@ from collections import defaultdict
 from decimal import Decimal
 import os.path
 
+import matplotlib.pyplot as plt
 import pandas
 from scipy.spatial import distance
 
 from app import *
 from shared import *
+
+# =========
+# = Plots =
+# =========
+
+# data: row -> column -> group -> dict of stats
+# row_keys: list of rows to plot
+# col_keys: list of columns to plot
+# groups: list of groups to plot
+# x_stat: horizontal plot measure
+# y_stat: vertical plot measure
+# outdir:
+# filename_base:
+# scale:
+# colors:
+# size: dot size in points^2
+# sizemap: a map from group name to a [0..1] size multiplier
+#
+# kwargs is passed on to plt.scatter(...).
+def multi_scatter_matrix(data, row_keys, col_keys, groups, x_stat, y_stat, 
+  outdir, filename_base,  scale='linear', colors=QUALITATIVE_MEDIUM, size=20, 
+  sizemap=None, **kwargs):
+  
+  for (col, row, ax1) in plot_matrix(col_keys, row_keys):
+    x = [data[row][col][group][x_stat] for group in groups]
+    y = [data[row][col][group][y_stat] for group in groups]
+
+    s = size
+    if sizemap!=None:
+      s = [sizemap[group] * size for group in groups]
+
+    ax1.scatter(x, y, s=s, edgecolors='none', color=colors[0], **kwargs)
+
+    ax1.margins(0.2, 0.2)
+    ax1.set_xscale(scale)
+    ax1.set_yscale(scale)
+    ax1.get_xaxis().set_ticks([])
+    ax1.get_yaxis().set_ticks([])
+  
+  plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
+  plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+
+  # free memory
+  plt.close() # closes current figure
+  gc.collect()
+
 
 # ========
 # = Main =
@@ -29,6 +76,7 @@ if __name__ == "__main__":
   parser.add_argument('--group-column', help='The column name used for group IDs', dest='groupcol', action='store', default='country')
   parser.add_argument('--tag-column', help='The column name used for tag IDs', dest='tagcol', action='store', default='key')
   parser.add_argument('--num-groups', help='The number of groups to analyse (ranked by size)', dest='num_groups', action='store', type=int, default=None)
+  parser.add_argument('--min-tag-edits', help='The minimum number of edits per tag in each country, tags below this threshold will not be considered', dest='min_tag_edits', action='store', type=int, default=None)
   parser.add_argument('--num-top-tags', help='The number of top tags to analyse (ranked by popularity)', dest='num_top_tags', action='store', type=int, default=20)
   parser.add_argument('--num-top-tags-scatter', help='The number of top tags to show in scatter plots (ranked by popularity)', dest='num_top_tags_scatter', action='store', type=int, default=20)
   args = parser.parse_args()
@@ -65,21 +113,35 @@ if __name__ == "__main__":
   else:
     groups = data.keys()
   
-  print "Found %d groups" % len(groups)
+  print "Found %d groups: %s" % (len(groups), ", ".join(groups))
   print "Computing tag statistics for measures: %s" % ", ".join(measures)
 
   #
   # Most popular tags
   #
+  
   all_tags = sorted({ 
       tag for groupdict in data.values() 
             for tag in groupdict.keys() })
 
+  if args.min_tag_edits:
+    # dict: tag -> num countries below minimum edit threshold
+    low_edit_tags = {
+      tag: sum([
+        1 for group in groups if data[group][tag]['num_edits'] < args.min_tag_edits
+      ]) for tag in all_tags
+    }
+    skip_tags = [ tag for tag in low_edit_tags.keys() if low_edit_tags[tag] > 0 ]
+    print "Ignoring %d tags of %d which fall below minimum edit threshold (%d)" % (len(skip_tags), len(all_tags), args.min_tag_edits)
+    all_tags = [tag for tag in all_tags if tag not in skip_tags]
+    print "Number of remaining tags: %d" % len(all_tags)
+  
+  # dict: tag -> sum of user counts across countries
   all_tag_counts = {
     tag: sum([ data[group][tag]['num_users'] for group in groups ])
-    for tag in all_tags
+      for tag in all_tags
   }
-
+  
   top_tags = top_keys(all_tag_counts, args.num_top_tags, 
     summarise=lambda data,key: data[key])
 
@@ -184,56 +246,49 @@ if __name__ == "__main__":
   
   for group in groups:
 
+    # all tags
     groupstat_report(data[group], args.tagcol, measures, 
       features_dir, 'all_tags_features_%s' % group)
 
+    groupstat_report(data[group], args.tagcol, aux_measures, 
+      features_dir, 'all_tags_popsize_%s' % group)
+
+    # top tags
     top_tag_features = {
       tag: {
-        measure: data[group][tag][measure] for measure in measures
+        measure: data[group][tag][measure] for measure in (measures + aux_measures)
       } for tag in top_tags
     }
 
     groupstat_report(top_tag_features, args.tagcol, measures, 
       features_dir, 'top_tags_features_%s' % group)
 
+    groupstat_report(top_tag_features, args.tagcol, aux_measures, 
+      features_dir, 'top_tags_popsize_%s' % group)
+
   # =================
   # = Scatter plots =
   # =================
 
-  # tag edit activity across countries
-  # dict: <pop|edits> -> group -> <tag-label> -> value
-
-  coll_stats = {
-    kind: {
-      group: {
-        '%s-coll' % tag: data[group][tag]['%%coll_%s' % kind]
-          for tag in top_tags_scatter
-      } for group in groups
-    } for kind in ['pop', 'edits'] 
-  }
-  all_stats = {
-    kind: {
-      group: {
-        '%s-all' % tag: data[group][tag]['%%%s' % kind]
-          for tag in top_tags_scatter
-      } for group in groups
-    } for kind in ['pop', 'edits'] 
-  }
-  
-  coll_keys = ['%s-coll' % tag for tag in top_tags_scatter]
-  all_keys = ['%s-all' % tag for tag in top_tags_scatter]
-  
+  # dict: group -> rel_scale_multiplier
   sizemap = { group: group_size(data, group) for group in groups }
   mean_size = np.mean(sizemap.values())
   sizemap = { group: min(max(0.5, sizemap[group] / mean_size), 5) for group in groups }
 
-  # (this is super memory-hungry!)
-
-  scatter_matrix(coll_stats['pop'], all_stats['pop'], groups, coll_keys, all_keys, 
-    args.outdir, '%pop_coll_vs_all_scatter',
-    sizemap=sizemap)
+  # dict: tag -> <pop|edits> -> group -> dict of coll/all stats
+  cross_stats = {
+    tag: {
+      kind: {
+        group: {
+          'coll': data[group][tag]['%%coll_%s' % kind],
+          'all': data[group][tag]['%%%s' % kind]
+        } for group in groups
+      } for kind in ['pop', 'edits'] 
+    } for tag in top_tags_scatter
+  }
   
-  scatter_matrix(coll_stats['edits'], all_stats['edits'], groups, coll_keys, all_keys, 
-    args.outdir, '%edits_coll_vs_all_scatter',
+  multi_scatter_matrix(cross_stats, top_tags_scatter, ['pop', 'edits'], groups,
+    'all', 'coll',
+    args.outdir, 'all_vs_coll_scatter',
     sizemap=sizemap)
   
