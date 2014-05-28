@@ -136,9 +136,6 @@ if __name__ == "__main__":
     all_kinds = [kind for kind in all_kinds if kind not in skip_kinds]
     print "Number of remaining POI types: %d" % len(all_kinds)
   
-  import sys
-  sys.exit(0)
-  
   # dict: kind -> sum of user counts across countries
   all_counts = {
     kind: sum([ data[group][kind]['num_users'] for group in groups ])
