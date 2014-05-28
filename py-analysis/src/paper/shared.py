@@ -138,9 +138,7 @@ def boxplot_matrix(data, rows, columns, outdir, filename_base, min_values=5,
       ax1.set_axis_bgcolor('#eeeeee')
       plt.setp(ax1.spines.values(), color='none')
     else:
-      mean = np.mean(values)
-      norm_values = [v / mean for v in values]
-      ax1.boxplot(norm_values, **kwargs)
+      ax1.boxplot(values, **kwargs)
       
       if show_minmax:
         w = 0.1
