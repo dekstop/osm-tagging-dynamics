@@ -138,7 +138,6 @@ if __name__ == "__main__":
       rec['pop'] = len([v for v in values if v>0])
       rec['edits'] = sum(values)
       rec['gini'] = gini(values)
-      rec['palma'] = palma(values)
       rec['top10%'] = ranked_percentile_share(values, Decimal(10), top=True)
       
       stats[cohort][group] = rec
@@ -154,7 +153,7 @@ if __name__ == "__main__":
     rec['%pop'] = stats['coll_edits'][group]['pop'] / Decimal(stats['edits'][group]['pop'])
     rec['%edits'] = stats['coll_edits'][group]['edits'] / Decimal(stats['edits'][group]['edits'])
 
-    for stat_name in ['gini', 'palma', 'top10%']:
+    for stat_name in ['gini', 'top10%']:
       rec[stat_name] = stats['coll_edits'][group][stat_name]
 
     coll_stats[group] = rec
@@ -181,7 +180,7 @@ if __name__ == "__main__":
   # Summary stats per metric
   #
   
-  stat_names = ['pop', 'edits', 'gini', 'palma', 'top10%']
+  stat_names = ['pop', 'edits', 'gini', 'top10%']
 
   for cohort in cohorts:
     groupstat_report(stats[cohort], groupcol, stat_names,
@@ -194,7 +193,7 @@ if __name__ == "__main__":
   # Collab stats
   #
 
-  coll_stat_names = ['%pop', '%edits', 'gini', 'palma', 'top10%']
+  coll_stat_names = ['%pop', '%edits', 'gini', 'top10%']
 
   groupstat_report(coll_stats, groupcol, coll_stat_names,
     args.outdir, 'coll_stats')
