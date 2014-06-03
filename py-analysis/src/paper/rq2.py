@@ -44,9 +44,9 @@ if __name__ == "__main__":
   # segments = [10**p for p in range(4)]
   thresholds = zip([None] + segments, segments + [None])
   threshold_label = lambda n1, n2: \
-    '%d<n<=%d' % (n1, n2) if (n1 and n2) else \
-    'n>%s' % n1 if (not n2) else \
-    'n=%d' % n2
+    '%d<e<=%d' % (n1, n2) if (n1 and n2) else \
+    'e>%s' % n1 if (not n2) else \
+    'e=%d' % n2
   threshold_labels = [threshold_label(min1, max1) for (min1, max1) in thresholds]
 
   measures = ['num_coll_edits']
@@ -132,29 +132,29 @@ if __name__ == "__main__":
       total_edits = Decimal(group_stats[group]['edits'])
 
       values = pop[group][label]['num_coll_edits']
-      stats['%pop'][group][label] = len([v for v in values if v>0]) / total_users
-      stats['%edits'][group][label] = sum(values) / total_edits
+      stats['P_coll'][group][label] = len([v for v in values if v>0]) / total_users
+      stats['W_coll'][group][label] = sum(values) / total_edits
 
   #
   # Segment variances across groups
   #
   
-  stat_names = ['%pop', '%edits']
+  stat_names = ['P_coll', 'W_coll']
   
   # dict: segment -> stat -> list of values
   seg_stats = { 
-    label: { 
-      stat_name: 
+    stat_name: {
+      label: 
         [float(stats[stat_name][group][label]) for group in groups] 
-      for stat_name in stat_names 
-    } for label in threshold_labels 
+      for label in threshold_labels 
+    } for stat_name in stat_names 
   }
   
   # dict: stat -> segment -> value
   cov_seg_stats = { 
     stat_name: { 
       label: 
-        np.std(seg_stats[label][stat_name]) / np.mean(seg_stats[label][stat_name]) 
+        np.std(seg_stats[stat_name][label]) / np.mean(seg_stats[stat_name][label]) 
       for label in threshold_labels 
     } for stat_name in stat_names 
   }
@@ -181,7 +181,7 @@ if __name__ == "__main__":
       args.outdir, 'stats_%s' % stat_name,
       xgroups=[threshold_labels])
   
-  boxplot_matrix(seg_stats, threshold_labels, stat_names, 
+  boxplot_matrix(seg_stats, stat_names, threshold_labels,
     args.outdir, 'boxplots')
 
   groupstat_report(cov_seg_stats, 'CoV(x)', threshold_labels,
