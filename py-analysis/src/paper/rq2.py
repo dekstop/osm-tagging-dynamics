@@ -143,20 +143,20 @@ if __name__ == "__main__":
   
   # dict: segment -> stat -> list of values
   seg_stats = { 
-    label: { 
-      stat_name: 
+    stat_name: { 
+      label: 
         [float(stats[stat_name][group][label]) for group in groups] 
-      for stat_name in stat_names 
-    } for label in threshold_labels 
+      for label in threshold_labels 
+    } for stat_name in stat_names 
   }
   
   # dict: stat -> segment -> value
   cov_seg_stats = { 
-    stat_name: { 
-      label: 
-        np.std(seg_stats[label][stat_name]) / np.mean(seg_stats[label][stat_name]) 
-      for label in threshold_labels 
-    } for stat_name in stat_names 
+    label: { 
+      stat_name: 
+        np.std(seg_stats[stat_name][label]) / np.mean(seg_stats[stat_name][label]) 
+      for stat_name in stat_names 
+    } for label in threshold_labels 
   }
   
   # ====================
@@ -181,17 +181,12 @@ if __name__ == "__main__":
       args.outdir, 'stats_%s' % stat_name,
       xgroups=[threshold_labels])
   
-  boxplot_matrix(seg_stats, threshold_labels, stat_names, 
+  boxplot_matrix(seg_stats, stat_names, threshold_labels, 
     args.outdir, 'boxplots')
 
-  groupstat_report(cov_seg_stats, 'CoV(x)', threshold_labels,
+  groupstat_report(cov_seg_stats, 'CoV(x)', stat_names,
     args.outdir, 'cov')
-  # groupstat_report(cov_seg_stats, 'segment', stat_names,
-  #   args.outdir, 'cov')
   
-  groupstat_plot(cov_seg_stats, stat_names, threshold_labels, 
-    args.outdir, 'cov', 
-    xgroups=[threshold_labels])
-  # groupstat_plot(cov_seg_stats, threshold_labels, stat_names, 
-  #   args.outdir, 'cov')
+  groupstat_plot(cov_seg_stats, threshold_labels, stat_names, 
+    args.outdir, 'cov')
 
