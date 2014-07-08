@@ -12,3 +12,4 @@ pig_*.log
 py-analysis/env/
 py-analysis/config/*.cfg
 !py-analysis/config/development.cfg
+py-analysis/var/test.db
