@@ -184,14 +184,9 @@ if __name__ == "__main__":
   boxplot_matrix(seg_stats, stat_names, threshold_labels,
     args.outdir, 'boxplots')
 
-  groupstat_report(cov_seg_stats, 'CoV(x)', threshold_labels,
+  groupstat_report(cov_seg_stats, 'CoV(x)', stat_names,
     args.outdir, 'cov')
-  # groupstat_report(cov_seg_stats, 'segment', stat_names,
-  #   args.outdir, 'cov')
   
-  groupstat_plot(cov_seg_stats, stat_names, threshold_labels, 
-    args.outdir, 'cov', 
-    xgroups=[threshold_labels])
-  # groupstat_plot(cov_seg_stats, threshold_labels, stat_names, 
-  #   args.outdir, 'cov')
+  groupstat_plot(cov_seg_stats, threshold_labels, stat_names, 
+    args.outdir, 'cov')
 
