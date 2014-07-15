@@ -26,15 +26,19 @@ from app import *
 # groups: list of groups to plot
 # datecol: column name with date values
 # measures: list of metrics
+# marker_date: a date value
 # outdir:
 # filename_base:
 #
 # kwargs is passed on to plt.scatter(...).
-def ts_plot(data, groups, datecol, measures, outdir, filename_base,
+def ts_plot(data, groups, datecol, measures, marker_date, outdir, filename_base,
   **kwargs):
   
   for (measure, group, ax1) in plot_matrix(measures, groups, cellwidth=10, 
     cellheight=2, hspace=0.4, wspace=0.1, shared_xscale=True):
+
+    if marker_date:
+      ax1.axvline(datestr2num(marker_date), color='red')
 
     x = [datestr2num(d) for d in data.ix[group][datecol]]
     y = data.ix[group][measure]
@@ -64,6 +68,7 @@ if __name__ == "__main__":
     description='Time series plots across multiple streams.')
   parser.add_argument('tsv', help='Input TSV file. The first column is taken as group identifier, the second as date column, the remaining columns as measures.')
   parser.add_argument('outdir', help='Directory for output files')
+  parser.add_argument('--marker', help='Marker position (a date string), e.g. to highlight events', dest='marker', action='store', type=str, default=None)
   
   args = parser.parse_args()
 
@@ -79,6 +84,8 @@ if __name__ == "__main__":
   metrics = data.keys()[1:]
 
   print "Number of groups: %d" % len(groups)
+  if args.marker:
+    print "Marker at: %s" % args.marker
   
   #
   # Plots.
@@ -86,6 +93,6 @@ if __name__ == "__main__":
   mkdir_p(args.outdir)
   filename_base = os.path.splitext(os.path.basename(args.tsv))[0]
   
-  ts_plot(data, groups, datecol, metrics, 
+  ts_plot(data, groups, datecol, metrics, args.marker,
     args.outdir, filename_base)
   
