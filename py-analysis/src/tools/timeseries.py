@@ -8,16 +8,24 @@ import matplotlib
 matplotlib.use('Agg')
 
 import argparse
+import datetime
+import dateutil.parser
 import decimal
 import gc
 import os
 
-from matplotlib.dates import datestr2num
 from matplotlib.pyplot import cm
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from app import *
+
+# =========
+# = Tools =
+# =========
+
+def datestr2num(d):
+  return dateutil.parser.parse(d, default=datetime.datetime(2000, 1, 1, 0, 0, 0, 0))
 
 # =========
 # = Plots =
@@ -42,6 +50,8 @@ def ts_plot(data, groups, datecol, measures, marker_date, bar_from_date, bar_to_
 
   draw_bar = lambda ax, X, extent: ax.imshow(X, vmin=0, vmax=1, aspect='auto', interpolation='bicubic', cmap=cm.Blues, alpha=0.4, extent=extent)
 
+  has_data = False
+
   for (measure, group, ax1) in plot_matrix(measures, groups, cellwidth=10, 
     cellheight=2, hspace=0.4, wspace=0.1, shared_xscale=True):
 
@@ -51,31 +61,37 @@ def ts_plot(data, groups, datecol, measures, marker_date, bar_from_date, bar_to_
     min_bar_y = max_value + bar_step
     max_bar_y = max_value + 2 * bar_step
 
+    if min_value!=None:
 
-    #ax1.axvspan(datestr2num(bar_from_date), datestr2num(bar_to_date), color='blue', alpha=0.2)
-    if bar_from_date and bar_to_date:
-      extent = (datestr2num(bar_from_date), datestr2num(bar_to_date), min_bar_y, max_bar_y)
-      draw_bar(ax1, [[1, 1], [1, 1]], extent)
-    elif bar_from_date:
-      extent = (datestr2num(bar_from_date), datestr2num(last_date), min_bar_y, max_bar_y)
-      draw_bar(ax1, [[1, 0], [1, 0]], extent)
-    elif bar_to_date:
-      extent = (datestr2num(first_date), datestr2num(bar_to_date), min_bar_y, max_bar_y)
-      draw_bar(ax1, [[0, 1], [0, 1]], extent)
+      has_data = True
 
-    if marker_date:
-      ax1.axvline(datestr2num(marker_date), color=QUALITATIVE_DARK[2])
-
-    x = [datestr2num(d) for d in data.ix[group][datecol]]
-    y = data.ix[group][measure]
-
-    ax1.plot(x, y, color=QUALITATIVE_DARK[1], **kwargs)
+      #ax1.axvspan(datestr2num(bar_from_date), datestr2num(bar_to_date), color='blue', alpha=0.2)
+      if bar_from_date and bar_to_date:
+        extent = (datestr2num(bar_from_date), datestr2num(bar_to_date), min_bar_y, max_bar_y)
+        draw_bar(ax1, [[1, 1], [1, 1]], extent)
+      elif bar_from_date:
+        extent = (datestr2num(bar_from_date), datestr2num(last_date), min_bar_y, max_bar_y)
+        draw_bar(ax1, [[1, 0], [1, 0]], extent)
+      elif bar_to_date:
+        extent = (datestr2num(first_date), datestr2num(bar_to_date), min_bar_y, max_bar_y)
+        draw_bar(ax1, [[0, 1], [0, 1]], extent)
+  
+      if marker_date:
+        ax1.axvline(datestr2num(marker_date), color=QUALITATIVE_DARK[2])
+  
+      x = [datestr2num(d) for d in data.ix[group][datecol]]
+      y = data.ix[group][measure]
+  
+      ax1.plot(x, y, color=QUALITATIVE_DARK[1], **kwargs)
 
     ax1.xaxis_date()
     # ax1.margins(0.2, 0.2)
   
-  plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
-  plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+  if has_data:
+    plt.savefig("%s/%s.pdf" % (outdir, filename_base), bbox_inches='tight')
+    plt.savefig("%s/%s.png" % (outdir, filename_base), bbox_inches='tight')
+  else:
+    print "No data to plot, skipping."
 
   # free memory
   plt.close() # closes current figure
