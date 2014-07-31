@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
+import numpy
 
 # ==================
 # = Plotting tools =
@@ -88,13 +89,14 @@ def autoscale_axes_ylim(axes):
 # - shared_xscale: maintain x-axis range along cells in the same column?
 # - xgroups: a nested list of column names, this can be used to link related columns that should have the same x-axis range: ['a', 'b', ['c', 'd']]
 # - shared_xscale: maintain y-axis range along cells in the same row?
+# - autofmt_xdate: call fig.autofmt_xdate() after plotting?
 # 
 # The tuple yielded per cell contains the values:
 # - col: the column name for this cell
 # - row: the row name
 # - ax1: a matplotlib subplot handle
 def plot_matrix(columns, rows, cellwidth=3, cellheight=3, shared_xscale=False, 
-  xgroups=None, shared_yscale=False, hspace=0.2, wspace=0.2):
+  xgroups=None, shared_yscale=False, hspace=0.2, wspace=0.2, autofmt_xdate=False):
   
   ncols = len(columns)
   nrows = len(rows)
@@ -128,9 +130,12 @@ def plot_matrix(columns, rows, cellwidth=3, cellheight=3, shared_xscale=False,
     if xgroups==None:
       xgroups = columns
     for xgroup in xgroups:
-      if isinstance(xgroup, list):
+      if isinstance(xgroup, list) or isinstance(xgroup, numpy.ndarray):
         group_axes = [axes[row][col] for row in axes.keys() for col in xgroup]
         autoscale_axes_xlim(group_axes)
       else:
         group_axes = [axes[row][xgroup] for row in axes.keys()]
         autoscale_axes_xlim(group_axes)
+  
+  if autofmt_xdate:
+    fig.autofmt_xdate()
