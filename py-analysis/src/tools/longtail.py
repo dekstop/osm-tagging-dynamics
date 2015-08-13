@@ -106,7 +106,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Compute long-tail distribution metrics: coefficients, goodness of fit.')
   parser.add_argument('tsv', help='Input TSV file. The first column is taken as group identifier, the remaining columns as measures.')
   parser.add_argument('outdir', help='Directory for output files')
-  parser.add_argument('--discrete', help='Treat values as discrete numbers', dest='discrete', action='store', type=bool, default=False)
+  parser.add_argument('--discrete', help='Treat values as discrete numbers', dest='discrete', action='store_true', default=False)
   args = parser.parse_args()
 
   #
